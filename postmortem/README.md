@@ -10,6 +10,7 @@ Interface web Flask pour la gestion et visualisation des post-mortems d'incident
 
 ### Installation et Démarrage
 
+**Linux/macOS :**
 ```bash
 # Se déplacer dans le répertoire
 cd postmortem
@@ -19,6 +20,15 @@ chmod +x start_postmortem.sh
 
 # Démarrer l'application
 ./start_postmortem.sh
+```
+
+**Windows :**
+```powershell
+# Se déplacer dans le répertoire
+cd postmortem
+
+# Démarrer l'application
+.\start_postmortem.ps1
 ```
 
 L'interface sera accessible sur : **http://localhost:5000**
