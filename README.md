@@ -35,6 +35,8 @@ SRE/
 │   ├── logs/                      # Logs simulés sur 30 jours
 │   ├── metrics/                   # Métriques simulées
 │   └── traces/                    # Traces simulées
+├── exercises/
+│   └── README.md                  # Exercices détaillés du lab SRE
 ├── simulator/
 │   └── traffic_generator.py       # Génère le trafic simulé
 ├── ingest/
@@ -49,6 +51,15 @@ SRE/
 │   ├── slo_config.json            # Définition des SLOs
 │   ├── burn_rate_calc.py          # Calcul du burn rate
 │   └── error_budget_tracker.py    # Suivi de l'error budget
+├── start_lab.sh                   # Script de démarrage automatique
+├── start_lab.ps1                  # Script de démarrage (PowerShell)
+├── validate_lab.sh                # Script de validation
+├── validate_lab.ps1               # Script de validation (PowerShell)
+├── test_lab.py                    # Tests automatisés du lab
+├── otel-collector-config.yml      # Configuration OpenTelemetry
+├── requirements.txt               # Dépendances Python
+├── PREREQUIS.md                   # Guide d'installation
+├── QUICKSTART.md                  # Guide de démarrage rapide
 └── README.md                      # Ce fichier
 ```
 
@@ -64,7 +75,7 @@ SRE/
 
 ## Installation des Prérequis
 
-> **📋 Guide Complet :** [PREREQUIS.md](PREREQUIS.md) - Installation détaillée pour Windows, macOS et Linux
+> **[Guide Complet]** [PREREQUIS.md](PREREQUIS.md) - Installation détaillée pour Windows, macOS et Linux
 
 ### Installation Rapide
 
@@ -136,91 +147,16 @@ docker --version && kind --version && kubectl version --client && python --versi
 
 ## Exercices
 
-### Exercice 1 : Déploiement et Observabilité
+> **[Exercices Détaillés]** [exercises/README.md](exercises/README.md) - Guide complet des exercices SRE avec objectifs, étapes et livrables
 
-**Objectif :** Déployer l'environnement et vérifier la visibilité des données.
+Les exercices sont organisés par difficulté croissante et couvrent tous les aspects du SRE :
 
-**Étapes :**
-1. Déployer le cluster KinD et les composants
-2. Vérifier que le service URL Shortener fonctionne
-3. Accéder à Splunk et configurer les dashboards
-4. Vérifier la collecte des logs, métriques et traces
-
-**Livrables :**
-- Cluster opérationnel
-- Dashboards Splunk avec les "golden signals"
-
-### Exercice 2 : Définition et Implémentation des SLIs/SLOs
-
-**Objectif :** Identifier les SLIs pertinents et définir les SLOs.
-
-**Étapes :**
-1. Analyser les métriques disponibles
-2. Identifier les SLIs critiques (latence, erreurs, trafic)
-3. Définir les SLOs dans `sre/slo_config.json`
-4. Documenter les SLIs et leur calcul
-
-**Livrables :**
-- Fichier de configuration des SLOs
-- Documentation des SLIs
-
-### Exercice 3 : Simulation d'Incident et Collaboration
-
-**Objectif :** Déclencher un incident et identifier les "toils".
-
-**Étapes :**
-1. Déclencher un incident (vague 1) sans automatisation
-2. Diagnostiquer et réparer manuellement
-3. Rédiger un post-mortem collaboratif
-4. Identifier les tâches manuelles répétitives (toil)
-5. Implémenter des automatisations via `automation/toil_reduction.sh`
-6. Déclencher une deuxième vague d'incident
-7. Comparer les temps de résolution
-
-**Livrables :**
-- Post-mortem collaboratif
-- Scripts d'automatisation
-- Comparaison des performances
-
-### Exercice 4 : Error Budget et Burn Rate
-
-**Objectif :** Utiliser les SLOs pour calculer l'error budget et le burn rate.
-
-**Étapes :**
-1. Utiliser `sre/burn_rate_calc.py` pour calculer le burn rate
-2. Configurer des alertes basées sur le burn rate
-3. Analyser l'impact des incidents sur l'error budget
-4. Implémenter des seuils d'alerte appropriés
-
-**Livrables :**
-- Script fonctionnel de calcul du burn rate
-- Alertes Splunk configurées
-
-### Exercice 5 : Automatisation pour Réduire le Toil
-
-**Objectif :** Implémenter des automatisations pour réduire les tâches manuelles.
-
-**Étapes :**
-1. Analyser le post-mortem de l'Exercice 3
-2. Identifier les tâches manuelles répétitives
-3. Développer des scripts d'automatisation
-4. Tester l'efficacité des automatisations
-5. Mesurer la réduction du temps de résolution
-
-**Livrables :**
-- Scripts d'automatisation améliorés
-- Métriques de réduction du toil
-
-### Bonus : Mode Chaos
-
-**Objectif :** Étendre les simulations d'incidents avec des pannes variées.
-
-**Étapes :**
-1. Étendre `incident/trigger_failure.sh` avec de nouveaux types de pannes
-2. Implémenter des pannes de latence extrême
-3. Ajouter des simulations de crash de pods
-4. Créer des scénarios de perte réseau
-5. Tester la robustesse des automatisations
+- **Exercice 1** : Déploiement et Observabilité (⭐⭐)
+- **Exercice 2** : Définition des SLIs/SLOs (⭐⭐⭐)  
+- **Exercice 3** : Simulation d'Incident et Collaboration (⭐⭐⭐⭐)
+- **Exercice 4** : Error Budget et Burn Rate (⭐⭐⭐)
+- **Exercice 5** : Automatisation pour Réduire le Toil (⭐⭐⭐⭐)
+- **Bonus** : Mode Chaos (⭐⭐⭐⭐⭐)
 
 ## Scripts et Outils
 
@@ -278,7 +214,7 @@ cd automation
 ./toil_reduction.sh continuous # Surveillance continue
 ```
 
-## 📊 Monitoring et Alertes
+## Monitoring et Alertes
 
 ### Métriques Disponibles
 
@@ -383,7 +319,7 @@ docker-compose logs splunk -f
 - [Splunk Documentation](https://docs.splunk.com/)
 - [Prometheus](https://prometheus.io/docs/)
 
-## 🤝 Contribution
+## Contribution
 
 1. Fork le projet
 2. Créez une branche feature
@@ -391,15 +327,15 @@ docker-compose logs splunk -f
 4. Poussez vers la branche
 5. Ouvrez une Pull Request
 
-## 📄 Licence
+## Licence
 
 Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
-## 👥 Auteurs
+## Auteurs
 
 - **Fabio** - *Créateur du lab SRE*
 
-## 🙏 Remerciements
+## Remerciements
 
 - Équipe Google SRE pour l'inspiration
 - Communauté OpenTelemetry
