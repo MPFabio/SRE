@@ -374,7 +374,7 @@ docker-compose logs splunk -f
 
 - [Google SRE Book](https://sre.google/sre-book/table-of-contents/)
 - [SRE Workbook](https://sre.google/workbook/table-of-contents/)
-- [SLO Engineering](https://sre.google/sre-book/sli-slo/)
+- [SLO Engineering](https://sre.google/sre-book/implementing-slos/)
 
 ### Outils et Technologies
 
