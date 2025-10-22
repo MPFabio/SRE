@@ -141,9 +141,18 @@ docker --version && kind --version && kubectl version --client && python --versi
 
 ### Accès aux Services
 
-- **URL Shortener :** http://localhost:30000
+- **URL Shortener (API) :** http://localhost:30000
+  - Interface web : http://localhost:30000
+  - API REST : http://localhost:30000/shorten
+  - Santé : http://localhost:30000/health
+  - Métriques : http://localhost:30000/metrics
 - **Splunk :** http://localhost:8000 (admin/admin123)
+  - Interface web : http://localhost:8000
+  - HEC : http://localhost:9997
 - **OpenTelemetry Collector :** http://localhost:8889/metrics
+  - Métriques : http://localhost:8889/metrics
+  - OTLP gRPC : localhost:4317
+  - OTLP HTTP : localhost:4318
 
 ## Exercices
 

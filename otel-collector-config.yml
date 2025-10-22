@@ -31,6 +31,9 @@ exporters:
   logging:
     loglevel: debug
 
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+
 service:
   pipelines:
     traces:
@@ -41,4 +44,4 @@ service:
     metrics:
       receivers: [otlp, prometheus]
       processors: [memory_limiter, batch]
-      exporters: [debug, logging]
+      exporters: [debug, logging, prometheus]
