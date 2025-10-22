@@ -45,6 +45,12 @@ SRE/
 │   ├── trigger_failure.sh         # Script pour provoquer des pannes
 │   ├── fix_failure.sh             # Script pour réparer les pannes
 │   └── postmortem_template.md     # Template pour le post-mortem
+├── postmortem/
+│   ├── app.py                     # Application Flask pour les post-mortems
+│   ├── templates/                 # Templates HTML pour l'interface web
+│   ├── data/postmortems/          # Données des post-mortems (JSON)
+│   ├── requirements.txt           # Dépendances Python Flask
+│   └── start_postmortem.sh        # Script de démarrage de l'interface
 ├── automation/
 │   └── toil_reduction.sh          # Scripts d'automatisation
 ├── sre/
@@ -154,6 +160,9 @@ docker --version && kind --version && kubectl version --client && python --versi
 - **OpenTelemetry Collector :** http://localhost:8889/metrics
   - Métriques Prometheus
   - OTLP : gRPC (4317), HTTP (4318)
+- **Post-Mortems Interface :** http://localhost:5000
+  - Interface web Flask pour les post-mortems
+  - Gestion et visualisation des incidents
 
 
 ## Exercices
@@ -200,8 +209,17 @@ cd incident
 cd incident
 ./fix_failure.sh              # Menu interactif
 ./fix_failure.sh pods         # Restaurer les pods
-./fix_failure.sh cleanup      # Nettoyage complet
+./fix_failure.sh cleanup        # Nettoyage complet
 ```
+
+### Interface Post-Mortems
+
+```bash
+cd postmortem
+./start_postmortem.sh         # Démarrer l'interface web
+```
+
+Accès à l'interface : http://localhost:5000
 
 ### Calcul du Burn Rate
 

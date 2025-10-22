@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+
+{% block title %}Créer un Post-Mortem - SRE{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-4 mb-4">
+                <i class="fas fa-plus-circle text-primary me-3"></i>
+                Créer un Nouveau Post-Mortem
+            </h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle me-2"></i>Formulaire de Création</h5>
+                </div>
+                <div class="card-body">
+                    <form id="postmortemForm">
+                        <!-- Métadonnées -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">Métadonnées</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="title" class="form-label">Titre de l'incident *</label>
+                                <input type="text" class="form-control" id="title" name="title" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="owner" class="form-label">Owner *</label>
+                                <input type="text" class="form-control" id="owner" name="owner" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="shared_with" class="form-label">Shared with</label>
+                                <input type="text" class="form-control" id="shared_with" name="shared_with">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Status *</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="Brouillon">Brouillon</option>
+                                    <option value="En cours de révision">En cours de révision</option>
+                                    <option value="Final">Final</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="incident_date" class="form-label">Incident date *</label>
+                                <input type="datetime-local" class="form-control" id="incident_date" name="incident_date" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="published" class="form-label">Published</label>
+                                <input type="date" class="form-control" id="published" name="published">
+                            </div>
+                        </div>
+
+                        <!-- Executive Summary -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">Executive Summary</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="impact" class="form-label">Impact *</label>
+                                <textarea class="form-control" id="impact" name="impact" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="root_cause" class="form-label">Root Cause *</label>
+                                <textarea class="form-control" id="root_cause" name="root_cause" rows="3" required></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Problem Summary -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">Problem Summary</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="duration" class="form-label">Duration of problem *</label>
+                                <input type="text" class="form-control" id="duration" name="duration" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="start_time" class="form-label">Start time *</label>
+                                <input type="datetime-local" class="form-control" id="start_time" name="start_time" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="end_time" class="form-label">End time *</label>
+                                <input type="datetime-local" class="form-control" id="end_time" name="end_time" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="products_affected" class="form-label">Products affected *</label>
+                                <input type="text" class="form-control" id="products_affected" name="products_affected" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="percentage_affected" class="form-label">% of product affected *</label>
+                                <input type="text" class="form-control" id="percentage_affected" name="percentage_affected" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="user_impact" class="form-label">User impact *</label>
+                                <textarea class="form-control" id="user_impact" name="user_impact" rows="2" required></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="revenue_impact" class="form-label">Revenue impact *</label>
+                                <textarea class="form-control" id="revenue_impact" name="revenue_impact" rows="2" required></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="detection" class="form-label">Detection *</label>
+                                <input type="text" class="form-control" id="detection" name="detection" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="resolution" class="form-label">Resolution *</label>
+                                <textarea class="form-control" id="resolution" name="resolution" rows="2" required></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Impact Details -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">Impact Details</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="user_impact_description" class="form-label">User Impact Description *</label>
+                                <textarea class="form-control" id="user_impact_description" name="user_impact_description" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="requests_lost" class="form-label">Requests lost</label>
+                                <input type="text" class="form-control" id="requests_lost" name="requests_lost">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="data_source" class="form-label">Data source</label>
+                                <input type="text" class="form-control" id="data_source" name="data_source">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="additional_symptoms" class="form-label">Additional symptoms</label>
+                                <textarea class="form-control" id="additional_symptoms" name="additional_symptoms" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Root Causes -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">Root Causes and Trigger</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="technical_cause" class="form-label">Technical cause *</label>
+                                <textarea class="form-control" id="technical_cause" name="technical_cause" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="trigger" class="form-label">Trigger *</label>
+                                <textarea class="form-control" id="trigger" name="trigger" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="system_reaction" class="form-label">System reaction *</label>
+                                <textarea class="form-control" id="system_reaction" name="system_reaction" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="non_idempotent_operation" class="form-label">Non-idempotent operation</label>
+                                <textarea class="form-control" id="non_idempotent_operation" name="non_idempotent_operation" rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Timeline -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">Timeline / Recovery Efforts</h6>
+                                <p class="text-muted">Ajoutez les événements de la timeline (format: HH:MM - Description)</p>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="timeline" class="form-label">Timeline Events</label>
+                                <textarea class="form-control" id="timeline" name="timeline" rows="5" 
+                                    placeholder="Exemple:&#10;14:30 - Incident détecté par monitoring&#10;14:35 - Équipe d'urgence mobilisée&#10;15:00 - Mitigation mise en place"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Lessons Learned -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">Lessons Learned</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="things_that_went_well" class="form-label">Things that went well</label>
+                                <textarea class="form-control" id="things_that_went_well" name="things_that_went_well" rows="4" 
+                                    placeholder="Une chose par ligne"></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="things_that_went_poorly" class="form-label">Things that went poorly</label>
+                                <textarea class="form-control" id="things_that_went_poorly" name="things_that_went_poorly" rows="4" 
+                                    placeholder="Une chose par ligne"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Action Items -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">Action Items</h6>
+                                <p class="text-muted">Ajoutez les actions à entreprendre (une par ligne, format: Description | Type | Priority | Owner | Tracking Bug)</p>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="action_items" class="form-label">Action Items</label>
+                                <textarea class="form-control" id="action_items" name="action_items" rows="5" 
+                                    placeholder="Exemple:&#10;Implémenter monitoring sur le service X | prevent | P1 | Équipe SRE | BUG-123&#10;Documenter la procédure de rollback | remediate | P2 | Équipe DevOps | BUG-124"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Glossary -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">Glossary</h6>
+                                <p class="text-muted">Ajoutez les termes techniques (format: Terme | Définition)</p>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="glossary" class="form-label">Glossary</label>
+                                <textarea class="form-control" id="glossary" name="glossary" rows="4" 
+                                    placeholder="Exemple:&#10;HEC | HTTP Event Collector de Splunk&#10;OTLP | OpenTelemetry Protocol"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Appendix -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">Appendix</h6>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="appendix" class="form-label">Appendix</label>
+                                <textarea class="form-control" id="appendix" name="appendix" rows="4" 
+                                    placeholder="Informations complémentaires, données chiffrées, journaux, visualisations..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Boutons -->
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="fas fa-save me-2"></i>Créer le Post-Mortem
+                                </button>
+                                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-2"></i>Annuler
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('postmortemForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {};
+    
+    // Collecter les données du formulaire
+    for (let [key, value] of formData.entries()) {
+        data[key] = value;
+    }
+    
+    // Traiter les données spéciales
+    if (data.timeline) {
+        data.timeline = data.timeline.split('\n').filter(line => line.trim()).map(line => {
+            const [time, ...descriptionParts] = line.split(' - ');
+            return {
+                time: time.trim(),
+                title: 'Événement',
+                description: descriptionParts.join(' - ').trim()
+            };
+        });
+    }
+    
+    if (data.things_that_went_well) {
+        data.things_that_went_well = data.things_that_went_well.split('\n').filter(line => line.trim());
+    }
+    
+    if (data.things_that_went_poorly) {
+        data.things_that_went_poorly = data.things_that_went_poorly.split('\n').filter(line => line.trim());
+    }
+    
+    if (data.action_items) {
+        data.action_items = data.action_items.split('\n').filter(line => line.trim()).map(line => {
+            const parts = line.split(' | ');
+            return {
+                description: parts[0] || '',
+                type: parts[1] || '',
+                priority: parts[2] || '',
+                owner: parts[3] || '',
+                tracking_bug: parts[4] || ''
+            };
+        });
+    }
+    
+    if (data.glossary) {
+        const glossary = {};
+        data.glossary.split('\n').filter(line => line.trim()).forEach(line => {
+            const [term, definition] = line.split(' | ');
+            if (term && definition) {
+                glossary[term.trim()] = definition.trim();
+            }
+        });
+        data.glossary = glossary;
+    }
+    
+    // Structurer les données selon le format attendu
+    const structuredData = {
+        title: data.title,
+        owner: data.owner,
+        shared_with: data.shared_with || '',
+        status: data.status,
+        incident_date: data.incident_date,
+        published: data.published || '',
+        executive_summary: {
+            impact: data.impact,
+            root_cause: data.root_cause
+        },
+        problem_summary: {
+            duration: data.duration,
+            start_time: data.start_time,
+            end_time: data.end_time,
+            products_affected: data.products_affected,
+            percentage_affected: data.percentage_affected,
+            user_impact: data.user_impact,
+            revenue_impact: data.revenue_impact,
+            detection: data.detection,
+            resolution: data.resolution
+        },
+        impact: {
+            user_impact: {
+                description: data.user_impact_description,
+                requests_lost: data.requests_lost || '',
+                data_source: data.data_source || '',
+                additional_symptoms: data.additional_symptoms || ''
+            },
+            revenue_impact: {
+                description: data.revenue_impact,
+                period: '',
+                uncertainty: '',
+                indirect_impacts: ''
+            },
+            team_impact: {
+                description: '',
+                customer_support: '',
+                engineering_teams: '',
+                secondary_effects: ''
+            }
+        },
+        root_causes: {
+            technical_cause: data.technical_cause,
+            trigger: data.trigger,
+            system_reaction: data.system_reaction,
+            non_idempotent_operation: data.non_idempotent_operation || '',
+            missing_protections: '',
+            late_detection: '',
+            incident_manifestation: ''
+        },
+        timeline: data.timeline || [],
+        lessons_learned: {
+            things_that_went_well: data.things_that_went_well || [],
+            things_that_went_poorly: {
+                outage: data.things_that_went_poorly || [],
+                recovery: []
+            },
+            where_we_got_lucky: []
+        },
+        action_items: data.action_items || [],
+        glossary: data.glossary || {},
+        appendix: data.appendix || ''
+    };
+    
+    try {
+        const response = await fetch('/api/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(structuredData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Post-mortem créé avec succès !');
+            window.location.href = `/postmortem/${result.id}`;
+        } else {
+            alert('Erreur lors de la création: ' + result.error);
+        }
+    } catch (error) {
+        alert('Erreur lors de la création: ' + error.message);
+    }
+});
+</script>
+{% endblock %}

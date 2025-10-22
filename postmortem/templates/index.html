@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Liste des Post-Mortems - SRE{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 text-center mb-3">
+                <i class="fas fa-clipboard-list text-primary me-3"></i>
+                Post-Mortems SRE
+            </h1>
+            <p class="lead text-center text-muted">
+                Gestion et visualisation des post-mortems d'incidents
+            </p>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ postmortems|length }}</h3>
+                    <p class="text-muted">Total Post-Mortems</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success">{{ postmortems|selectattr('status', 'equalto', 'Final')|list|length }}</h3>
+                    <p class="text-muted">Finalisés</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning">{{ postmortems|selectattr('status', 'equalto', 'Brouillon')|list|length }}</h3>
+                    <p class="text-muted">Brouillons</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-info">{{ postmortems|selectattr('status', 'equalto', 'En cours de révision')|list|length }}</h3>
+                    <p class="text-muted">En Révision</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="{{ url_for('create_postmortem') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nouveau Post-Mortem
+            </a>
+        </div>
+    </div>
+
+    <!-- Liste des post-mortems -->
+    <div class="row">
+        {% if postmortems %}
+            {% for postmortem in postmortems %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">{{ postmortem.title }}</h6>
+                        <span class="status-badge status-{{ postmortem.status.lower().replace(' ', '-') }}">
+                            {{ postmortem.status }}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>
+                                Incident: {{ postmortem.incident_date }}
+                            </small>
+                        </div>
+                        {% if postmortem.published %}
+                        <div class="mb-2">
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                Publié: {{ postmortem.published }}
+                            </small>
+                        </div>
+                        {% endif %}
+                        <div class="mt-3">
+                            <a href="{{ url_for('view_postmortem', postmortem_id=postmortem.id) }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye me-1"></i>Voir
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <h4>Aucun post-mortem disponible</h4>
+                        <p class="text-muted">Commencez par créer votre premier post-mortem.</p>
+                        <a href="{{ url_for('create_postmortem') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Créer un Post-Mortem
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
