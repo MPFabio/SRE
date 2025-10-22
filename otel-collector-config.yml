@@ -34,6 +34,13 @@ exporters:
   prometheus:
     endpoint: "0.0.0.0:8889"
 
+  splunk_hec:
+    endpoint: "http://splunk:9997/services/collector"
+    token: "sre-lab-token"
+    source: "otel-collector"
+    sourcetype: "otel"
+    index: "main"
+
 service:
   pipelines:
     traces:
@@ -44,4 +51,4 @@ service:
     metrics:
       receivers: [otlp, prometheus]
       processors: [memory_limiter, batch]
-      exporters: [debug, logging, prometheus]
+      exporters: [debug, logging, prometheus, splunk_hec]

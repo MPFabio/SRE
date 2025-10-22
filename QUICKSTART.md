@@ -10,6 +10,9 @@
 
 ### 2. Démarrage du Lab
 ```bash
+# Rendre les scripts exécutables
+chmod +x *.sh
+
 # Démarrer tous les composants
 ./start_lab.sh
 

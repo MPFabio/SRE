@@ -63,6 +63,8 @@ pip --version
 
 ### Installation Automatique (Recommandée)
 ```bash
+# Rendre le script exécutable
+chmod +x install_prerequisites.sh
 # Exécuter le script d'installation
 ./install_prerequisites.sh
 ```
@@ -109,6 +111,8 @@ pip3 --version
 
 ### Installation Automatique (Recommandée)
 ```bash
+# Rendre le script exécutable
+chmod +x install_prerequisites.sh
 # Exécuter le script d'installation
 ./install_prerequisites.sh
 ```

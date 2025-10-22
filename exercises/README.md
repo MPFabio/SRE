@@ -34,7 +34,7 @@ python3 test_lab.py
 
 ### Exercice 2 : Définition et Implémentation des SLIs/SLOs
 **Durée estimée :** 2-3 heures  
-**Difficulté :** ** (2/5)⭐
+**Difficulté :** ** (2/5)
 
 **Objectif :** Identifier les SLIs pertinents et définir les SLOs.
 
@@ -64,7 +64,7 @@ python3 error_budget_tracker.py --dashboard
 
 ### Exercice 3 : Error Budget et Burn Rate
 **Durée estimée :** 2-3 heures  
-**Difficulté :** ** (2/5)⭐
+**Difficulté :** ** (2/5)
 
 **Objectif :** Utiliser les SLOs pour calculer l'error budget et le burn rate.
 
@@ -216,7 +216,7 @@ cd automation && ./toil_reduction.sh continuous
 - [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
 - [Splunk Documentation](https://docs.splunk.com/)
 
-## 🆘 Aide et Support
+## Aide et Support
 
 Si vous rencontrez des problèmes :
 
@@ -225,7 +225,7 @@ Si vous rencontrez des problèmes :
 3. Consultez le README principal
 4. Vérifiez les prérequis
 
-## 📝 Notes
+## Notes
 
 - Chaque exercice peut être fait indépendamment
 - Les exercices sont progressifs (difficulté croissante)

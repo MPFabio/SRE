@@ -130,7 +130,7 @@ restart_failed_pods() {
 
 # Nettoyage automatique des ressources
 cleanup_resources() {
-    log_info "🧹 Nettoyage automatique des ressources..."
+    log_info " Nettoyage automatique des ressources..."
     
     # Supprime les pods terminés
     local terminated_pods=$(kubectl get pods --field-selector=status.phase=Succeeded --no-headers | wc -l)
@@ -184,7 +184,7 @@ send_alert() {
     local severity="$2"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
-    log_warn "🚨 ALERTE $severity: $message"
+    log_warn " ALERTE $severity: $message"
     
     # Ici, vous pourriez ajouter l'envoi d'emails, webhooks, etc.
     # Pour ce lab, on log simplement l'alerte
@@ -228,7 +228,7 @@ auto_deploy() {
 
 # Rollback automatique
 auto_rollback() {
-    log_warn "🔄 Rollback automatique en cours..."
+    log_warn " Rollback automatique en cours..."
     
     # Trouve la dernière sauvegarde
     local latest_backup=$(ls -t /tmp/deployment-backup-*.yaml 2>/dev/null | head -1)
@@ -245,7 +245,7 @@ auto_rollback() {
 
 # Surveillance continue
 continuous_monitoring() {
-    log_info "🔄 Démarrage de la surveillance continue (intervalle: ${MONITORING_INTERVAL}s)"
+    log_info " Démarrage de la surveillance continue (intervalle: ${MONITORING_INTERVAL}s)"
     
     while true; do
         log_info "=== Surveillance $(date '+%Y-%m-%d %H:%M:%S') ==="
@@ -278,20 +278,20 @@ continuous_monitoring() {
 # Affiche le menu
 show_menu() {
     echo ""
-    echo "🤖 AUTOMATISATION SRE - RÉDUCTION DU TOIL"
+    echo " AUTOMATISATION SRE - RÉDUCTION DU TOIL"
     echo "=========================================="
     echo ""
     echo "Choisissez une action :"
     echo ""
-    echo "1.  🔍 Vérifier la santé du service"
+    echo "1.  Vérifier la santé du service"
     echo "2.  [METRICS] Afficher les métriques de performance"
-    echo "3.  📈 Auto-scaling basé sur les métriques"
-    echo "4.  🔄 Redémarrer les pods défaillants"
-    echo "5.  🧹 Nettoyer les ressources"
-    echo "6.  🚨 Vérifier les seuils d'alerte"
+    echo "3.  Auto-scaling basé sur les métriques"
+    echo "4.  Redémarrer les pods défaillants"
+    echo "5.  Nettoyer les ressources"
+    echo "6.  Vérifier les seuils d'alerte"
     echo "7.  [DEPLOY] Déploiement automatique"
-    echo "8.  🔄 Rollback automatique"
-    echo "9.  🔄 Surveillance continue"
+    echo "8.  Rollback automatique"
+    echo "9.  Surveillance continue"
     echo "10. [STATUS] Statut du système"
     echo "11. [EXIT] Quitter"
     echo ""
@@ -302,11 +302,11 @@ show_status() {
     log_info "[STATUS] Statut du système :"
     echo ""
     
-    echo "🔍 Pods :"
+    echo "Pods :"
     kubectl get pods -l app=$SERVICE_NAME
     echo ""
     
-    echo "🌐 Services :"
+    echo "Services :"
     kubectl get services $SERVICE_NAME-service
     echo ""
     
@@ -314,11 +314,11 @@ show_status() {
     kubectl get deployments $DEPLOYMENT_NAME
     echo ""
     
-    echo "📈 Métriques :"
+    echo "Métriques :"
     check_performance_metrics
     echo ""
     
-    echo "🚨 Alertes récentes :"
+    echo "Alertes récentes :"
     if [ -f "/tmp/sre-alerts.log" ]; then
         tail -5 /tmp/sre-alerts.log
     else

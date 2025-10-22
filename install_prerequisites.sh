@@ -103,9 +103,9 @@ install_linux() {
     # KinD
     if ! command_exists kind; then
         echo "Installation de KinD..."
-        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
-        chmod +x ./kind
-        sudo mv ./kind /usr/local/bin/kind
+        curl -Lo ./kind-binary https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+        chmod +x ./kind-binary
+        sudo mv ./kind-binary /usr/local/bin/kind
     else
         echo "[OK] KinD deja installe"
     fi

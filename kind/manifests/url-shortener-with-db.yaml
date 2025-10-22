@@ -180,7 +180,7 @@ spec:
                               
                               if (response.ok) {
                                   resultDiv.innerHTML = `
-                                      <h3>✅ URL raccourcie avec succès !</h3>
+                                      <h3>URL raccourcie avec succès !</h3>
                                       <p><strong>URL originale :</strong> ${data.original_url}</p>
                                       <p><strong>URL courte :</strong> <span class="short-url">${data.short_url}</span></p>
                                       <button onclick="copyToClipboard('${data.short_url}')">Copier l'URL courte</button>
@@ -188,11 +188,11 @@ spec:
                                   resultDiv.style.display = 'block';
                                   updateStats();
                               } else {
-                                  resultDiv.innerHTML = `<h3>❌ Erreur : ${data.detail}</h3>`;
+                                  resultDiv.innerHTML = `<h3>Erreur : ${data.detail}</h3>`;
                                   resultDiv.style.display = 'block';
                               }
                           } catch (error) {
-                              resultDiv.innerHTML = `<h3>❌ Erreur de connexion</h3>`;
+                              resultDiv.innerHTML = `<h3>Erreur de connexion</h3>`;
                               resultDiv.style.display = 'block';
                           }
                       });

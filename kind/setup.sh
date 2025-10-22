@@ -52,14 +52,14 @@ echo "[INFO] Statut des pods :"
 kubectl get pods
 
 echo ""
-echo "🌐 Services disponibles :"
+echo "Services disponibles :"
 kubectl get services
 
 echo ""
-echo "🔗 URLs d'accès :"
+echo "URLs d'accès :"
 echo "   - URL Shortener: http://localhost:30000"
 echo "   - Splunk: http://localhost:8000 (admin/admin123)"
 echo "   - OpenTelemetry Collector: http://localhost:8889/metrics"
 
 echo ""
-echo "🎯 Pour commencer les exercices, consultez le README.md"
+echo "Pour commencer les exercices, consultez le README.md"

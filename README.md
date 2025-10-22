@@ -88,6 +88,9 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 
 **macOS/Linux :**
 ```bash
+# Rendre le script exécutable
+chmod +x install_prerequisites.sh
+# Exécuter l'installation
 ./install_prerequisites.sh
 ```
 
