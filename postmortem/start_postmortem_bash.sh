@@ -1,52 +1,34 @@
 #!/bin/bash
 
-# Script universel pour démarrer l'application Post-Mortems
-# Détecte automatiquement l'environnement (Git Bash, WSL, Linux, macOS)
+# Script de démarrage de l'application Flask pour les post-mortems (Git Bash)
+# Interface web pour la gestion et visualisation des post-mortems SRE
 
 echo "[INFO] Démarrage de l'application Post-Mortems SRE..."
 
-# Détecter l'environnement
-if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]]; then
-    # Git Bash sur Windows
-    PYTHON_CMD="python"
-    PIP_CMD="pip"
-    VENV_ACTIVATE="venv/Scripts/activate"
-elif [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "darwin"* ]]; then
-    # Linux ou macOS
-    PYTHON_CMD="python3"
-    PIP_CMD="pip3"
-    VENV_ACTIVATE="venv/bin/activate"
-else
-    # Fallback
-    PYTHON_CMD="python"
-    PIP_CMD="pip"
-    VENV_ACTIVATE="venv/Scripts/activate"
-fi
-
 # Vérifier Python
-if ! command -v $PYTHON_CMD &> /dev/null; then
-    echo "[ERROR] Python n'est pas installé. Veuillez installer Python 3.8+."
+if ! command -v python3 &> /dev/null; then
+    echo "[ERROR] Python 3 n'est pas installé. Veuillez installer Python 3.8+."
     exit 1
 fi
 
 # Vérifier pip
-if ! command -v $PIP_CMD &> /dev/null; then
-    echo "[ERROR] pip n'est pas installé. Veuillez installer pip."
+if ! command -v pip3 &> /dev/null; then
+    echo "[ERROR] pip3 n'est pas installé. Veuillez installer pip."
     exit 1
 fi
 
 # Créer l'environnement virtuel si nécessaire
 if [ ! -d "venv" ]; then
     echo "[INFO] Création de l'environnement virtuel..."
-    $PYTHON_CMD -m venv venv
+    python3 -m venv venv
 fi
 
 echo "[INFO] Activation de l'environnement virtuel..."
-# Activer l'environnement virtuel
-source $VENV_ACTIVATE
+# Activer l'environnement virtuel pour Git Bash
+source venv/Scripts/activate
 
 echo "[INFO] Installation des dépendances..."
-$PIP_CMD install -r requirements.txt
+pip install -r requirements.txt
 
 # Créer les répertoires nécessaires
 mkdir -p data/postmortems
@@ -69,4 +51,4 @@ echo ""
 echo "🛑 Pour arrêter l'application, appuyez sur Ctrl+C"
 
 # Démarrer l'application
-$PYTHON_CMD app.py
+python app.py
