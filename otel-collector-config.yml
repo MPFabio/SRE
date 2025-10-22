@@ -35,7 +35,7 @@ exporters:
     endpoint: "0.0.0.0:8889"
 
   splunk_hec:
-    endpoint: "http://splunk:9997/services/collector"
+    endpoint: "http://splunk:8088/services/collector"
     token: "0fb1ea0e-f232-4176-98c3-f2099ff7ac67"
     source: "otel-collector"
     sourcetype: "otel"

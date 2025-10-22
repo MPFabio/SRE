@@ -53,18 +53,14 @@ SRE/
 │   └── error_budget_tracker.py    # Suivi de l'error budget
 ├── start_lab.sh                   # Script de démarrage automatique
 ├── start_lab.ps1                  # Script de démarrage (PowerShell)
-├── start_lab_codespace.sh         # Script de démarrage pour Codespace
 ├── validate_lab.sh                # Script de validation
 ├── validate_lab.ps1               # Script de validation (PowerShell)
 ├── test_lab.py                    # Tests automatisés du lab
-├── test_codespace.sh              # Tests pour Codespace
-├── quick_test_codespace.sh        # Test rapide pour Codespace
 ├── otel-collector-config.yml      # Configuration OpenTelemetry
 ├── requirements.txt               # Dépendances Python
 ├── config.json                    # Configuration du lab
 ├── PREREQUIS.md                   # Guide d'installation
 ├── QUICKSTART.md                  # Guide de démarrage rapide
-├── CODESPACE.md                   # Guide spécifique pour Codespace
 ├── INSTALL_KIND.md                # Guide d'installation KinD
 └── README.md                      # Ce fichier
 ```
@@ -159,41 +155,6 @@ docker --version && kind --version && kubectl version --client && python --versi
   - Métriques Prometheus
   - OTLP : gRPC (4317), HTTP (4318)
 
-## 🚀 Utilisation dans Codespace
-
-> **[Guide Codespace]** [CODESPACE.md](CODESPACE.md) - Guide complet pour utiliser le lab dans GitHub Codespace
-
-### Démarrage Rapide pour Codespace
-
-```bash
-# Démarrer le lab avec port forwarding automatique
-./start_lab_codespace.sh
-
-# Tester les services
-./test_codespace.sh
-
-# Test rapide
-./quick_test_codespace.sh
-```
-
-### Accès aux Services dans Codespace
-
-1. **Via l'onglet "Ports" de VS Code :**
-   - Ouvrez l'onglet **"Ports"** dans VS Code
-   - Les ports 30000 et 8000 apparaîtront automatiquement
-   - Cliquez sur **"Open in Browser"** pour accéder aux services
-
-2. **Via curl dans le terminal :**
-   ```bash
-   # Test de santé
-   curl http://localhost:30000/health
-   
-   # Créer une URL courte
-   curl -X POST "http://localhost:30000/shorten?url=https://www.google.com"
-   
-   # Voir les métriques
-   curl http://localhost:30000/metrics
-   ```
 
 ## Exercices
 

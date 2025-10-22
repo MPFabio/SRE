@@ -9,7 +9,7 @@ services:
     ports:
       - "8000:8000"    # Web UI
       - "8089:8089"    # Management port
-      - "9997:9997"    # HEC (HTTP Event Collector)
+      - "8088:8088"    # HEC (HTTP Event Collector)
     volumes:
       - splunk-data:/opt/splunk/var
       - ./data:/opt/splunk/var/log/sre-lab
