@@ -28,13 +28,13 @@ class LabTester:
         try:
             response = requests.get(f"{self.service_url}/health", timeout=10)
             if response.status_code == 200:
-                logger.info("✅ Service en bonne santé")
+                logger.info("[SUCCESS] Service en bonne santé")
                 return True
             else:
-                logger.error(f"❌ Service retourne {response.status_code}")
+                logger.error(f"[ERROR] Service retourne {response.status_code}")
                 return False
         except Exception as e:
-            logger.error(f"❌ Erreur de connexion au service: {e}")
+            logger.error(f"[ERROR] Erreur de connexion au service: {e}")
             return False
     
     def test_url_shortening(self):
@@ -53,7 +53,7 @@ class LabTester:
             if response.status_code == 200:
                 data = response.json()
                 short_code = data.get('short_code')
-                logger.info(f"✅ URL créée: {short_code}")
+                logger.info(f"[SUCCESS] URL créée: {short_code}")
                 
                 # Test de redirection
                 redirect_response = requests.get(
@@ -63,38 +63,38 @@ class LabTester:
                 )
                 
                 if redirect_response.status_code in [301, 302, 307, 308]:
-                    logger.info("✅ Redirection fonctionne")
+                    logger.info("[SUCCESS] Redirection fonctionne")
                     return True
                 else:
-                    logger.error(f"❌ Redirection échouée: {redirect_response.status_code}")
+                    logger.error(f"[ERROR] Redirection échouée: {redirect_response.status_code}")
                     return False
             else:
-                logger.error(f"❌ Création d'URL échouée: {response.status_code}")
+                logger.error(f"[ERROR] Création d'URL échouée: {response.status_code}")
                 return False
                 
         except Exception as e:
-            logger.error(f"❌ Erreur lors du test d'URL: {e}")
+            logger.error(f"[ERROR] Erreur lors du test d'URL: {e}")
             return False
     
     def test_metrics_endpoint(self):
         """Teste l'endpoint des métriques"""
-        logger.info("📊 Test de l'endpoint des métriques...")
+        logger.info("[INFO] Test de l'endpoint des métriques...")
         
         try:
             response = requests.get(f"{self.service_url}/metrics", timeout=10)
             if response.status_code == 200:
                 metrics = response.text
                 if "http_requests_total" in metrics:
-                    logger.info("✅ Métriques disponibles")
+                    logger.info("[SUCCESS] Métriques disponibles")
                     return True
                 else:
-                    logger.warning("⚠️ Métriques incomplètes")
+                    logger.warning("[WARN] Métriques incomplètes")
                     return False
             else:
-                logger.error(f"❌ Métriques inaccessibles: {response.status_code}")
+                logger.error(f"[ERROR] Métriques inaccessibles: {response.status_code}")
                 return False
         except Exception as e:
-            logger.error(f"❌ Erreur lors du test des métriques: {e}")
+            logger.error(f"[ERROR] Erreur lors du test des métriques: {e}")
             return False
     
     def test_splunk_connection(self):
@@ -104,13 +104,13 @@ class LabTester:
         try:
             response = requests.get(f"{self.splunk_url}/services/server/info", timeout=10)
             if response.status_code == 200:
-                logger.info("✅ Splunk accessible")
+                logger.info("[SUCCESS] Splunk accessible")
                 return True
             else:
-                logger.error(f"❌ Splunk retourne {response.status_code}")
+                logger.error(f"[ERROR] Splunk retourne {response.status_code}")
                 return False
         except Exception as e:
-            logger.error(f"❌ Erreur de connexion à Splunk: {e}")
+            logger.error(f"[ERROR] Erreur de connexion à Splunk: {e}")
             return False
     
     def test_otel_collector(self):
@@ -120,13 +120,13 @@ class LabTester:
         try:
             response = requests.get(f"{self.otel_url}/metrics", timeout=10)
             if response.status_code == 200:
-                logger.info("✅ OpenTelemetry Collector accessible")
+                logger.info("[SUCCESS] OpenTelemetry Collector accessible")
                 return True
             else:
-                logger.error(f"❌ OpenTelemetry Collector retourne {response.status_code}")
+                logger.error(f"[ERROR] OpenTelemetry Collector retourne {response.status_code}")
                 return False
         except Exception as e:
-            logger.error(f"❌ Erreur de connexion à OpenTelemetry: {e}")
+            logger.error(f"[ERROR] Erreur de connexion à OpenTelemetry: {e}")
             return False
     
     def test_traffic_generation(self):
@@ -143,13 +143,13 @@ class LabTester:
                     timeout=5
                 )
                 if response.status_code != 200:
-                    logger.warning(f"⚠️ Requête {i+1} échouée: {response.status_code}")
+                    logger.warning(f"[WARN] Requête {i+1} échouée: {response.status_code}")
                 time.sleep(0.1)
             
-            logger.info("✅ Génération de trafic testée")
+            logger.info("[SUCCESS] Génération de trafic testée")
             return True
         except Exception as e:
-            logger.error(f"❌ Erreur lors du test de trafic: {e}")
+            logger.error(f"[ERROR] Erreur lors du test de trafic: {e}")
             return False
     
     def run_all_tests(self):
@@ -174,19 +174,19 @@ class LabTester:
                 result = test_func()
                 results.append((test_name, result))
             except Exception as e:
-                logger.error(f"❌ Erreur dans {test_name}: {e}")
+                logger.error(f"[ERROR] Erreur dans {test_name}: {e}")
                 results.append((test_name, False))
         
         # Affiche le résumé
         print("\n" + "="*60)
-        print("📊 RÉSUMÉ DES TESTS")
+        print("[INFO] RÉSUMÉ DES TESTS")
         print("="*60)
         
         passed = 0
         total = len(results)
         
         for test_name, result in results:
-            status = "✅ PASS" if result else "❌ FAIL"
+            status = "[SUCCESS] PASS" if result else "[ERROR] FAIL"
             print(f"{status} {test_name}")
             if result:
                 passed += 1
@@ -194,10 +194,10 @@ class LabTester:
         print(f"\nRésultat: {passed}/{total} tests réussis")
         
         if passed == total:
-            logger.info("🎉 Tous les tests sont passés! Le lab est opérationnel.")
+            logger.info("[SUCCESS] Tous les tests sont passés! Le lab est opérationnel.")
             return True
         else:
-            logger.warning(f"⚠️ {total - passed} test(s) ont échoué. Vérifiez la configuration.")
+            logger.warning(f"[WARN] {total - passed} test(s) ont échoué. Vérifiez la configuration.")
             return False
 
 def main():
@@ -211,10 +211,10 @@ def main():
         success = tester.run_all_tests()
         exit(0 if success else 1)
     except KeyboardInterrupt:
-        logger.info("\n⏹️ Tests interrompus par l'utilisateur")
+        logger.info("\n[INFO] Tests interrompus par l'utilisateur")
         exit(1)
     except Exception as e:
-        logger.error(f"❌ Erreur lors des tests: {e}")
+        logger.error(f"[ERROR] Erreur lors des tests: {e}")
         exit(1)
 
 if __name__ == "__main__":

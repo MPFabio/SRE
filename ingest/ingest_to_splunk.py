@@ -352,7 +352,7 @@ class SplunkIngester:
             return False
         
         # Génère et envoie les métriques
-        logger.info("📊 Génération des métriques...")
+        logger.info("[INFO] Génération des métriques...")
         metric_events = self.generate_metric_events(metric_count, days_back)
         if not self.send_events(metric_events, "métriques"):
             return False

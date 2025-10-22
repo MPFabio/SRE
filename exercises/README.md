@@ -6,7 +6,7 @@ Ce dossier contient les exercices détaillés pour le Lab SRE. Chaque exercice e
 
 ### Exercice 1 : Déploiement et Observabilité
 **Durée estimée :** 1-2 heures  
-**Difficulté :** ⭐⭐
+**Difficulté :** ** (2/5)
 
 **Objectif :** Déployer l'environnement et vérifier la visibilité des données.
 
@@ -34,7 +34,7 @@ python3 test_lab.py
 
 ### Exercice 2 : Définition et Implémentation des SLIs/SLOs
 **Durée estimée :** 2-3 heures  
-**Difficulté :** ⭐⭐⭐
+**Difficulté :** ** (2/5)⭐
 
 **Objectif :** Identifier les SLIs pertinents et définir les SLOs.
 
@@ -64,7 +64,7 @@ python3 error_budget_tracker.py --dashboard
 
 ### Exercice 3 : Error Budget et Burn Rate
 **Durée estimée :** 2-3 heures  
-**Difficulté :** ⭐⭐⭐
+**Difficulté :** ** (2/5)⭐
 
 **Objectif :** Utiliser les SLOs pour calculer l'error budget et le burn rate.
 
@@ -94,7 +94,7 @@ cd automation && ./toil_reduction.sh
 
 ### Exercice 4 : Simulation d'Incident et Collaboration
 **Durée estimée :** 3-4 heures  
-**Difficulté :** ⭐⭐⭐⭐
+**Difficulté :** **** (4/5)
 
 **Objectif :** Déclencher un incident et identifier les "toils".
 
@@ -134,7 +134,7 @@ cd ingest && python3 ingest_to_splunk.py
 
 ### Exercice 5 : Automatisation pour Réduire le Toil
 **Durée estimée :** 3-4 heures  
-**Difficulté :** ⭐⭐⭐⭐
+**Difficulté :** **** (4/5)
 
 **Objectif :** Implémenter des automatisations pour réduire les tâches manuelles.
 
@@ -164,7 +164,7 @@ cd automation && ./toil_reduction.sh continuous
 
 ### Bonus : Mode Chaos
 **Durée estimée :** 1-2 heures  
-**Difficulté :** ⭐⭐⭐⭐⭐
+**Difficulté :** *** (3/5)
 
 **Objectif :** Étendre les simulations d'incidents avec des pannes variées.
 

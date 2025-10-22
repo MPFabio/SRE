@@ -264,7 +264,7 @@ class TrafficGenerator:
         response_times = np.array(self.stats['response_times'])
         
         print("\n" + "="*60)
-        print("📊 STATISTIQUES DE LA SIMULATION")
+        print("[INFO] STATISTIQUES DE LA SIMULATION")
         print("="*60)
         print(f"Total des requêtes: {self.stats['total_requests']}")
         print(f"Requêtes réussies: {self.stats['successful_requests']}")

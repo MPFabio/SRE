@@ -196,7 +196,7 @@ class BurnRateCalculator:
         results = self.calculate_rolling_burn_rates(hours_back)
         
         print("\n" + "="*80)
-        print("📊 RAPPORT DE BURN RATE - ERROR BUDGET")
+        print("[INFO] RAPPORT DE BURN RATE - ERROR BUDGET")
         print("="*80)
         print(f"Service: {self.slo_config['service']}")
         print(f"SLO Target: {self.slo_config['slis']['availability']['slo_target_percentage']}%")
@@ -252,7 +252,7 @@ class BurnRateCalculator:
             print("   - Préparez un plan de mitigation")
             print("   - Vérifiez les déploiements récents")
         elif max_burn_rate >= 1.0:
-            print("📊 SURVEILLANCE: Burn rate normal mais à surveiller")
+            print("[INFO] SURVEILLANCE: Burn rate normal mais à surveiller")
             print("   - Continuez la surveillance normale")
             print("   - Vérifiez les tendances")
         else:

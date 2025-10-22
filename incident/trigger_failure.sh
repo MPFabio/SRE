@@ -170,7 +170,7 @@ EOF
 
 # Incident 4: Perte de connectivité réseau
 network_failure() {
-    log_info "🔌 Simulation d'une perte de connectivité réseau..."
+    log_info "[NETWORK] Simulation d'une perte de connectivité réseau..."
     
     # Crée un NetworkPolicy qui bloque tout le trafic
     cat <<EOF | kubectl apply -f -
@@ -193,7 +193,7 @@ EOF
 
 # Incident 5: Saturation mémoire
 memory_saturation() {
-    log_info "💾 Simulation d'une saturation mémoire..."
+    log_info "[MEMORY] Simulation d'une saturation mémoire..."
     
     # Crée un pod qui consomme beaucoup de mémoire
     cat <<EOF | kubectl apply -f -
@@ -276,7 +276,7 @@ restart_loop() {
 
 # Incident 8: Métriques corrompues
 corrupt_metrics() {
-    log_info "📊 Simulation de métriques corrompues..."
+    log_info "[METRICS] Simulation de métriques corrompues..."
     
     # Crée un pod qui envoie des métriques incorrectes
     cat <<EOF | kubectl apply -f -

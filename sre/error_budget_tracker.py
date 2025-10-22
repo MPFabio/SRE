@@ -282,7 +282,7 @@ class ErrorBudgetTracker:
     
     def collect_metrics(self):
         """Collecte les métriques d'error budget"""
-        logger.info("📊 Collecte des métriques d'error budget...")
+        logger.info("[INFO] Collecte des métriques d'error budget...")
         
         now = datetime.now()
         windows = [1, 6, 24]  # 1h, 6h, 24h
@@ -337,7 +337,7 @@ class ErrorBudgetTracker:
     
     def print_dashboard(self):
         """Affiche un tableau de bord de l'error budget"""
-        logger.info("📊 Tableau de bord de l'error budget...")
+        logger.info("[INFO] Tableau de bord de l'error budget...")
         
         # Collecte les métriques actuelles
         self.collect_metrics()
@@ -346,7 +346,7 @@ class ErrorBudgetTracker:
         historical_data = self.get_historical_data(24)
         
         print("\n" + "="*80)
-        print("📊 TABLEAU DE BORD ERROR BUDGET")
+        print("[INFO] TABLEAU DE BORD ERROR BUDGET")
         print("="*80)
         print(f"Service: {self.slo_config['service']}")
         print(f"SLO Target: {self.slo_config['slis']['availability']['slo_target_percentage']}%")
@@ -381,7 +381,7 @@ class ErrorBudgetTracker:
         
         # Affiche les tendances
         if len(historical_data) > 1:
-            print("📊 TENDANCES (24h)")
+            print("[INFO] TENDANCES (24h)")
             print("-" * 40)
             
             # Calcule les tendances

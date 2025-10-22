@@ -19,44 +19,44 @@ except ImportError:
 def check_file_exists(file_path, description):
     """Vérifie qu'un fichier existe"""
     if os.path.exists(file_path):
-        print(f"✅ {description}: {file_path}")
+        print(f"[SUCCESS] {description}: {file_path}")
         return True
     else:
-        print(f"❌ {description}: {file_path} (MANQUANT)")
+        print(f"[ERROR] {description}: {file_path} (MANQUANT)")
         return False
 
 def check_json_file(file_path, description):
     """Vérifie qu'un fichier JSON est valide"""
     if not os.path.exists(file_path):
-        print(f"❌ {description}: {file_path} (MANQUANT)")
+        print(f"[ERROR] {description}: {file_path} (MANQUANT)")
         return False
     
     try:
         with open(file_path, 'r') as f:
             json.load(f)
-        print(f"✅ {description}: {file_path} (JSON valide)")
+        print(f"[SUCCESS] {description}: {file_path} (JSON valide)")
         return True
     except json.JSONDecodeError as e:
-        print(f"❌ {description}: {file_path} (JSON invalide: {e})")
+        print(f"[ERROR] {description}: {file_path} (JSON invalide: {e})")
         return False
 
 def check_yaml_file(file_path, description):
     """Vérifie qu'un fichier YAML est valide"""
     if not os.path.exists(file_path):
-        print(f"❌ {description}: {file_path} (MANQUANT)")
+        print(f"[ERROR] {description}: {file_path} (MANQUANT)")
         return False
     
     if not YAML_AVAILABLE:
-        print(f"⚠️ {description}: {file_path} (PyYAML non disponible, validation ignorée)")
+        print(f"[WARN] {description}: {file_path} (PyYAML non disponible, validation ignorée)")
         return True
     
     try:
         with open(file_path, 'r') as f:
             yaml.safe_load(f)
-        print(f"✅ {description}: {file_path} (YAML valide)")
+        print(f"[SUCCESS] {description}: {file_path} (YAML valide)")
         return True
     except yaml.YAMLError as e:
-        print(f"❌ {description}: {file_path} (YAML invalide: {e})")
+        print(f"[ERROR] {description}: {file_path} (YAML invalide: {e})")
         return False
 
 def check_directory_structure():
@@ -81,16 +81,16 @@ def check_directory_structure():
     all_exist = True
     for dir_path in required_dirs:
         if os.path.exists(dir_path):
-            print(f"✅ Dossier: {dir_path}")
+            print(f"[SUCCESS] Dossier: {dir_path}")
         else:
-            print(f"❌ Dossier manquant: {dir_path}")
+            print(f"[ERROR] Dossier manquant: {dir_path}")
             all_exist = False
     
     return all_exist
 
 def check_required_files():
     """Vérifie les fichiers requis"""
-    print("\n📄 Vérification des fichiers requis...")
+    print("\n[INFO] Vérification des fichiers requis...")
     
     required_files = [
         ("docker-compose.yml", "Configuration Docker Compose"),
@@ -125,7 +125,7 @@ def check_required_files():
 
 def check_configuration_files():
     """Vérifie les fichiers de configuration"""
-    print("\n⚙️ Vérification des fichiers de configuration...")
+    print("\n[INFO] Vérification des fichiers de configuration...")
     
     config_files = [
         ("sre/slo_config.json", "Configuration des SLOs"),
@@ -161,14 +161,14 @@ def check_script_permissions():
     for script in script_files:
         if os.path.exists(script):
             if os.access(script, os.X_OK):
-                print(f"✅ Script exécutable: {script}")
+                print(f"[SUCCESS] Script exécutable: {script}")
             else:
-                print(f"⚠️ Script non exécutable: {script}")
+                print(f"[WARN] Script non exécutable: {script}")
                 # Sur Windows, on ne peut pas facilement vérifier les permissions
                 # On considère que c'est OK
-                print(f"✅ Script exécutable: {script} (Windows)")
+                print(f"[SUCCESS] Script exécutable: {script} (Windows)")
         else:
-            print(f"❌ Script manquant: {script}")
+            print(f"[ERROR] Script manquant: {script}")
             all_executable = False
     
     return all_executable
@@ -197,9 +197,9 @@ def check_python_dependencies():
     for module in required_modules:
         try:
             __import__(module)
-            print(f"✅ Module Python: {module}")
+            print(f"[SUCCESS] Module Python: {module}")
         except ImportError:
-            print(f"❌ Module Python manquant: {module}")
+            print(f"[ERROR] Module Python manquant: {module}")
             all_available = False
     
     return all_available
@@ -211,7 +211,7 @@ def main():
     
     # Vérifie qu'on est dans le bon répertoire
     if not os.path.exists("docker-compose.yml"):
-        print("❌ Erreur: Exécutez ce script depuis le répertoire racine du lab SRE")
+        print("[ERROR] Erreur: Exécutez ce script depuis le répertoire racine du lab SRE")
         sys.exit(1)
     
     # Effectue toutes les vérifications
@@ -231,14 +231,14 @@ def main():
     
     # Affiche le résumé
     print("\n" + "=" * 50)
-    print("📊 RÉSUMÉ DE LA VALIDATION")
+    print("[INFO] RÉSUMÉ DE LA VALIDATION")
     print("=" * 50)
     
     passed = 0
     total = len(results)
     
     for check_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = "[SUCCESS] PASS" if result else "[ERROR] FAIL"
         print(f"{status} {check_name}")
         if result:
             passed += 1
@@ -246,14 +246,14 @@ def main():
     print(f"\nRésultat: {passed}/{total} vérifications réussies")
     
     if passed == total:
-        print("\n🎉 Le lab SRE est correctement configuré!")
+        print("\n[SUCCESS] Le lab SRE est correctement configuré!")
         print("\n📚 Prochaines étapes:")
         print("  1. Exécutez: ./start_lab.sh")
         print("  2. Testez avec: python3 test_lab.py")
         print("  3. Consultez: exercises/README.md")
         return True
     else:
-        print(f"\n⚠️ {total - passed} vérification(s) ont échoué.")
+        print(f"\n[WARN] {total - passed} vérification(s) ont échoué.")
         print("Veuillez corriger les problèmes avant de continuer.")
         return False
 
@@ -262,8 +262,8 @@ if __name__ == "__main__":
         success = main()
         sys.exit(0 if success else 1)
     except KeyboardInterrupt:
-        print("\n⏹️ Validation interrompue par l'utilisateur")
+        print("\n[INFO] Validation interrompue par l'utilisateur")
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ Erreur lors de la validation: {e}")
+        print(f"\n[ERROR] Erreur lors de la validation: {e}")
         sys.exit(1)

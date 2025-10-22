@@ -175,7 +175,7 @@
 
 ---
 
-## 📊 Amélioration des SLOs
+## Amélioration des SLOs
 
 ### SLOs Actuels
 - **Disponibilité :** 99.9% (Error Budget: 0.1%)

@@ -200,7 +200,7 @@ auto_deploy() {
         return 1
     fi
     
-    log_info "🚀 Déploiement automatique de l'image: $image_tag"
+    log_info "[DEPLOY] Déploiement automatique de l'image: $image_tag"
     
     # Sauvegarde la version actuelle
     kubectl get deployment $DEPLOYMENT_NAME -o yaml > /tmp/deployment-backup-$(date +%s).yaml
@@ -284,22 +284,22 @@ show_menu() {
     echo "Choisissez une action :"
     echo ""
     echo "1.  🔍 Vérifier la santé du service"
-    echo "2.  📊 Afficher les métriques de performance"
+    echo "2.  [METRICS] Afficher les métriques de performance"
     echo "3.  📈 Auto-scaling basé sur les métriques"
     echo "4.  🔄 Redémarrer les pods défaillants"
     echo "5.  🧹 Nettoyer les ressources"
     echo "6.  🚨 Vérifier les seuils d'alerte"
-    echo "7.  🚀 Déploiement automatique"
+    echo "7.  [DEPLOY] Déploiement automatique"
     echo "8.  🔄 Rollback automatique"
     echo "9.  🔄 Surveillance continue"
-    echo "10. 📋 Statut du système"
-    echo "11. ❌ Quitter"
+    echo "10. [STATUS] Statut du système"
+    echo "11. [EXIT] Quitter"
     echo ""
 }
 
 # Affiche le statut du système
 show_status() {
-    log_info "📋 Statut du système :"
+    log_info "[STATUS] Statut du système :"
     echo ""
     
     echo "🔍 Pods :"
@@ -310,7 +310,7 @@ show_status() {
     kubectl get services $SERVICE_NAME-service
     echo ""
     
-    echo "📊 Déploiements :"
+    echo "[INFO] Déploiements :"
     kubectl get deployments $DEPLOYMENT_NAME
     echo ""
     

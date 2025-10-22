@@ -144,7 +144,7 @@ remove_error_injection() {
 
 # Réparation 4: Restaurer la connectivité réseau
 restore_network() {
-    log_info "🔌 Restauration de la connectivité réseau..."
+    log_info "[NETWORK] Restauration de la connectivité réseau..."
     
     # Supprime la NetworkPolicy qui bloque le trafic
     kubectl delete networkpolicy block-all-traffic --ignore-not-found=true
@@ -158,7 +158,7 @@ restore_network() {
 
 # Réparation 5: Nettoyer la saturation mémoire
 clean_memory_saturation() {
-    log_info "💾 Nettoyage de la saturation mémoire..."
+    log_info "[MEMORY] Nettoyage de la saturation mémoire..."
     
     # Supprime le pod qui consomme la mémoire
     kubectl delete pod memory-hog --ignore-not-found=true
@@ -222,7 +222,7 @@ restore_health_probes() {
 
 # Réparation 8: Nettoyer les métriques corrompues
 clean_corrupted_metrics() {
-    log_info "📊 Nettoyage des métriques corrompues..."
+    log_info "[METRICS] Nettoyage des métriques corrompues..."
     
     # Supprime le pod qui corrompt les métriques
     kubectl delete pod metrics-corrupter --ignore-not-found=true
