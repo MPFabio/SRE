@@ -141,7 +141,7 @@ docker --version && kind --version && kubectl version --client && python --versi
 
 ### Accès aux Services
 
-- **URL Shortener (API) :** http://localhost:30000
+- **URL Shortener :** http://localhost:30000
   - Interface web : http://localhost:30000
   - API REST : http://localhost:30000/shorten
   - Santé : http://localhost:30000/health
