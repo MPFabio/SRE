@@ -14,7 +14,7 @@
       "url": "http://localhost:8000",
       "username": "admin",
       "password": "admin123",
-      "hec_token": "sre-lab-token"
+      "hec_token": "${SPLUNK_HEC_TOKEN}"
     },
     "prometheus": {
       "url": "http://localhost:9090"

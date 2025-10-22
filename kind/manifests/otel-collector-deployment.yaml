@@ -27,7 +27,7 @@ spec:
           name: metrics
         env:
         - name: SPLUNK_HEC_TOKEN
-          value: "sre-lab-token"
+          value: "${SPLUNK_HEC_TOKEN}"
         volumeMounts:
         - name: config
           mountPath: /etc/otel-collector-config.yaml

@@ -370,8 +370,8 @@ def main():
     parser = argparse.ArgumentParser(description='Ingestion de données vers Splunk')
     parser.add_argument('--splunk-url', default='http://localhost:8000',
                        help='URL de Splunk (défaut: http://localhost:8000)')
-    parser.add_argument('--hec-token', default='sre-lab-token',
-                       help='Token HEC Splunk (défaut: sre-lab-token)')
+    parser.add_argument('--hec-token', default=os.getenv('SPLUNK_HEC_TOKEN', 'your-hec-token-here'),
+                       help='Token HEC Splunk (défaut: variable d\'environnement SPLUNK_HEC_TOKEN)')
     parser.add_argument('--logs', type=int, default=10000,
                        help='Nombre d\'événements de logs (défaut: 10000)')
     parser.add_argument('--metrics', type=int, default=5000,

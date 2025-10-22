@@ -40,7 +40,7 @@ data:
 
       splunk_hec:
         endpoint: "http://splunk:8088/services/collector"
-        token: "sre-lab-token"
+        token: "${SPLUNK_HEC_TOKEN}"
         source: "otel-collector"
         sourcetype: "otel"
         index: "main"

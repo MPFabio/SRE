@@ -264,7 +264,7 @@ cd automation
 ```bash
 # Splunk
 SPLUNK_URL=http://localhost:8000
-SPLUNK_HEC_TOKEN=sre-lab-token
+SPLUNK_HEC_TOKEN=your-hec-token-here
 
 # Prometheus
 PROMETHEUS_URL=http://localhost:9090
@@ -272,6 +272,8 @@ PROMETHEUS_URL=http://localhost:9090
 # Service
 SERVICE_URL=http://localhost:30000
 ```
+
+> **⚠️ Sécurité :** Configurez votre token HEC Splunk via la variable d'environnement `SPLUNK_HEC_TOKEN`. Voir le fichier `env.example` pour un exemple de configuration.
 
 ### Personnalisation
 
