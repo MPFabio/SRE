@@ -36,7 +36,7 @@ exporters:
 
   splunk_hec:
     endpoint: "http://splunk:9997/services/collector"
-    token: "sre-lab-token"
+    token: "0fb1ea0e-f232-4176-98c3-f2099ff7ac67"
     source: "otel-collector"
     sourcetype: "otel"
     index: "main"
