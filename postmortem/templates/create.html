@@ -24,19 +24,22 @@
                         <!-- Métadonnées -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <h6 class="text-primary">Métadonnées</h6>
+                                <h6 class="text-primary">POSTMORTEM : [Titre de l'incident clair et concis]</h6>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="title" class="form-label">Titre de l'incident *</label>
-                                <input type="text" class="form-control" id="title" name="title" required>
+                                <input type="text" class="form-control" id="title" name="title" 
+                                       placeholder="Ex: Panne du service URL Shortener - Saturation de la base de données" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="owner" class="form-label">Owner *</label>
-                                <input type="text" class="form-control" id="owner" name="owner" required>
+                                <input type="text" class="form-control" id="owner" name="owner" 
+                                       placeholder="Ex: Équipe SRE" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="shared_with" class="form-label">Shared with</label>
-                                <input type="text" class="form-control" id="shared_with" name="shared_with">
+                                <input type="text" class="form-control" id="shared_with" name="shared_with" 
+                                       placeholder="Ex: Équipes Engineering, Product, Support">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="status" class="form-label">Status *</label>
@@ -59,172 +62,244 @@
                         <!-- Executive Summary -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <h6 class="text-primary">Executive Summary</h6>
+                                <h6 class="text-primary">EXECUTIVE SUMMARY</h6>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="impact" class="form-label">Impact *</label>
-                                <textarea class="form-control" id="impact" name="impact" rows="3" required></textarea>
+                                <textarea class="form-control" id="impact" name="impact" rows="3" 
+                                    placeholder="L'incident a eu un impact significatif sur : [décrire les utilisateurs, services ou processus métier affectés]" required></textarea>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="root_cause" class="form-label">Root Cause *</label>
-                                <textarea class="form-control" id="root_cause" name="root_cause" rows="3" required></textarea>
+                                <textarea class="form-control" id="root_cause" name="root_cause" rows="3" 
+                                    placeholder="La cause principale de l'incident est liée à : [expliquer brièvement le bug ou l'erreur technique ayant déclenché l'incident, en une phrase claire]" required></textarea>
                             </div>
                         </div>
 
                         <!-- Problem Summary -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <h6 class="text-primary">Problem Summary</h6>
+                                <h6 class="text-primary">PROBLEM SUMMARY</h6>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="duration" class="form-label">Duration of problem *</label>
-                                <input type="text" class="form-control" id="duration" name="duration" required>
+                                <input type="text" class="form-control" id="duration" name="duration" 
+                                    placeholder="Ex: 2h30" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="start_time" class="form-label">Start time *</label>
+                                <label for="start_time" class="form-label">L'incident a débuté le *</label>
                                 <input type="datetime-local" class="form-control" id="start_time" name="start_time" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="end_time" class="form-label">End time *</label>
+                                <label for="end_time" class="form-label">L'incident s'est terminé le *</label>
                                 <input type="datetime-local" class="form-control" id="end_time" name="end_time" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="products_affected" class="form-label">Products affected *</label>
-                                <input type="text" class="form-control" id="products_affected" name="products_affected" required>
+                                <label for="residual_effects" class="form-label">Effets résiduels observés jusqu'à</label>
+                                <input type="datetime-local" class="form-control" id="residual_effects" name="residual_effects">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="products_affected" class="form-label">Product(s) affected *</label>
+                                <input type="text" class="form-control" id="products_affected" name="products_affected" 
+                                    placeholder="Ex: Service URL Shortener, API de redirection, Dashboard admin" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="percentage_affected" class="form-label">% of product affected *</label>
-                                <input type="text" class="form-control" id="percentage_affected" name="percentage_affected" required>
+                                <input type="text" class="form-control" id="percentage_affected" name="percentage_affected" 
+                                    placeholder="Ex: 100% du service, 15 000 utilisateurs actifs" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="user_impact" class="form-label">User impact *</label>
-                                <textarea class="form-control" id="user_impact" name="user_impact" rows="2" required></textarea>
+                                <textarea class="form-control" id="user_impact" name="user_impact" rows="2" 
+                                    placeholder="Ex: 45 000 requêtes perdues, erreurs 500 sur toutes les redirections" required></textarea>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="revenue_impact" class="form-label">Revenue impact *</label>
-                                <textarea class="form-control" id="revenue_impact" name="revenue_impact" rows="2" required></textarea>
+                                <textarea class="form-control" id="revenue_impact" name="revenue_impact" rows="2" 
+                                    placeholder="Ex: Perte estimée de 2 500€ due à la baisse de conversions" required></textarea>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="detection" class="form-label">Detection *</label>
-                                <input type="text" class="form-control" id="detection" name="detection" required>
+                                <label for="detection" class="form-label">Détection *</label>
+                                <input type="text" class="form-control" id="detection" name="detection" 
+                                    placeholder="Ex: Alertes Prometheus sur le taux d'erreur HTTP 500 > 95%" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="resolution" class="form-label">Resolution *</label>
-                                <textarea class="form-control" id="resolution" name="resolution" rows="2" required></textarea>
+                                <label for="resolution" class="form-label">Résolution *</label>
+                                <textarea class="form-control" id="resolution" name="resolution" rows="2" 
+                                    placeholder="Ex: Redémarrage forcé PostgreSQL, rollback version précédente, redéploiement avec correctif" required></textarea>
                             </div>
                         </div>
 
                         <!-- Impact Details -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <h6 class="text-primary">Impact Details</h6>
+                                <h6 class="text-primary">IMPACT</h6>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <h6 class="text-secondary">User impact</h6>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="user_impact_description" class="form-label">User Impact Description *</label>
-                                <textarea class="form-control" id="user_impact_description" name="user_impact_description" rows="3" required></textarea>
+                                <label for="requests_lost" class="form-label">Volume de requêtes perdues</label>
+                                <input type="text" class="form-control" id="requests_lost" name="requests_lost" 
+                                    placeholder="Ex: 45 000 requêtes perdues (100% du trafic normal)">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="requests_lost" class="form-label">Requests lost</label>
-                                <input type="text" class="form-control" id="requests_lost" name="requests_lost">
+                                <label for="data_source" class="form-label">Source des données</label>
+                                <input type="text" class="form-control" id="data_source" name="data_source" 
+                                    placeholder="Ex: Prometheus metrics et logs Nginx, fiabilité jugée fiable">
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="additional_symptoms" class="form-label">Symptômes supplémentaires</label>
+                                <textarea class="form-control" id="additional_symptoms" name="additional_symptoms" rows="2" 
+                                    placeholder="Ex: Erreurs 500 sur toutes les redirections, timeout des requêtes après 30s, saturation des logs d'erreur"></textarea>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <h6 class="text-secondary">Revenue impact</h6>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="data_source" class="form-label">Data source</label>
-                                <input type="text" class="form-control" id="data_source" name="data_source">
+                                <label for="revenue_loss" class="form-label">Perte de revenus estimée</label>
+                                <input type="text" class="form-control" id="revenue_loss" name="revenue_loss" 
+                                    placeholder="Ex: 2 500€, principalement sur les conversions premium">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="additional_symptoms" class="form-label">Additional symptoms</label>
-                                <textarea class="form-control" id="additional_symptoms" name="additional_symptoms" rows="2"></textarea>
+                                <label for="revenue_period" class="form-label">Période</label>
+                                <input type="text" class="form-control" id="revenue_period" name="revenue_period" 
+                                    placeholder="Ex: 14:30 - 17:00 (2h30)">
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="indirect_impacts" class="form-label">Impacts indirects</label>
+                                <textarea class="form-control" id="indirect_impacts" name="indirect_impacts" rows="2" 
+                                    placeholder="Ex: Baisse de 15% de la satisfaction client, 3 annulations d'abonnements premium"></textarea>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <h6 class="text-secondary">Team impact</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="team_hours" class="form-label">Heures consacrées</label>
+                                <input type="text" class="form-control" id="team_hours" name="team_hours" 
+                                    placeholder="Ex: 8 heures à la résolution de l'incident">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="customer_support" class="form-label">Support client</label>
+                                <input type="text" class="form-control" id="customer_support" name="customer_support" 
+                                    placeholder="Ex: 127 tickets créés et 45 appels téléphoniques">
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="secondary_effects" class="form-label">Effets secondaires</label>
+                                <textarea class="form-control" id="secondary_effects" name="secondary_effects" rows="2" 
+                                    placeholder="Ex: Saturation du cache Redis, surcharge du load balancer, contention sur les connexions de base de données"></textarea>
                             </div>
                         </div>
 
                         <!-- Root Causes -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <h6 class="text-primary">Root Causes and Trigger</h6>
+                                <h6 class="text-primary">ROOT CAUSES AND TRIGGER</h6>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="technical_cause" class="form-label">Technical cause *</label>
-                                <textarea class="form-control" id="technical_cause" name="technical_cause" rows="3" required></textarea>
+                                <label for="technical_cause" class="form-label">Cause technique de l'incident *</label>
+                                <textarea class="form-control" id="technical_cause" name="technical_cause" rows="3" 
+                                    placeholder="Ex: Une requête SQL dans la fonction de recherche d'URLs courtes utilisait un index manquant sur la colonne 'created_at', provoquant un scan complet de table sur 2M d'enregistrements" required></textarea>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="trigger" class="form-label">Trigger *</label>
-                                <textarea class="form-control" id="trigger" name="trigger" rows="3" required></textarea>
+                                <label for="trigger" class="form-label">L'incident a été déclenché par *</label>
+                                <textarea class="form-control" id="trigger" name="trigger" rows="3" 
+                                    placeholder="Ex: Le déploiement de la version 2.1.3 à 14:25 a introduit une nouvelle fonctionnalité de recherche qui a activé cette requête défaillante" required></textarea>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="system_reaction" class="form-label">System reaction *</label>
-                                <textarea class="form-control" id="system_reaction" name="system_reaction" rows="3" required></textarea>
+                                <label for="system_reaction" class="form-label">Le système a réagi via *</label>
+                                <textarea class="form-control" id="system_reaction" name="system_reaction" rows="3" 
+                                    placeholder="Ex: PostgreSQL a verrouillé la table 'urls' en mode EXCLUSIVE, empêchant toute nouvelle connexion et bloquant toutes les opérations de lecture/écriture" required></textarea>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="non_idempotent_operation" class="form-label">Non-idempotent operation</label>
-                                <textarea class="form-control" id="non_idempotent_operation" name="non_idempotent_operation" rows="3"></textarea>
+                                <label for="non_idempotent_operation" class="form-label">Opération non idempotente</label>
+                                <textarea class="form-control" id="non_idempotent_operation" name="non_idempotent_operation" rows="3" 
+                                    placeholder="Ex: La requête de recherche n'était pas idempotente car elle créait des verrous de table persistants qui ne se libéraient pas automatiquement en cas d'échec"></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="missing_protections" class="form-label">Protections manquantes</label>
+                                <textarea class="form-control" id="missing_protections" name="missing_protections" rows="3" 
+                                    placeholder="Ex: Absence de timeout sur les requêtes SQL, pas de circuit breaker sur la base de données, monitoring insuffisant des performances de requêtes"></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="late_detection" class="form-label">Détection tardive</label>
+                                <textarea class="form-control" id="late_detection" name="late_detection" rows="3" 
+                                    placeholder="Ex: Le monitoring ne couvrait pas les métriques de base de données (connexions actives, verrous, temps de requête)"></textarea>
                             </div>
                         </div>
 
                         <!-- Timeline -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <h6 class="text-primary">Timeline / Recovery Efforts</h6>
+                                <h6 class="text-primary">TIMELINE / RECOVERY EFFORTS</h6>
                                 <p class="text-muted">Ajoutez les événements de la timeline (format: HH:MM - Description)</p>
                             </div>
                             <div class="col-12 mb-3">
                                 <label for="timeline" class="form-label">Timeline Events</label>
-                                <textarea class="form-control" id="timeline" name="timeline" rows="5" 
-                                    placeholder="Exemple:&#10;14:30 - Incident détecté par monitoring&#10;14:35 - Équipe d'urgence mobilisée&#10;15:00 - Mitigation mise en place"></textarea>
+                                <textarea class="form-control" id="timeline" name="timeline" rows="8" 
+                                    placeholder="Exemple:&#10;14:25 - Déploiement de la version 2.1.3&#10;14:30 - Première utilisation de la recherche&#10;14:32 - Détection de l'incident&#10;14:35 - Mobilisation de l'équipe&#10;15:00 - Identification de la cause&#10;15:15 - Tentative de mitigation&#10;15:45 - Redémarrage forcé de PostgreSQL&#10;16:00 - Rollback de l'application&#10;16:30 - Stabilisation&#10;17:00 - Résolution complète"></textarea>
                             </div>
                         </div>
 
                         <!-- Lessons Learned -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <h6 class="text-primary">Lessons Learned</h6>
+                                <h6 class="text-primary">LESSONS LEARNED</h6>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="things_that_went_well" class="form-label">Things that went well</label>
-                                <textarea class="form-control" id="things_that_went_well" name="things_that_went_well" rows="4" 
-                                    placeholder="Une chose par ligne"></textarea>
+                                <textarea class="form-control" id="things_that_went_well" name="things_that_went_well" rows="6" 
+                                    placeholder="Exemples:&#10;• Les mécanismes de monitoring Prometheus ont détecté l'incident en 2 minutes&#10;• La communication entre les équipes a été efficace via Slack&#10;• Le processus de rollback automatisé a fonctionné correctement&#10;• La base de données a bien récupéré après le redémarrage sans perte de données"></textarea>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="things_that_went_poorly" class="form-label">Things that went poorly</label>
-                                <textarea class="form-control" id="things_that_went_poorly" name="things_that_went_poorly" rows="4" 
-                                    placeholder="Une chose par ligne"></textarea>
+                                <textarea class="form-control" id="things_that_went_poorly" name="things_that_went_poorly" rows="6" 
+                                    placeholder="Exemples:&#10;• Absence de monitoring des métriques de base de données&#10;• La requête SQL n'a pas été testée en charge avant le déploiement&#10;• Pas de circuit breaker sur les connexions de base de données&#10;• L'identification de la cause a pris 30 minutes faute de monitoring approprié"></textarea>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="where_we_got_lucky" class="form-label">Where we got lucky</label>
+                                <textarea class="form-control" id="where_we_got_lucky" name="where_we_got_lucky" rows="3" 
+                                    placeholder="Exemples:&#10;• La base de données a récupéré sans corruption après le redémarrage forcé&#10;• Aucune donnée n'a été perdue malgré l'incident prolongé&#10;• Les sauvegardes automatiques étaient à jour et fonctionnelles"></textarea>
                             </div>
                         </div>
 
                         <!-- Action Items -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <h6 class="text-primary">Action Items</h6>
+                                <h6 class="text-primary">ACTION ITEMS</h6>
                                 <p class="text-muted">Ajoutez les actions à entreprendre (une par ligne, format: Description | Type | Priority | Owner | Tracking Bug)</p>
                             </div>
                             <div class="col-12 mb-3">
                                 <label for="action_items" class="form-label">Action Items</label>
-                                <textarea class="form-control" id="action_items" name="action_items" rows="5" 
-                                    placeholder="Exemple:&#10;Implémenter monitoring sur le service X | prevent | P1 | Équipe SRE | BUG-123&#10;Documenter la procédure de rollback | remediate | P2 | Équipe DevOps | BUG-124"></textarea>
+                                <textarea class="form-control" id="action_items" name="action_items" rows="8" 
+                                    placeholder="Exemples:&#10;Implémenter un monitoring complet des métriques PostgreSQL | prevent | P0 | Équipe SRE | SRE-123&#10;Ajouter des tests de charge pour toutes les nouvelles requêtes SQL | prevent | P0 | Équipe Engineering | ENG-456&#10;Configurer des timeouts appropriés sur toutes les requêtes SQL | prevent | P1 | Équipe Engineering | ENG-457&#10;Implémenter un circuit breaker pour les connexions de base de données | prevent | P1 | Équipe SRE | SRE-124&#10;Documenter la procédure de résolution des incidents de base de données | remediate | P1 | Équipe SRE | SRE-125&#10;Améliorer la communication externe en cas d'incident | remediate | P2 | Équipe Product | PROD-789"></textarea>
                             </div>
                         </div>
 
                         <!-- Glossary -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <h6 class="text-primary">Glossary</h6>
+                                <h6 class="text-primary">GLOSSARY</h6>
                                 <p class="text-muted">Ajoutez les termes techniques (format: Terme | Définition)</p>
                             </div>
                             <div class="col-12 mb-3">
                                 <label for="glossary" class="form-label">Glossary</label>
-                                <textarea class="form-control" id="glossary" name="glossary" rows="4" 
-                                    placeholder="Exemple:&#10;HEC | HTTP Event Collector de Splunk&#10;OTLP | OpenTelemetry Protocol"></textarea>
+                                <textarea class="form-control" id="glossary" name="glossary" rows="6" 
+                                    placeholder="Exemples:&#10;HEC | HTTP Event Collector de Splunk, utilisé pour l'ingestion des logs&#10;OTLP | OpenTelemetry Protocol, protocole standard pour la collecte de métriques et traces&#10;Circuit Breaker | Pattern de conception qui empêche les appels vers un service défaillant&#10;Rollback | Retour à une version précédente stable de l'application&#10;Verrouillage de table | Mécanisme de PostgreSQL qui bloque l'accès à une table pour maintenir la cohérence des données"></textarea>
                             </div>
                         </div>
 
                         <!-- Appendix -->
                         <div class="row mb-4">
                             <div class="col-12">
-                                <h6 class="text-primary">Appendix</h6>
+                                <h6 class="text-primary">APPENDIX</h6>
                             </div>
                             <div class="col-12 mb-3">
                                 <label for="appendix" class="form-label">Appendix</label>
                                 <textarea class="form-control" id="appendix" name="appendix" rows="4" 
-                                    placeholder="Informations complémentaires, données chiffrées, journaux, visualisations..."></textarea>
+                                    placeholder="Exemple: Données complémentaires : Logs PostgreSQL détaillés, métriques Prometheus sur la période d'incident, captures d'écran des dashboards de monitoring, et analyse des performances de la requête problématique."></textarea>
                             </div>
                         </div>
 
