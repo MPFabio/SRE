@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: default
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'url-shortener'
+              static_configs:
+                - targets: ['url-shortener-service:80']
+              metrics_path: '/metrics'
+              scrape_interval: 10s
+
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+
+      memory_limiter:
+        limit_mib: 512
+        check_interval: 1s
+
+    exporters:
+      debug:
+        verbosity: detailed
+
+      logging:
+        loglevel: debug
+
+      splunk_hec:
+        endpoint: "http://splunk:8088/services/collector"
+        token: "sre-lab-token"
+        source: "otel-collector"
+        sourcetype: "otel"
+        index: "main"
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [splunk_hec, debug]
+
+        metrics:
+          receivers: [otlp, prometheus]
+          processors: [memory_limiter, batch]
+          exporters: [splunk_hec, debug]

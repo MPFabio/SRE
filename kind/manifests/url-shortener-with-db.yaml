@@ -1,0 +1,348 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: url-shortener
+  labels:
+    app: url-shortener
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: url-shortener
+  template:
+    metadata:
+      labels:
+        app: url-shortener
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: url-shortener
+        image: python:3.11-slim
+        ports:
+        - containerPort: 8080
+        env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector:4317"
+        - name: OTEL_SERVICE_NAME
+          value: "url-shortener"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.name=url-shortener,service.version=1.0.0"
+        - name: DATABASE_URL
+          value: "postgresql://urlshortener:urlshortener123@postgres-service:5432/urlshortener"
+        command: ["/bin/bash"]
+        args:
+        - -c
+        - |
+          mkdir -p /app
+          pip install --no-cache-dir fastapi uvicorn opentelemetry-instrumentation-fastapi opentelemetry-exporter-otlp prometheus-client psycopg2-binary sqlalchemy
+          cat > /app/main.py << 'EOF'
+          from fastapi import FastAPI, HTTPException, Request
+          from fastapi.responses import RedirectResponse, HTMLResponse
+          from fastapi.staticfiles import StaticFiles
+          import uvicorn
+          import hashlib
+          from typing import Dict
+          from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+          from fastapi.responses import Response
+          import logging
+          import os
+          from sqlalchemy import create_engine, Column, String, DateTime, Integer
+          from sqlalchemy.ext.declarative import declarative_base
+          from sqlalchemy.orm import sessionmaker
+          from datetime import datetime
+          
+          # Configuration OpenTelemetry
+          from opentelemetry import trace
+          from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+          from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+          from opentelemetry.sdk.trace import TracerProvider
+          from opentelemetry.sdk.trace.export import BatchSpanProcessor
+          from opentelemetry.sdk.resources import Resource
+          
+          # Configuration du tracing
+          resource = Resource(attributes={
+              "service.name": "url-shortener",
+              "service.version": "1.0.0"
+          })
+          trace.set_tracer_provider(TracerProvider(resource=resource))
+          tracer = trace.get_tracer(__name__)
+          
+          # Exporteur OTLP
+          otlp_exporter = OTLPSpanExporter(endpoint="http://otel-collector:4317", insecure=True)
+          span_processor = BatchSpanProcessor(otlp_exporter)
+          trace.get_tracer_provider().add_span_processor(span_processor)
+          
+          app = FastAPI(title="URL Shortener SRE Lab", version="1.0.0")
+          FastAPIInstrumentor.instrument_app(app)
+          
+          # Configuration de la base de données
+          DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://urlshortener:urlshortener123@postgres-service:5432/urlshortener")
+          engine = create_engine(DATABASE_URL)
+          SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+          Base = declarative_base()
+          
+          # Modèle de données
+          class URLMapping(Base):
+              __tablename__ = "url_mappings"
+              
+              id = Column(Integer, primary_key=True, index=True)
+              short_code = Column(String(8), unique=True, index=True)
+              original_url = Column(String(2048))
+              created_at = Column(DateTime, default=datetime.utcnow)
+              access_count = Column(Integer, default=0)
+          
+          # Créer les tables
+          Base.metadata.create_all(bind=engine)
+          
+          # Métriques Prometheus
+          REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
+          REQUEST_DURATION = Histogram('http_request_duration_seconds', 'HTTP request duration', ['method', 'endpoint'])
+          URL_CREATED = Counter('urls_created_total', 'Total URLs created')
+          URL_REDIRECTED = Counter('urls_redirected_total', 'Total URLs redirected')
+          
+          # Configuration du logging
+          logging.basicConfig(level=logging.INFO)
+          logger = logging.getLogger(__name__)
+          
+          def get_db():
+              db = SessionLocal()
+              try:
+                  yield db
+              finally:
+                  db.close()
+          
+          def generate_short_code(url: str) -> str:
+              """Génère un code court unique pour l'URL"""
+              hash_object = hashlib.md5(url.encode())
+              return hash_object.hexdigest()[:8]
+          
+          @app.get("/", response_class=HTMLResponse)
+          async def root():
+              return """
+              <!DOCTYPE html>
+              <html lang="fr">
+              <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>URL Shortener SRE Lab</title>
+                  <style>
+                      body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+                      .container { background: rgba(255,255,255,0.1); padding: 30px; border-radius: 15px; backdrop-filter: blur(10px); }
+                      h1 { text-align: center; margin-bottom: 30px; }
+                      .form-group { margin-bottom: 20px; }
+                      label { display: block; margin-bottom: 5px; font-weight: bold; }
+                      input[type="url"] { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; }
+                      button { background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; }
+                      button:hover { background: #45a049; }
+                      .result { margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.2); border-radius: 8px; }
+                      .short-url { font-weight: bold; color: #FFD700; }
+                      .stats { margin-top: 30px; text-align: center; }
+                      .stat { display: inline-block; margin: 0 20px; }
+                  </style>
+              </head>
+              <body>
+                  <div class="container">
+                      <h1>🔗 URL Shortener SRE Lab</h1>
+                      <form id="shortenForm">
+                          <div class="form-group">
+                              <label for="url">Entrez votre URL longue :</label>
+                              <input type="url" id="url" name="url" placeholder="https://www.example.com" required>
+                          </div>
+                          <button type="submit">Raccourcir l'URL</button>
+                      </form>
+                      <div id="result" class="result" style="display: none;"></div>
+                      <div class="stats">
+                          <div class="stat">
+                              <strong id="totalCreated">0</strong><br>
+                              URLs créées
+                          </div>
+                          <div class="stat">
+                              <strong id="totalRedirected">0</strong><br>
+                              Redirections
+                          </div>
+                      </div>
+                  </div>
+                  
+                  <script>
+                      document.getElementById('shortenForm').addEventListener('submit', async function(e) {
+                          e.preventDefault();
+                          const url = document.getElementById('url').value;
+                          const resultDiv = document.getElementById('result');
+                          
+                          try {
+                              const response = await fetch('/shorten?url=' + encodeURIComponent(url), {
+                                  method: 'POST'
+                              });
+                              const data = await response.json();
+                              
+                              if (response.ok) {
+                                  resultDiv.innerHTML = `
+                                      <h3>✅ URL raccourcie avec succès !</h3>
+                                      <p><strong>URL originale :</strong> ${data.original_url}</p>
+                                      <p><strong>URL courte :</strong> <span class="short-url">${data.short_url}</span></p>
+                                      <button onclick="copyToClipboard('${data.short_url}')">Copier l'URL courte</button>
+                                  `;
+                                  resultDiv.style.display = 'block';
+                                  updateStats();
+                              } else {
+                                  resultDiv.innerHTML = `<h3>❌ Erreur : ${data.detail}</h3>`;
+                                  resultDiv.style.display = 'block';
+                              }
+                          } catch (error) {
+                              resultDiv.innerHTML = `<h3>❌ Erreur de connexion</h3>`;
+                              resultDiv.style.display = 'block';
+                          }
+                      });
+                      
+                      function copyToClipboard(text) {
+                          navigator.clipboard.writeText(text).then(function() {
+                              alert('URL copiée dans le presse-papiers !');
+                          });
+                      }
+                      
+                      async function updateStats() {
+                          try {
+                              const response = await fetch('/stats');
+                              const data = await response.json();
+                              document.getElementById('totalCreated').textContent = data.urls_created || 0;
+                              document.getElementById('totalRedirected').textContent = data.urls_redirected || 0;
+                          } catch (error) {
+                              console.error('Erreur lors de la récupération des statistiques');
+                          }
+                      }
+                      
+                      // Charger les statistiques au démarrage
+                      updateStats();
+                  </script>
+              </body>
+              </html>
+              """
+          
+          @app.post("/shorten")
+          async def shorten_url(url: str, request: Request):
+              with tracer.start_as_current_span("shorten_url") as span:
+                  span.set_attribute("url.length", len(url))
+                  
+                  if not url.startswith(('http://', 'https://')):
+                      url = 'https://' + url
+                  
+                  short_code = generate_short_code(url)
+                  
+                  # Vérifier si l'URL existe déjà
+                  db = next(get_db())
+                  existing = db.query(URLMapping).filter(URLMapping.original_url == url).first()
+                  
+                  if existing:
+                      short_code = existing.short_code
+                      logger.info(f"URL existante trouvée: {short_code} -> {url}")
+                  else:
+                      # Créer une nouvelle entrée
+                      url_mapping = URLMapping(
+                          short_code=short_code,
+                          original_url=url
+                      )
+                      db.add(url_mapping)
+                      db.commit()
+                      URL_CREATED.inc()
+                      logger.info(f"URL créée: {short_code} -> {url}")
+                  
+                  db.close()
+                  
+                  return {
+                      "original_url": url,
+                      "short_code": short_code,
+                      "short_url": f"http://localhost:30000/{short_code}"
+                  }
+          
+          @app.get("/health")
+          async def health():
+              return {"status": "healthy", "service": "url-shortener"}
+          
+          @app.get("/metrics")
+          async def metrics():
+              return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+          
+          @app.get("/stats")
+          async def stats():
+              db = next(get_db())
+              total_created = db.query(URLMapping).count()
+              total_redirected = db.query(URLMapping).with_entities(URLMapping.access_count).all()
+              total_redirects = sum(row[0] for row in total_redirected)
+              db.close()
+              
+              return {
+                  "urls_created": total_created,
+                  "urls_redirected": total_redirects
+              }
+          
+          @app.get("/{short_code}")
+          async def redirect_url(short_code: str):
+              with tracer.start_as_current_span("redirect_url") as span:
+                  span.set_attribute("short_code", short_code)
+                  
+                  try:
+                      db = next(get_db())
+                      url_mapping = db.query(URLMapping).filter(URLMapping.short_code == short_code).first()
+                      
+                      if not url_mapping:
+                          logger.warning(f"Code non trouvé: {short_code}")
+                          db.close()
+                          raise HTTPException(status_code=404, detail="URL not found")
+                      
+                      # Récupérer l'URL avant de fermer la session
+                      original_url = url_mapping.original_url
+                      
+                      # Incrémenter le compteur d'accès
+                      url_mapping.access_count += 1
+                      db.commit()
+                      db.close()
+                      
+                      URL_REDIRECTED.inc()
+                      logger.info(f"Redirection: {short_code} -> {original_url}")
+                      
+                      return RedirectResponse(url=original_url)
+                  except Exception as e:
+                      logger.error(f"Erreur lors de la redirection: {e}")
+                      raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+          
+          if __name__ == "__main__":
+              uvicorn.run(app, host="0.0.0.0", port=8080)
+          EOF
+          python /app/main.py
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 120
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: url-shortener-service
+  labels:
+    app: url-shortener
+spec:
+  selector:
+    app: url-shortener
+  ports:
+  - port: 80
+    targetPort: 8080
+    nodePort: 30000
+  type: NodePort

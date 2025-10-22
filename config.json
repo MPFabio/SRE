@@ -1,0 +1,52 @@
+{
+  "lab": {
+    "name": "SRE Lab",
+    "version": "1.0.0",
+    "description": "Environnement SRE pédagogique conteneurisé"
+  },
+  "services": {
+    "url_shortener": {
+      "url": "http://localhost:30000",
+      "health_endpoint": "/health",
+      "metrics_endpoint": "/metrics"
+    },
+    "splunk": {
+      "url": "http://localhost:8000",
+      "username": "admin",
+      "password": "admin123",
+      "hec_token": "sre-lab-token"
+    },
+    "prometheus": {
+      "url": "http://localhost:9090"
+    },
+    "otel_collector": {
+      "url": "http://localhost:8889",
+      "metrics_endpoint": "/metrics"
+    }
+  },
+  "kubernetes": {
+    "cluster_name": "sre-lab",
+    "namespace": "default",
+    "kind_config": "kind/kind-config.yaml"
+  },
+  "slo": {
+    "config_path": "sre/slo_config.json",
+    "error_budget_percentage": 0.1,
+    "burn_rate_threshold": 2.0
+  },
+  "traffic": {
+    "default_rpm": 100,
+    "default_error_rate": 0.01,
+    "default_duration_minutes": 60
+  },
+  "monitoring": {
+    "interval_seconds": 30,
+    "log_level": "INFO",
+    "db_path": "error_budget.db"
+  },
+  "alerts": {
+    "webhook_url": "",
+    "email": "",
+    "interval_minutes": 5
+  }
+}
