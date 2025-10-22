@@ -44,19 +44,19 @@ if (-not (Test-Path "templates")) {
 
 Write-Host "[INFO] Démarrage de l'application Flask..." -ForegroundColor Green
 Write-Host ""
-Write-Host "🌐 Application Post-Mortems SRE démarrée !" -ForegroundColor Cyan
+Write-Host "[SUCCESS] Application Post-Mortems SRE démarrée !" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "📋 URLs d'accès :" -ForegroundColor White
+Write-Host "[INFO] URLs d'accès :" -ForegroundColor White
 Write-Host "   - Interface principale: http://localhost:5000" -ForegroundColor White
 Write-Host "   - API des post-mortems: http://localhost:5000/api/postmortems" -ForegroundColor White
 Write-Host ""
-Write-Host "📚 Fonctionnalités :" -ForegroundColor White
+Write-Host "[INFO] Fonctionnalités :" -ForegroundColor White
 Write-Host "   - Visualisation des post-mortems avec format structuré" -ForegroundColor White
 Write-Host "   - Création de nouveaux post-mortems" -ForegroundColor White
 Write-Host "   - Interface responsive et professionnelle" -ForegroundColor White
 Write-Host "   - API REST pour l'intégration" -ForegroundColor White
 Write-Host ""
-Write-Host "Pour arreter l'application, appuyez sur Ctrl+C" -ForegroundColor Yellow
+Write-Host "[INFO] Pour arrêter l'application, appuyez sur Ctrl+C" -ForegroundColor Yellow
 
 # Démarrer l'application
 python app.py

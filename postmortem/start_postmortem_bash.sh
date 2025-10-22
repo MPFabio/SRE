@@ -36,19 +36,19 @@ mkdir -p templates
 
 echo "[INFO] Démarrage de l'application Flask..."
 echo ""
-echo "🌐 Application Post-Mortems SRE démarrée !"
+echo "[SUCCESS] Application Post-Mortems SRE démarrée !"
 echo ""
-echo "📋 URLs d'accès :"
+echo "[INFO] URLs d'accès :"
 echo "   - Interface principale: http://localhost:5000"
 echo "   - API des post-mortems: http://localhost:5000/api/postmortems"
 echo ""
-echo "📚 Fonctionnalités :"
+echo "[INFO] Fonctionnalités :"
 echo "   - Visualisation des post-mortems avec format structuré"
 echo "   - Création de nouveaux post-mortems"
 echo "   - Interface responsive et professionnelle"
 echo "   - API REST pour l'intégration"
 echo ""
-echo "🛑 Pour arrêter l'application, appuyez sur Ctrl+C"
+echo "[INFO] Pour arrêter l'application, appuyez sur Ctrl+C"
 
 # Démarrer l'application
 python app.py
