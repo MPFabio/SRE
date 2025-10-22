@@ -109,14 +109,14 @@
                                     placeholder="Ex: 100% du service, 15 000 utilisateurs actifs" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="user_impact" class="form-label">User impact *</label>
+                                <label for="user_impact" class="form-label">User impact (résumé) *</label>
                                 <textarea class="form-control" id="user_impact" name="user_impact" rows="2" 
-                                    placeholder="Ex: 45 000 requêtes perdues, erreurs 500 sur toutes les redirections" required></textarea>
+                                    placeholder="Ex: Impact significatif sur les utilisateurs avec perte de service complète" required></textarea>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="revenue_impact" class="form-label">Revenue impact *</label>
+                                <label for="revenue_impact" class="form-label">Revenue impact (résumé) *</label>
                                 <textarea class="form-control" id="revenue_impact" name="revenue_impact" rows="2" 
-                                    placeholder="Ex: Perte estimée de 2 500€ due à la baisse de conversions" required></textarea>
+                                    placeholder="Ex: Impact financier significatif sur les revenus pendant la période d'incident" required></textarea>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="detection" class="form-label">Détection *</label>
@@ -154,6 +154,24 @@
                                     placeholder="Ex: Erreurs 500 sur toutes les redirections, timeout des requêtes après 30s, saturation des logs d'erreur"></textarea>
                             </div>
                             
+                            <div class="col-12 mb-3">
+                                <h6 class="text-secondary">Revenue impact</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="revenue_loss" class="form-label">Perte de revenus estimée</label>
+                                <input type="text" class="form-control" id="revenue_loss" name="revenue_loss" 
+                                    placeholder="Ex: 2 500€, principalement sur les conversions premium">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="revenue_period" class="form-label">Période</label>
+                                <input type="text" class="form-control" id="revenue_period" name="revenue_period" 
+                                    placeholder="Ex: 14:30 - 17:00 (2h30)">
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="indirect_impacts" class="form-label">Impacts indirects</label>
+                                <textarea class="form-control" id="indirect_impacts" name="indirect_impacts" rows="2" 
+                                    placeholder="Ex: Baisse de 15% de la satisfaction client, 3 annulations d'abonnements premium"></textarea>
+                            </div>
                             
                             <div class="col-12 mb-3">
                                 <h6 class="text-secondary">Team impact</h6>
