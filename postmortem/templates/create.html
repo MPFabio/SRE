@@ -269,12 +269,66 @@
                         <div class="row mb-4">
                             <div class="col-12">
                                 <h6 class="text-primary">ACTION ITEMS</h6>
-                                <p class="text-muted">Ajoutez les actions à entreprendre (une par ligne, format: Description | Type | Priority | Owner | Tracking Bug)</p>
+                                <p class="text-muted">Ajoutez les actions à entreprendre avec leurs détails</p>
                             </div>
                             <div class="col-12 mb-3">
-                                <label for="action_items" class="form-label">Action Items</label>
-                                <textarea class="form-control" id="action_items" name="action_items" rows="8" 
-                                    placeholder="Exemples:&#10;Implémenter un monitoring complet des métriques PostgreSQL | prevent | P0 | Équipe SRE | SRE-123&#10;Ajouter des tests de charge pour toutes les nouvelles requêtes SQL | prevent | P0 | Équipe Engineering | ENG-456&#10;Configurer des timeouts appropriés sur toutes les requêtes SQL | prevent | P1 | Équipe Engineering | ENG-457&#10;Implémenter un circuit breaker pour les connexions de base de données | prevent | P1 | Équipe SRE | SRE-124&#10;Documenter la procédure de résolution des incidents de base de données | remediate | P1 | Équipe SRE | SRE-125&#10;Améliorer la communication externe en cas d'incident | remediate | P2 | Équipe Product | PROD-789"></textarea>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="actionItemsTable">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th style="width: 40%;">Action Items</th>
+                                                <th style="width: 15%;">Type</th>
+                                                <th style="width: 10%;">Priority</th>
+                                                <th style="width: 20%;">Owner</th>
+                                                <th style="width: 15%;">Tracking Bug</th>
+                                                <th style="width: 5%;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="actionItemsBody">
+                                            <tr>
+                                                <td>
+                                                    <input type="text" class="form-control" name="action_items[0][description]" 
+                                                           placeholder="Ex: Implémenter un monitoring complet des métriques PostgreSQL">
+                                                </td>
+                                                <td>
+                                                    <select class="form-select" name="action_items[0][type]">
+                                                        <option value="">Sélectionner</option>
+                                                        <option value="prevent">prevent</option>
+                                                        <option value="mitigate">mitigate</option>
+                                                        <option value="investigate">investigate</option>
+                                                        <option value="remediate">remediate</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <select class="form-select" name="action_items[0][priority]">
+                                                        <option value="">Sélectionner</option>
+                                                        <option value="P0">P0</option>
+                                                        <option value="P1">P1</option>
+                                                        <option value="P2">P2</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="form-control" name="action_items[0][owner]" 
+                                                           placeholder="Ex: Équipe SRE">
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="form-control" name="action_items[0][tracking_bug]" 
+                                                           placeholder="Ex: SRE-123">
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeActionItem(this)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-success btn-sm" onclick="addActionItem()">
+                                        <i class="fas fa-plus"></i> Ajouter une action
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -324,6 +378,56 @@
 
 {% block scripts %}
 <script>
+let actionItemCounter = 1;
+
+function addActionItem() {
+    const tbody = document.getElementById('actionItemsBody');
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td>
+            <input type="text" class="form-control" name="action_items[${actionItemCounter}][description]" 
+                   placeholder="Ex: Implémenter un monitoring complet des métriques PostgreSQL">
+        </td>
+        <td>
+            <select class="form-select" name="action_items[${actionItemCounter}][type]">
+                <option value="">Sélectionner</option>
+                <option value="prevent">prevent</option>
+                <option value="mitigate">mitigate</option>
+                <option value="investigate">investigate</option>
+                <option value="remediate">remediate</option>
+            </select>
+        </td>
+        <td>
+            <select class="form-select" name="action_items[${actionItemCounter}][priority]">
+                <option value="">Sélectionner</option>
+                <option value="P0">P0</option>
+                <option value="P1">P1</option>
+                <option value="P2">P2</option>
+            </select>
+        </td>
+        <td>
+            <input type="text" class="form-control" name="action_items[${actionItemCounter}][owner]" 
+                   placeholder="Ex: Équipe SRE">
+        </td>
+        <td>
+            <input type="text" class="form-control" name="action_items[${actionItemCounter}][tracking_bug]" 
+                   placeholder="Ex: SRE-123">
+        </td>
+        <td>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeActionItem(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+    tbody.appendChild(newRow);
+    actionItemCounter++;
+}
+
+function removeActionItem(button) {
+    const row = button.closest('tr');
+    row.remove();
+}
+
 document.getElementById('postmortemForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -355,18 +459,39 @@ document.getElementById('postmortemForm').addEventListener('submit', async funct
         data.things_that_went_poorly = data.things_that_went_poorly.split('\n').filter(line => line.trim());
     }
     
-    if (data.action_items) {
-        data.action_items = data.action_items.split('\n').filter(line => line.trim()).map(line => {
-            const parts = line.split(' | ');
-            return {
-                description: parts[0] || '',
-                type: parts[1] || '',
-                priority: parts[2] || '',
-                owner: parts[3] || '',
-                tracking_bug: parts[4] || ''
-            };
-        });
+    // Traiter les action items du tableau
+    const actionItems = [];
+    const actionItemData = {};
+    
+    // Collecter toutes les données des action items
+    for (const [key, value] of formData.entries()) {
+        if (key.startsWith('action_items[')) {
+            const match = key.match(/action_items\[(\d+)\]\[(\w+)\]/);
+            if (match) {
+                const index = match[1];
+                const field = match[2];
+                if (!actionItemData[index]) {
+                    actionItemData[index] = {};
+                }
+                actionItemData[index][field] = value;
+            }
+        }
     }
+    
+    // Convertir en tableau d'objets
+    for (const [index, item] of Object.entries(actionItemData)) {
+        if (item.description && item.description.trim() !== '') {
+            actionItems.push({
+                description: item.description,
+                type: item.type || '',
+                priority: item.priority || '',
+                owner: item.owner || '',
+                tracking_bug: item.tracking_bug || ''
+            });
+        }
+    }
+    
+    data.action_items = actionItems;
     
     if (data.glossary) {
         const glossary = {};
