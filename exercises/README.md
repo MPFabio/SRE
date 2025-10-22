@@ -5,7 +5,7 @@ Ce dossier contient les exercices détaillés pour le Lab SRE. Chaque exercice e
 ## Liste des Exercices
 
 ### Exercice 1 : Déploiement et Observabilité
-**Durée estimée :** 30 minutes  
+**Durée estimée :** 1-2 heures  
 **Difficulté :** ⭐⭐
 
 **Objectif :** Déployer l'environnement et vérifier la visibilité des données.
@@ -33,7 +33,7 @@ python3 test_lab.py
 ```
 
 ### Exercice 2 : Définition et Implémentation des SLIs/SLOs
-**Durée estimée :** 45 minutes  
+**Durée estimée :** 2-3 heures  
 **Difficulté :** ⭐⭐⭐
 
 **Objectif :** Identifier les SLIs pertinents et définir les SLOs.
@@ -62,8 +62,38 @@ cd sre && python3 burn_rate_calc.py
 python3 error_budget_tracker.py --dashboard
 ```
 
-### Exercice 3 : Simulation d'Incident et Collaboration
-**Durée estimée :** 60 minutes  
+### Exercice 3 : Error Budget et Burn Rate
+**Durée estimée :** 2-3 heures  
+**Difficulté :** ⭐⭐⭐
+
+**Objectif :** Utiliser les SLOs pour calculer l'error budget et le burn rate.
+
+**Étapes :**
+1. Utiliser `sre/burn_rate_calc.py` pour calculer le burn rate
+2. Analyser l'impact des incidents sur l'error budget
+3. Configurer des alertes basées sur le burn rate
+4. Implémenter des seuils d'alerte appropriés
+5. Tester les alertes avec des incidents simulés
+
+**Livrables :**
+- Script fonctionnel de calcul du burn rate
+- Alertes Splunk configurées
+- Documentation des seuils
+
+**Commandes utiles :**
+```bash
+# Déclencher un incident
+cd incident && ./trigger_failure.sh
+
+# Réparer un incident
+./fix_failure.sh
+
+# Automatisation
+cd automation && ./toil_reduction.sh
+```
+
+### Exercice 4 : Simulation d'Incident et Collaboration
+**Durée estimée :** 3-4 heures  
 **Difficulté :** ⭐⭐⭐⭐
 
 **Objectif :** Déclencher un incident et identifier les "toils".
@@ -92,36 +122,6 @@ python3 error_budget_tracker.py --dashboard
 
 **Commandes utiles :**
 ```bash
-# Déclencher un incident
-cd incident && ./trigger_failure.sh
-
-# Réparer un incident
-./fix_failure.sh
-
-# Automatisation
-cd automation && ./toil_reduction.sh
-```
-
-### Exercice 4 : Error Budget et Burn Rate
-**Durée estimée :** 40 minutes  
-**Difficulté :** ⭐⭐⭐
-
-**Objectif :** Utiliser les SLOs pour calculer l'error budget et le burn rate.
-
-**Étapes :**
-1. Utiliser `sre/burn_rate_calc.py` pour calculer le burn rate
-2. Analyser l'impact des incidents sur l'error budget
-3. Configurer des alertes basées sur le burn rate
-4. Implémenter des seuils d'alerte appropriés
-5. Tester les alertes avec des incidents simulés
-
-**Livrables :**
-- Script fonctionnel de calcul du burn rate
-- Alertes Splunk configurées
-- Documentation des seuils
-
-**Commandes utiles :**
-```bash
 # Calculer le burn rate
 cd sre && python3 burn_rate_calc.py --hours 24
 
@@ -133,7 +133,7 @@ cd ingest && python3 ingest_to_splunk.py
 ```
 
 ### Exercice 5 : Automatisation pour Réduire le Toil
-**Durée estimée :** 50 minutes  
+**Durée estimée :** 3-4 heures  
 **Difficulté :** ⭐⭐⭐⭐
 
 **Objectif :** Implémenter des automatisations pour réduire les tâches manuelles.
@@ -163,7 +163,7 @@ cd automation && ./toil_reduction.sh continuous
 ```
 
 ### Bonus : Mode Chaos
-**Durée estimée :** 30 minutes  
+**Durée estimée :** 1-2 heures  
 **Difficulté :** ⭐⭐⭐⭐⭐
 
 **Objectif :** Étendre les simulations d'incidents avec des pannes variées.

@@ -153,8 +153,8 @@ Les exercices sont organisés par difficulté croissante et couvrent tous les as
 
 - **Exercice 1** : Déploiement et Observabilité (⭐⭐)
 - **Exercice 2** : Définition des SLIs/SLOs (⭐⭐⭐)  
-- **Exercice 3** : Simulation d'Incident et Collaboration (⭐⭐⭐⭐)
-- **Exercice 4** : Error Budget et Burn Rate (⭐⭐⭐)
+- **Exercice 3** : Error Budget et Burn Rate (⭐⭐⭐)
+- **Exercice 4** : Simulation d'Incident et Collaboration (⭐⭐⭐⭐)
 - **Exercice 5** : Automatisation pour Réduire le Toil (⭐⭐⭐⭐)
 - **Bonus** : Mode Chaos (⭐⭐⭐⭐⭐)
 
