@@ -56,7 +56,7 @@ Write-Host "   - Création de nouveaux post-mortems" -ForegroundColor White
 Write-Host "   - Interface responsive et professionnelle" -ForegroundColor White
 Write-Host "   - API REST pour l'intégration" -ForegroundColor White
 Write-Host ""
-Write-Host "🛑 Pour arrêter l'application, appuyez sur Ctrl+C" -ForegroundColor Yellow
+Write-Host "Pour arreter l'application, appuyez sur Ctrl+C" -ForegroundColor Yellow
 
 # Démarrer l'application
 python app.py
