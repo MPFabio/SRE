@@ -1,0 +1,186 @@
+{
+  "id": "incident_20241222_143000",
+  "title": "Panne du service URL Shortener - Saturation de la base de données",
+  "owner": "Équipe SRE",
+  "shared_with": "Équipes Engineering, Product, Support",
+  "status": "Final",
+  "incident_date": "2024-12-22T14:30:00Z",
+  "published": "2024-12-23",
+  "created_at": "2024-12-22T16:00:00Z",
+  "executive_summary": {
+    "impact": "L'incident a causé une indisponibilité complète du service URL Shortener pendant 2h30, affectant 15 000 utilisateurs actifs et générant 45 000 requêtes perdues.",
+    "root_cause": "Une requête SQL mal optimisée a provoqué un verrouillage de table sur la base de données PostgreSQL, empêchant toute nouvelle connexion."
+  },
+  "problem_summary": {
+    "duration": "2h30",
+    "start_time": "2024-12-22T14:30:00Z",
+    "end_time": "2024-12-22T17:00:00Z",
+    "residual_effects": "2024-12-22T17:15:00Z - Latence élevée pendant 15 minutes supplémentaires",
+    "products_affected": "Service URL Shortener, API de redirection, Dashboard admin",
+    "percentage_affected": "100%",
+    "user_impact": "15 000 utilisateurs actifs ont été affectés, avec 45 000 requêtes perdues et des erreurs 500 sur toutes les redirections d'URLs courtes.",
+    "revenue_impact": "Perte estimée de 2 500€ due à la baisse de conversions et aux annulations d'abonnements premium.",
+    "detection": "Alertes Prometheus sur le taux d'erreur HTTP 500 > 95% pendant 5 minutes consécutives",
+    "resolution": "Redémarrage forcé du service PostgreSQL, rollback de la version précédente de l'application, et redéploiement avec correctif de la requête SQL."
+  },
+  "impact": {
+    "user_impact": {
+      "description": "L'incident a causé une indisponibilité complète du service URL Shortener, empêchant toute redirection d'URLs courtes.",
+      "requests_lost": "45 000 requêtes perdues (100% du trafic normal)",
+      "data_source": "Prometheus metrics et logs Nginx, fiabilité jugée fiable",
+      "additional_symptoms": "Erreurs 500 sur toutes les redirections, timeout des requêtes après 30s, saturation des logs d'erreur"
+    },
+    "revenue_impact": {
+      "description": "La perte de revenus estimée sur la période est de 2 500€, principalement sur les conversions premium et les abonnements.",
+      "period": "14:30 - 17:00 (2h30)",
+      "uncertainty": "±20% en raison des variations saisonnières",
+      "indirect_impacts": "Baisse de 15% de la satisfaction client, 3 annulations d'abonnements premium, impact sur la réputation de la marque"
+    },
+    "team_impact": {
+      "description": "Les équipes ont consacré environ 8 heures à la résolution de l'incident, incluant investigation, mitigation, communication et analyse post-mortem.",
+      "customer_support": "Support client avec 127 tickets créés et 45 appels téléphoniques",
+      "engineering_teams": "Équipes d'ingénierie mobilisées pour rollback, redéploiement, analyse des logs et correction du code",
+      "secondary_effects": "Saturation du cache Redis, surcharge du load balancer, contention sur les connexions de base de données"
+    }
+  },
+  "root_causes": {
+    "technical_cause": "Une requête SQL dans la fonction de recherche d'URLs courtes utilisait un index manquant sur la colonne 'created_at', provoquant un scan complet de table sur 2M d'enregistrements.",
+    "trigger": "Le déploiement de la version 2.1.3 à 14:25 a introduit une nouvelle fonctionnalité de recherche qui a activé cette requête défaillante.",
+    "system_reaction": "PostgreSQL a verrouillé la table 'urls' en mode EXCLUSIVE, empêchant toute nouvelle connexion et bloquant toutes les opérations de lecture/écriture.",
+    "non_idempotent_operation": "La requête de recherche n'était pas idempotente car elle créait des verrous de table persistants qui ne se libéraient pas automatiquement en cas d'échec.",
+    "missing_protections": "Absence de timeout sur les requêtes SQL, pas de circuit breaker sur la base de données, monitoring insuffisant des performances de requêtes.",
+    "late_detection": "Le monitoring ne couvrait pas les métriques de base de données (connexions actives, verrous, temps de requête), et les alertes étaient configurées uniquement sur les métriques applicatives.",
+    "incident_manifestation": "L'incident s'est concrétisé lorsque le premier utilisateur a tenté d'utiliser la nouvelle fonctionnalité de recherche à 14:30, déclenchant la requête problématique."
+  },
+  "timeline": [
+    {
+      "time": "14:25",
+      "title": "Déploiement de la version 2.1.3",
+      "description": "Déploiement réussi de la nouvelle version avec fonctionnalité de recherche d'URLs"
+    },
+    {
+      "time": "14:30",
+      "title": "Première utilisation de la recherche",
+      "description": "Un utilisateur utilise la nouvelle fonctionnalité de recherche, déclenchant la requête SQL problématique"
+    },
+    {
+      "time": "14:32",
+      "title": "Détection de l'incident",
+      "description": "Alertes Prometheus déclenchées sur le taux d'erreur HTTP 500 > 95%"
+    },
+    {
+      "time": "14:35",
+      "title": "Mobilisation de l'équipe",
+      "description": "Équipe SRE et Engineering mobilisées, début de l'investigation"
+    },
+    {
+      "time": "15:00",
+      "title": "Identification de la cause",
+      "description": "Découverte du verrouillage de table PostgreSQL et de la requête SQL défaillante"
+    },
+    {
+      "time": "15:15",
+      "title": "Tentative de mitigation",
+      "description": "Tentative de redémarrage du service application (échec - verrouillage persistant)"
+    },
+    {
+      "time": "15:45",
+      "title": "Redémarrage forcé de PostgreSQL",
+      "description": "Redémarrage de la base de données pour libérer les verrous"
+    },
+    {
+      "time": "16:00",
+      "title": "Rollback de l'application",
+      "description": "Retour à la version 2.1.2 stable"
+    },
+    {
+      "time": "16:30",
+      "title": "Stabilisation",
+      "description": "Service partiellement restauré, monitoring des métriques"
+    },
+    {
+      "time": "17:00",
+      "title": "Résolution complète",
+      "description": "Service entièrement opérationnel, validation des métriques de performance"
+    }
+  ],
+  "lessons_learned": {
+    "things_that_went_well": [
+      "Les mécanismes de monitoring Prometheus ont détecté l'incident en 2 minutes",
+      "La communication entre les équipes a été efficace via Slack et les canaux d'urgence",
+      "Le processus de rollback automatisé a fonctionné correctement",
+      "La base de données a bien récupéré après le redémarrage sans perte de données"
+    ],
+    "things_that_went_poorly": {
+      "outage": [
+        "Absence de monitoring des métriques de base de données (connexions, verrous, temps de requête)",
+        "La requête SQL n'a pas été testée en charge avant le déploiement",
+        "Pas de circuit breaker sur les connexions de base de données",
+        "Les timeouts SQL n'étaient pas configurés correctement"
+      ],
+      "recovery": [
+        "Le redémarrage de l'application seul n'a pas résolu le problème (verrouillage persistant)",
+        "L'identification de la cause a pris 30 minutes faute de monitoring approprié",
+        "Pas de procédure documentée pour les incidents de base de données",
+        "La communication externe aux utilisateurs a été tardive (1h après le début)"
+      ]
+    },
+    "where_we_got_lucky": [
+      "La base de données a récupéré sans corruption après le redémarrage forcé",
+      "Aucune donnée n'a été perdue malgré l'incident prolongé",
+      "Les sauvegardes automatiques étaient à jour et fonctionnelles"
+    ]
+  },
+  "action_items": [
+    {
+      "description": "Implémenter un monitoring complet des métriques PostgreSQL (connexions, verrous, temps de requête)",
+      "type": "prevent",
+      "priority": "P0",
+      "owner": "Équipe SRE",
+      "tracking_bug": "SRE-123"
+    },
+    {
+      "description": "Ajouter des tests de charge pour toutes les nouvelles requêtes SQL",
+      "type": "prevent",
+      "priority": "P0",
+      "owner": "Équipe Engineering",
+      "tracking_bug": "ENG-456"
+    },
+    {
+      "description": "Configurer des timeouts appropriés sur toutes les requêtes SQL",
+      "type": "prevent",
+      "priority": "P1",
+      "owner": "Équipe Engineering",
+      "tracking_bug": "ENG-457"
+    },
+    {
+      "description": "Implémenter un circuit breaker pour les connexions de base de données",
+      "type": "prevent",
+      "priority": "P1",
+      "owner": "Équipe SRE",
+      "tracking_bug": "SRE-124"
+    },
+    {
+      "description": "Documenter la procédure de résolution des incidents de base de données",
+      "type": "remediate",
+      "priority": "P1",
+      "owner": "Équipe SRE",
+      "tracking_bug": "SRE-125"
+    },
+    {
+      "description": "Améliorer la communication externe en cas d'incident (page de statut, notifications)",
+      "type": "remediate",
+      "priority": "P2",
+      "owner": "Équipe Product",
+      "tracking_bug": "PROD-789"
+    }
+  ],
+  "glossary": {
+    "HEC": "HTTP Event Collector de Splunk, utilisé pour l'ingestion des logs",
+    "OTLP": "OpenTelemetry Protocol, protocole standard pour la collecte de métriques et traces",
+    "Circuit Breaker": "Pattern de conception qui empêche les appels vers un service défaillant",
+    "Rollback": "Retour à une version précédente stable de l'application",
+    "Verrouillage de table": "Mécanisme de PostgreSQL qui bloque l'accès à une table pour maintenir la cohérence des données"
+  },
+  "appendix": "Données complémentaires : Logs PostgreSQL détaillés, métriques Prometheus sur la période d'incident, captures d'écran des dashboards de monitoring, et analyse des performances de la requête problématique."
+}

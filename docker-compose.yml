@@ -1,0 +1,44 @@
+services:
+  splunk:
+    image: splunk/splunk:latest
+    container_name: splunk-sre-lab
+    environment:
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_PASSWORD=admin123
+    ports:
+      - "8000:8000"    # Web UI
+      - "8089:8089"    # Management port
+      - "8088:8088"    # HEC (HTTP Event Collector)
+    volumes:
+      - splunk-data:/opt/splunk/var
+      - splunk-etc:/opt/splunk/etc
+      - ./data:/opt/splunk/var/log/sre-lab
+    networks:
+      - sre-network
+    restart: unless-stopped
+
+  # OpenTelemetry Collector pour la collecte des traces
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.91.0
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+      - "8889:8889"    # Prometheus metrics
+    networks:
+      - sre-network
+    depends_on:
+      - splunk
+    restart: unless-stopped
+
+volumes:
+  splunk-data:
+  splunk-etc:
+
+networks:
+  sre-network:
+    driver: bridge

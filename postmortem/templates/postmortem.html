@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+
+{% block title %}{{ postmortem.title }} - Post-Mortem SRE{% endblock %}
+
+{% block content %}
+<!-- En-tête du post-mortem -->
+<div class="postmortem-header">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="display-4 mb-3">{{ postmortem.title }}</h1>
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Owner:</strong> {{ postmortem.owner }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Shared with:</strong> {{ postmortem.shared_with }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Status:</strong> 
+                        <span class="status-badge status-{{ postmortem.status.lower().replace(' ', '-') }}">
+                            {{ postmortem.status }}
+                        </span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Incident date:</strong> {{ postmortem.incident_date }}
+                    </div>
+                </div>
+                {% if postmortem.published %}
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <strong>Published:</strong> {{ postmortem.published }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Executive Summary -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-header">
+                <i class="fas fa-chart-line me-2"></i>EXECUTIVE SUMMARY
+            </h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="impact-metric">
+                        <h5><i class="fas fa-exclamation-triangle text-danger me-2"></i>Impact</h5>
+                        <p>{{ postmortem.executive_summary.impact }}</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="impact-metric">
+                        <h5><i class="fas fa-search text-warning me-2"></i>Root Cause</h5>
+                        <p>{{ postmortem.executive_summary.root_cause }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Problem Summary -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-header">
+                <i class="fas fa-bug me-2"></i>PROBLEM SUMMARY
+            </h2>
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-clock me-2"></i>Duration of problem</h6>
+                            <p>{{ postmortem.problem_summary.duration }}</p>
+                            
+                            <h6><i class="fas fa-calendar me-2"></i>Incident Timeline</h6>
+                            <p><strong>Début:</strong> {{ postmortem.problem_summary.start_time }}</p>
+                            <p><strong>Fin:</strong> {{ postmortem.problem_summary.end_time }}</p>
+                            {% if postmortem.problem_summary.residual_effects %}
+                            <p><strong>Effets résiduels:</strong> {{ postmortem.problem_summary.residual_effects }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-cube me-2"></i>Products affected</h6>
+                            <p>{{ postmortem.problem_summary.products_affected }}</p>
+                            
+                            <h6><i class="fas fa-percentage me-2"></i>% of product affected</h6>
+                            <p>{{ postmortem.problem_summary.percentage_affected }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-users me-2"></i>User impact</h6>
+                            <p>{{ postmortem.problem_summary.user_impact }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-dollar-sign me-2"></i>Revenue impact</h6>
+                            <p>{{ postmortem.problem_summary.revenue_impact }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-eye me-2"></i>Detection</h6>
+                            <p>{{ postmortem.problem_summary.detection }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6><i class="fas fa-tools me-2"></i>Resolution</h6>
+                            <p>{{ postmortem.problem_summary.resolution }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Impact -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-header">
+                <i class="fas fa-chart-bar me-2"></i>IMPACT
+            </h2>
+            
+            <!-- User Impact -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-users me-2"></i>User Impact</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ postmortem.impact.user_impact.description }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Volume de requêtes perdues:</strong>
+                            <p>{{ postmortem.impact.user_impact.requests_lost }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Source des données:</strong>
+                            <p>{{ postmortem.impact.user_impact.data_source }}</p>
+                        </div>
+                    </div>
+                    {% if postmortem.impact.user_impact.additional_symptoms %}
+                    <p><strong>Symptômes supplémentaires:</strong> {{ postmortem.impact.user_impact.additional_symptoms }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Revenue Impact -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-dollar-sign me-2"></i>Revenue Impact</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ postmortem.impact.revenue_impact.description }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Période:</strong>
+                            <p>{{ postmortem.impact.revenue_impact.period }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Incertitude:</strong>
+                            <p>{{ postmortem.impact.revenue_impact.uncertainty }}</p>
+                        </div>
+                    </div>
+                    {% if postmortem.impact.revenue_impact.indirect_impacts %}
+                    <p><strong>Impacts indirects:</strong> {{ postmortem.impact.revenue_impact.indirect_impacts }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Team Impact -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-users-cog me-2"></i>Team Impact</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ postmortem.impact.team_impact.description }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Support client:</strong>
+                            <p>{{ postmortem.impact.team_impact.customer_support }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Équipes d'ingénierie:</strong>
+                            <p>{{ postmortem.impact.team_impact.engineering_teams }}</p>
+                        </div>
+                    </div>
+                    {% if postmortem.impact.team_impact.secondary_effects %}
+                    <p><strong>Effets secondaires:</strong> {{ postmortem.impact.team_impact.secondary_effects }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Root Causes and Trigger -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-header">
+                <i class="fas fa-search me-2"></i>ROOT CAUSES AND TRIGGER
+            </h2>
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-bug me-2"></i>Cause technique</h6>
+                            <p>{{ postmortem.root_causes.technical_cause }}</p>
+                            
+                            <h6><i class="fas fa-play me-2"></i>Déclencheur</h6>
+                            <p>{{ postmortem.root_causes.trigger }}</p>
+                            
+                            <h6><i class="fas fa-cogs me-2"></i>Réaction du système</h6>
+                            <p>{{ postmortem.root_causes.system_reaction }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Opération non idempotente</h6>
+                            <p>{{ postmortem.root_causes.non_idempotent_operation }}</p>
+                            
+                            <h6><i class="fas fa-shield-alt me-2"></i>Protections manquantes</h6>
+                            <p>{{ postmortem.root_causes.missing_protections }}</p>
+                            
+                            <h6><i class="fas fa-eye-slash me-2"></i>Détection tardive</h6>
+                            <p>{{ postmortem.root_causes.late_detection }}</p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6><i class="fas fa-bolt me-2"></i>Manifestation de l'incident</h6>
+                            <p>{{ postmortem.root_causes.incident_manifestation }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline / Recovery Efforts -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-header">
+                <i class="fas fa-timeline me-2"></i>TIMELINE / RECOVERY EFFORTS
+            </h2>
+            <div class="card">
+                <div class="card-body">
+                    {% for event in postmortem.timeline %}
+                    <div class="timeline-item">
+                        <h6><strong>{{ event.time }}</strong> - {{ event.title }}</h6>
+                        <p>{{ event.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lessons Learned -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-header">
+                <i class="fas fa-graduation-cap me-2"></i>LESSONS LEARNED
+            </h2>
+            
+            <!-- Things that went well -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-check-circle me-2"></i>Things that went well</h5>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        {% for item in postmortem.lessons_learned.things_that_went_well %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Things that went poorly -->
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5><i class="fas fa-times-circle me-2"></i>Things that went poorly</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Outage</h6>
+                    <ul>
+                        {% for item in postmortem.lessons_learned.things_that_went_poorly.outage %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <h6>Recovery</h6>
+                    <ul>
+                        {% for item in postmortem.lessons_learned.things_that_went_poorly.recovery %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Where we got lucky -->
+            {% if postmortem.lessons_learned.where_we_got_lucky %}
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5><i class="fas fa-star me-2"></i>Where we got lucky</h5>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        {% for item in postmortem.lessons_learned.where_we_got_lucky %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Action Items -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-header">
+                <i class="fas fa-tasks me-2"></i>ACTION ITEMS
+            </h2>
+            <div class="row">
+                {% for action in postmortem.action_items %}
+                <div class="col-md-6 mb-3">
+                    <div class="action-item priority-{{ action.priority.lower() }}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0">{{ action.description }}</h6>
+                            <span class="badge bg-secondary">{{ action.type }}</span>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <small><strong>Priority:</strong> {{ action.priority }}</small>
+                            </div>
+                            <div class="col-6">
+                                <small><strong>Owner:</strong> {{ action.owner }}</small>
+                            </div>
+                        </div>
+                        {% if action.tracking_bug %}
+                        <div class="mt-2">
+                            <small><strong>Tracking Bug:</strong> {{ action.tracking_bug }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Glossary -->
+    {% if postmortem.glossary %}
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-header">
+                <i class="fas fa-book me-2"></i>GLOSSARY
+            </h2>
+            <div class="card">
+                <div class="card-body">
+                    {% for term, definition in postmortem.glossary.items() %}
+                    <div class="mb-3">
+                        <h6><strong>{{ term }}</strong></h6>
+                        <p>{{ definition }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Appendix -->
+    {% if postmortem.appendix %}
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-header">
+                <i class="fas fa-paperclip me-2"></i>APPENDIX
+            </h2>
+            <div class="card">
+                <div class="card-body">
+                    <p>{{ postmortem.appendix }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

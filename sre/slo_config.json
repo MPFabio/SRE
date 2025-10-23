@@ -1,0 +1,137 @@
+{
+  "service": "url-shortener",
+  "version": "1.0.0",
+  "slo_period_days": 30,
+  "error_budget_policy": {
+    "budget_percentage": 0.1,
+    "burn_rate_threshold": 2.0,
+    "alert_window_minutes": 5
+  },
+  "slis": {
+    "availability": {
+      "name": "Availability",
+      "description": "Pourcentage de requêtes réussies",
+      "measurement": {
+        "type": "ratio",
+        "good_events": "successful_requests",
+        "valid_events": "total_requests",
+        "query": "sum(rate(http_requests_total{status=~\"2..\"}[5m])) / sum(rate(http_requests_total[5m]))"
+      },
+      "slo_target": 0.999,
+      "slo_target_percentage": 99.9
+    },
+    "latency_p95": {
+      "name": "Latency P95",
+      "description": "95ème percentile de la latence des requêtes",
+      "measurement": {
+        "type": "histogram",
+        "metric": "http_request_duration_seconds",
+        "query": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))"
+      },
+      "slo_target": 0.5,
+      "slo_target_unit": "seconds"
+    },
+    "latency_p99": {
+      "name": "Latency P99",
+      "description": "99ème percentile de la latence des requêtes",
+      "measurement": {
+        "type": "histogram",
+        "metric": "http_request_duration_seconds",
+        "query": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))"
+      },
+      "slo_target": 2.0,
+      "slo_target_unit": "seconds"
+    },
+    "error_rate": {
+      "name": "Error Rate",
+      "description": "Taux d'erreurs (4xx et 5xx)",
+      "measurement": {
+        "type": "ratio",
+        "good_events": "successful_requests",
+        "valid_events": "total_requests",
+        "query": "sum(rate(http_requests_total{status=~\"[45]..\"}[5m])) / sum(rate(http_requests_total[5m]))"
+      },
+      "slo_target": 0.001,
+      "slo_target_percentage": 0.1
+    }
+  },
+  "slo_windows": {
+    "rolling_1h": {
+      "name": "Rolling 1 Hour",
+      "duration_minutes": 60,
+      "description": "Fenêtre glissante de 1 heure"
+    },
+    "rolling_6h": {
+      "name": "Rolling 6 Hours",
+      "duration_minutes": 360,
+      "description": "Fenêtre glissante de 6 heures"
+    },
+    "rolling_24h": {
+      "name": "Rolling 24 Hours",
+      "duration_minutes": 1440,
+      "description": "Fenêtre glissante de 24 heures"
+    },
+    "rolling_30d": {
+      "name": "Rolling 30 Days",
+      "duration_minutes": 43200,
+      "description": "Fenêtre glissante de 30 jours"
+    }
+  },
+  "alerting": {
+    "burn_rate_alerts": {
+      "fast_burn": {
+        "burn_rate_threshold": 6.0,
+        "window_minutes": 5,
+        "severity": "critical",
+        "description": "Burn rate très élevé - Error budget épuisé en moins d'1 heure"
+      },
+      "slow_burn": {
+        "burn_rate_threshold": 2.0,
+        "window_minutes": 30,
+        "severity": "warning",
+        "description": "Burn rate élevé - Error budget épuisé en moins de 6 heures"
+      }
+    },
+    "slo_violations": {
+      "availability": {
+        "threshold": 0.995,
+        "window_minutes": 5,
+        "severity": "critical",
+        "description": "Disponibilité en dessous du seuil critique"
+      },
+      "latency_p95": {
+        "threshold": 1.0,
+        "window_minutes": 5,
+        "severity": "warning",
+        "description": "Latence P95 au-dessus du seuil"
+      },
+      "latency_p99": {
+        "threshold": 3.0,
+        "window_minutes": 5,
+        "severity": "critical",
+        "description": "Latence P99 au-dessus du seuil critique"
+      }
+    }
+  },
+  "remediation": {
+    "auto_scaling": {
+      "enabled": true,
+      "min_replicas": 2,
+      "max_replicas": 10,
+      "target_cpu_utilization": 70,
+      "target_memory_utilization": 80
+    },
+    "circuit_breaker": {
+      "enabled": true,
+      "failure_threshold": 5,
+      "timeout_seconds": 30,
+      "recovery_timeout_seconds": 60
+    },
+    "retry_policy": {
+      "enabled": true,
+      "max_retries": 3,
+      "backoff_multiplier": 2,
+      "max_backoff_seconds": 30
+    }
+  }
+}
