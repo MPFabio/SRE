@@ -11,10 +11,62 @@ Ce dossier contient les exercices détaillés pour le Lab SRE. Chaque exercice e
 **Objectif :** Déployer l'environnement et vérifier la visibilité des données.
 
 **Étapes :**
-1. Démarrer le lab avec `./start_lab.sh`
+1. Démarrer le lab avec `./scripts/start_lab.sh`
 2. Vérifier que tous les services sont accessibles
-3. Accéder à Splunk et explorer les données
-4. Configurer des dashboards de base
+3. Configurer Splunk pour recevoir les métriques
+4. Accéder à Splunk et explorer les données
+5. Configurer des dashboards de base
+
+**Configuration Splunk (OBLIGATOIRE) :**
+
+**Étape 3.1 : Activer le HEC globalement**
+1. Accédez à Splunk : http://localhost:8000
+2. Connectez-vous : admin / admin123
+3. Allez dans Settings > Data Inputs > HTTP Event Collector
+4. Cliquez sur "Global Settings" (en haut à droite)
+5. Décochez "Enable SSL" ☐
+6. Vérifiez que "HTTP Port Number" = 8088
+7. Cliquez sur "Save"
+
+**Étape 3.2 : Créer un token HEC**
+1. Allez dans Settings > Data Inputs > HTTP Event Collector
+2. Cliquez sur "New Token" ou "Créer un nouveau jeton"
+3. Remplissez :
+   - **Nom** : `sre-lab-token`
+   - **Remplace le nom de la source** : `otel-collector`
+   - **Description** : `OpenTelemetry Collector metrics`
+   - **Output Group** : `Aucun(e)`
+   - **Activer l'accusé de réception** : ☐ (décoché)
+4. Cliquez sur "Suivant"
+
+**Étape 3.3 : Configurer les paramètres d'entrée**
+1. **Sourcetype** : `Automatique`
+2. **Index** : Cliquez sur **"ajouter tous >>"** pour sélectionner tous les index
+3. **Index par défaut** : `Défaut`
+4. Cliquez sur "Suivant" ou "Créer"
+
+**Étape 3.4 : Mettre à jour la configuration OpenTelemetry**
+1. Copiez le token généré (ex: `3aaffac1-df6b-456b-897a-8b0628a9b4cc`)
+2. Mettez à jour le fichier `otel-collector-config.yml` :
+   ```yaml
+   splunk_hec:
+     endpoint: "http://splunk:8088/services/collector"
+     token: "VOTRE_TOKEN_ICI"
+     source: "otel-collector"
+     sourcetype: "otel"
+     index: "main"
+   ```
+3. Redémarrez l'OpenTelemetry Collector :
+   ```bash
+   docker-compose restart otel-collector
+   ```
+
+**Étape 3.5 : Vérifier que les métriques arrivent**
+Dans Splunk, recherchez :
+```
+index=main source="otel-collector"
+```
+Vous devriez voir des événements avec `source="otel-collector"`.
 
 **Livrables :**
 - Cluster opérationnel
@@ -23,13 +75,13 @@ Ce dossier contient les exercices détaillés pour le Lab SRE. Chaque exercice e
 **Commandes utiles :**
 ```bash
 # Démarrer le lab
-./start_lab.sh
+./scripts/start_lab.sh
 
 # Vérifier le statut
-./start_lab.sh status
+./scripts/validate_lab.sh
 
 # Tester le lab
-python3 test_lab.py
+python3 scripts/test_lab.py
 ```
 
 ### Exercice 2 : Définition et Implémentation des SLIs/SLOs

@@ -46,8 +46,7 @@ SRE/
 │   ├── metrics/                   # Métriques simulées
 │   └── traces/                    # Traces simulées
 ├── exercises/
-│   ├── README.md                  # Exercices détaillés du lab SRE
-│   └── SPLUNK_SETUP.md            # Exercice 1 : Configuration Splunk
+│   └── README.md                  # Exercices détaillés du lab SRE
 ├── simulator/
 │   └── traffic_generator.py       # Génère le trafic simulé
 ├── ingest/
@@ -119,18 +118,11 @@ SRE/
    kubectl get services
    ```
 
-## Configuration Splunk (Premier Exercice)
+## Exercices SRE
 
-**⚠️ IMPORTANT :** Une fois le lab démarré, vous devez configurer Splunk pour recevoir les métriques.
+**📚 Guide complet des exercices :** [exercises/README.md](exercises/README.md)
 
-**Suivez le guide détaillé :** [exercises/SPLUNK_SETUP.md](exercises/SPLUNK_SETUP.md)
-
-**Résumé rapide :**
-1. Accédez à Splunk : http://localhost:8000 (admin/admin123)
-2. Allez dans Settings > Data Inputs > HTTP Event Collector
-3. Activez le HEC globalement (désactivez SSL)
-4. Créez un token HEC
-5. Mettez à jour `otel-collector-config.yml` avec le token
+**Le premier exercice inclut la configuration Splunk nécessaire pour recevoir les métriques.**
 
 ## Installation des Prérequis
 
