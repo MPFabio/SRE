@@ -16,7 +16,7 @@ Ce guide détaille l'installation de tous les prérequis nécessaires pour le La
 ```powershell
 # Exécuter en tant qu'administrateur
 Set-ExecutionPolicy Bypass -Scope Process -Force
-.\install_prerequisites.ps1
+.\scripts\install_prerequisites.ps1
 ```
 
 ### Installation Manuelle
@@ -64,9 +64,9 @@ pip --version
 ### Installation Automatique (Recommandée)
 ```bash
 # Rendre le script exécutable
-chmod +x install_prerequisites.sh
+chmod +x scripts/install_prerequisites.sh
 # Exécuter le script d'installation
-./install_prerequisites.sh
+./scripts/install_prerequisites.sh
 ```
 
 ### Installation Manuelle
@@ -112,9 +112,9 @@ pip3 --version
 ### Installation Automatique (Recommandée)
 ```bash
 # Rendre le script exécutable
-chmod +x install_prerequisites.sh
+chmod +x scripts/install_prerequisites.sh
 # Exécuter le script d'installation
-./install_prerequisites.sh
+./scripts/install_prerequisites.sh
 ```
 
 ### Installation Manuelle
