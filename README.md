@@ -31,6 +31,11 @@ SRE/
 │   ├── kind-config.yaml           # Configuration du cluster KinD
 │   ├── manifests/                 # YAML K8s pour URL shortener + OpenTelemetry
 │   └── setup.sh                   # Script de déploiement
+├── scripts/                       # Scripts de démarrage et validation
+│   ├── start_lab.sh              # Démarrage automatique (Linux/macOS)
+│   ├── start_lab.ps1             # Démarrage automatique (Windows)
+│   ├── validate_lab.sh           # Validation du lab (Linux/macOS)
+│   └── validate_lab.ps1          # Validation du lab (Windows)
 ├── data/
 │   ├── logs/                      # Logs simulés sur 30 jours
 │   ├── metrics/                   # Métriques simulées
@@ -49,29 +54,40 @@ SRE/
 │   ├── app.py                     # Application Flask pour les post-mortems
 │   ├── templates/                 # Templates HTML pour l'interface web
 │   ├── data/postmortems/          # Données des post-mortems (JSON)
-│   ├── requirements.txt           # Dépendances Python Flask
-│   └── start_postmortem.sh        # Script de démarrage de l'interface
+│   └── requirements.txt           # Dépendances Python Flask
 ├── automation/
 │   └── toil_reduction.sh          # Scripts d'automatisation
 ├── sre/
 │   ├── slo_config.json            # Définition des SLOs
 │   ├── burn_rate_calc.py          # Calcul du burn rate
 │   └── error_budget_tracker.py    # Suivi de l'error budget
-├── start_lab.sh                   # Script de démarrage automatique
-├── start_lab.ps1                  # Script de démarrage (PowerShell)
-├── validate_lab.sh                # Script de validation
-├── validate_lab.ps1               # Script de validation (PowerShell)
+├── scripts/start_lab.sh           # Script de démarrage automatique
+├── scripts/start_lab.ps1          # Script de démarrage (PowerShell)
+├── scripts/validate_lab.sh        # Script de validation
+├── scripts/validate_lab.ps1       # Script de validation (PowerShell)
 ├── test_lab.py                    # Tests automatisés du lab
 ├── otel-collector-config.yml      # Configuration OpenTelemetry
 ├── requirements.txt               # Dépendances Python
 ├── config.json                    # Configuration du lab
 ├── PREREQUIS.md                   # Guide d'installation
-├── QUICKSTART.md                  # Guide de démarrage rapide
-├── INSTALL_KIND.md                # Guide d'installation KinD
+├── SPLUNK_SETUP.md                # Guide de configuration Splunk
 └── README.md                      # Ce fichier
 ```
 
 ## Démarrage Rapide
+
+### Configuration Splunk (OBLIGATOIRE)
+
+**⚠️ IMPORTANT :** Avant de commencer, vous devez configurer Splunk pour recevoir les métriques.
+
+**Suivez le guide détaillé :** [SPLUNK_SETUP.md](SPLUNK_SETUP.md)
+
+**Résumé rapide :**
+1. Accédez à Splunk : http://localhost:8000 (admin/admin123)
+2. Allez dans Settings > Data Inputs > HTTP Event Collector
+3. Activez le HEC globalement (désactivez SSL)
+4. Créez un token HEC
+5. Mettez à jour `otel-collector-config.yml` avec le token
 
 ### Prérequis
 
@@ -140,10 +156,10 @@ docker --version && kind --version && kubectl version --client && python --versi
 4. **Vérifier le déploiement**
    ```bash
    # Validation automatique (Linux/macOS)
-   ./validate_lab.sh
+   ./scripts/validate_lab.sh
    
    # Validation automatique (Windows PowerShell)
-   .\validate_lab.ps1
+   .\scripts\validate_lab.ps1
    
    # Validation manuelle
    kubectl get pods
@@ -160,7 +176,7 @@ docker --version && kind --version && kubectl version --client && python --versi
 - **OpenTelemetry Collector :** http://localhost:8889/metrics
   - Métriques Prometheus
   - OTLP : gRPC (4317), HTTP (4318)
-- **Post-Mortems Interface :** http://localhost:5000
+- **Post-Mortems Interface :** http://localhost:30001
   - Interface web Flask pour les post-mortems
   - Gestion et visualisation des incidents
 
@@ -214,12 +230,13 @@ cd incident
 
 ### Interface Post-Mortems
 
-```bash
-cd postmortem
-./start_postmortem.sh         # Démarrer l'interface web
-```
+L'application Flask pour les post-mortems est automatiquement déployée dans le cluster KinD et accessible via http://localhost:30001
 
-Accès à l'interface : http://localhost:5000
+**Fonctionnalités :**
+- Visualisation des post-mortems avec format structuré
+- Création de nouveaux post-mortems
+- Interface responsive et professionnelle
+- API REST pour l'intégration
 
 ### Calcul du Burn Rate
 

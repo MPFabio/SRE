@@ -1,0 +1,482 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postmortem-flask
+  labels:
+    app: postmortem-flask
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postmortem-flask
+  template:
+    metadata:
+      labels:
+        app: postmortem-flask
+    spec:
+      containers:
+      - name: postmortem-flask
+        image: python:3.11-slim
+        ports:
+        - containerPort: 5000
+        env:
+        - name: FLASK_APP
+          value: "app.py"
+        - name: FLASK_ENV
+          value: "production"
+        command: ["/bin/bash"]
+        args:
+        - -c
+        - |
+          # Installer les dépendances
+          pip install --no-cache-dir flask markdown
+          
+          # Créer les répertoires nécessaires
+          mkdir -p /app/data/postmortems
+          mkdir -p /app/templates
+          
+          # Copier l'application Flask
+          cat > /app/app.py << 'EOF'
+          from flask import Flask, render_template, request, jsonify, redirect, url_for
+          import json
+          import os
+          from datetime import datetime
+          import markdown
+
+          app = Flask(__name__)
+
+          # Configuration
+          DATA_DIR = '/app/data/postmortems'
+          os.makedirs(DATA_DIR, exist_ok=True)
+
+          def load_postmortems():
+              """Charger tous les post-mortems"""
+              postmortems = []
+              if os.path.exists(DATA_DIR):
+                  for filename in os.listdir(DATA_DIR):
+                      if filename.endswith('.json'):
+                          try:
+                              with open(os.path.join(DATA_DIR, filename), 'r', encoding='utf-8') as f:
+                                  postmortem = json.load(f)
+                                  postmortems.append(postmortem)
+                          except Exception as e:
+                              print(f"Erreur lors du chargement de {filename}: {e}")
+              return sorted(postmortems, key=lambda x: x.get('created_at', ''), reverse=True)
+
+          def save_postmortem(postmortem_data):
+              """Sauvegarder un post-mortem"""
+              incident_id = postmortem_data.get('incident_id', f"incident_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+              filename = f"{incident_id}.json"
+              filepath = os.path.join(DATA_DIR, filename)
+              
+              postmortem_data['id'] = incident_id
+              postmortem_data['created_at'] = datetime.now().isoformat()
+              
+              with open(filepath, 'w', encoding='utf-8') as f:
+                  json.dump(postmortem_data, f, indent=2, ensure_ascii=False)
+              
+              return incident_id
+
+          @app.route('/')
+          def index():
+              postmortems = load_postmortems()
+              return render_template('index.html', postmortems=postmortems)
+
+          @app.route('/postmortem/<incident_id>')
+          def postmortem(incident_id):
+              postmortems = load_postmortems()
+              postmortem = next((p for p in postmortems if p['id'] == incident_id), None)
+              if not postmortem:
+                  return render_template('error.html', message="Post-mortem non trouvé"), 404
+              return render_template('postmortem.html', postmortem=postmortem)
+
+          @app.route('/create')
+          def create():
+              return render_template('create.html')
+
+          @app.route('/api/postmortems', methods=['POST'])
+          def api_create_postmortem():
+              try:
+                  data = request.get_json()
+                  incident_id = save_postmortem(data)
+                  return jsonify({'success': True, 'id': incident_id})
+              except Exception as e:
+                  return jsonify({'success': False, 'error': str(e)}), 500
+
+          @app.route('/api/postmortems')
+          def api_postmortems():
+              postmortems = load_postmortems()
+              return jsonify(postmortems)
+
+          if __name__ == '__main__':
+              app.run(host='0.0.0.0', port=5000, debug=False)
+          EOF
+          
+          # Copier les templates
+          mkdir -p /app/templates
+          
+          # Template base.html
+          cat > /app/templates/base.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="fr">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>{% block title %}Post-Mortems SRE{% endblock %}</title>
+              <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+              <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+              <style>
+                  .navbar-brand { font-weight: bold; }
+                  .card { margin-bottom: 1rem; }
+                  .badge { font-size: 0.8em; }
+                  .timeline-item { margin-bottom: 1rem; }
+                  .action-item { margin-bottom: 0.5rem; }
+              </style>
+          </head>
+          <body>
+              <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                  <div class="container">
+                      <a class="navbar-brand" href="{{ url_for('index') }}">
+                          <i class="fas fa-clipboard-list me-2"></i>Post-Mortems SRE
+                      </a>
+                      <div class="navbar-nav ms-auto">
+                          <a class="nav-link" href="{{ url_for('index') }}">
+                              <i class="fas fa-list me-1"></i>Liste
+                          </a>
+                          <a class="nav-link" href="{{ url_for('create') }}">
+                              <i class="fas fa-plus me-1"></i>Créer
+                          </a>
+                      </div>
+                  </div>
+              </nav>
+              
+              <div class="container mt-4">
+                  {% block content %}{% endblock %}
+              </div>
+              
+              <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+              {% block scripts %}{% endblock %}
+          </body>
+          </html>
+          EOF
+          
+          # Template index.html
+          cat > /app/templates/index.html << 'EOF'
+          {% extends "base.html" %}
+          
+          {% block title %}Liste des Post-Mortems - Post-Mortems SRE{% endblock %}
+          
+          {% block content %}
+          <div class="row">
+              <div class="col-12">
+                  <div class="d-flex justify-content-between align-items-center mb-4">
+                      <h2><i class="fas fa-clipboard-list me-2"></i>Post-Mortems SRE</h2>
+                      <a href="{{ url_for('create') }}" class="btn btn-primary">
+                          <i class="fas fa-plus me-2"></i>Nouveau Post-Mortem
+                      </a>
+                  </div>
+                  
+                  {% if postmortems %}
+                      <div class="row">
+                          {% for postmortem in postmortems %}
+                          <div class="col-md-6 col-lg-4 mb-4">
+                              <div class="card h-100">
+                                  <div class="card-header d-flex justify-content-between align-items-center">
+                                      <h6 class="mb-0">{{ postmortem.title }}</h6>
+                                      <span class="badge bg-{% if postmortem.status == 'Final' %}success{% elif postmortem.status == 'En cours de révision' %}warning{% else %}secondary{% endif %}">
+                                          {{ postmortem.status }}
+                                      </span>
+                                  </div>
+                                  <div class="card-body">
+                                      <p class="card-text">
+                                          <strong>Owner:</strong> {{ postmortem.owner }}<br>
+                                          <strong>Date:</strong> {{ postmortem.incident_date[:10] }}<br>
+                                          <strong>Durée:</strong> {{ postmortem.problem_summary.duration if postmortem.problem_summary else 'N/A' }}
+                                      </p>
+                                      <p class="card-text text-muted small">
+                                          {{ postmortem.executive_summary.impact[:100] if postmortem.executive_summary and postmortem.executive_summary.impact else 'Aucun résumé disponible' }}...
+                                      </p>
+                                  </div>
+                                  <div class="card-footer">
+                                      <a href="{{ url_for('postmortem', incident_id=postmortem.id) }}" class="btn btn-outline-primary btn-sm">
+                                          <i class="fas fa-eye me-1"></i>Voir
+                                      </a>
+                                  </div>
+                              </div>
+                          </div>
+                          {% endfor %}
+                      </div>
+                  {% else %}
+                      <div class="text-center py-5">
+                          <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                          <h4 class="text-muted">Aucun post-mortem disponible</h4>
+                          <p class="text-muted">Créez votre premier post-mortem pour commencer.</p>
+                          <a href="{{ url_for('create') }}" class="btn btn-primary">
+                              <i class="fas fa-plus me-2"></i>Créer un Post-Mortem
+                          </a>
+                      </div>
+                  {% endif %}
+              </div>
+          </div>
+          {% endblock %}
+          EOF
+          
+          # Template create.html (version simplifiée)
+          cat > /app/templates/create.html << 'EOF'
+          {% extends "base.html" %}
+          
+          {% block title %}Créer un Post-Mortem - Post-Mortems SRE{% endblock %}
+          
+          {% block content %}
+          <div class="row">
+              <div class="col-12">
+                  <div class="card">
+                      <div class="card-header">
+                          <h5><i class="fas fa-plus me-2"></i>Créer un nouveau Post-Mortem</h5>
+                      </div>
+                      <div class="card-body">
+                          <form id="postmortemForm">
+                              <div class="row mb-3">
+                                  <div class="col-md-6">
+                                      <label for="title" class="form-label">Titre de l'incident *</label>
+                                      <input type="text" class="form-control" id="title" name="title" required>
+                                  </div>
+                                  <div class="col-md-6">
+                                      <label for="owner" class="form-label">Owner *</label>
+                                      <input type="text" class="form-control" id="owner" name="owner" required>
+                                  </div>
+                              </div>
+                              
+                              <div class="row mb-3">
+                                  <div class="col-md-6">
+                                      <label for="status" class="form-label">Status *</label>
+                                      <select class="form-select" id="status" name="status" required>
+                                          <option value="Brouillon">Brouillon</option>
+                                          <option value="En cours de révision">En cours de révision</option>
+                                          <option value="Final">Final</option>
+                                      </select>
+                                  </div>
+                                  <div class="col-md-6">
+                                      <label for="incident_date" class="form-label">Date de l'incident *</label>
+                                      <input type="datetime-local" class="form-control" id="incident_date" name="incident_date" required>
+                                  </div>
+                              </div>
+                              
+                              <div class="mb-3">
+                                  <label for="impact" class="form-label">Impact *</label>
+                                  <textarea class="form-control" id="impact" name="impact" rows="3" required></textarea>
+                              </div>
+                              
+                              <div class="mb-3">
+                                  <label for="root_cause" class="form-label">Cause racine *</label>
+                                  <textarea class="form-control" id="root_cause" name="root_cause" rows="3" required></textarea>
+                              </div>
+                              
+                              <div class="mb-3">
+                                  <label for="timeline" class="form-label">Timeline</label>
+                                  <textarea class="form-control" id="timeline" name="timeline" rows="4" placeholder="Format: HH:MM - Description"></textarea>
+                              </div>
+                              
+                              <div class="mb-3">
+                                  <label for="action_items" class="form-label">Action Items</label>
+                                  <textarea class="form-control" id="action_items" name="action_items" rows="4" placeholder="Format: Description | Type | Priority | Owner | Tracking Bug"></textarea>
+                              </div>
+                              
+                              <div class="d-flex gap-2">
+                                  <button type="submit" class="btn btn-primary">
+                                      <i class="fas fa-save me-2"></i>Créer le Post-Mortem
+                                  </button>
+                                  <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                                      <i class="fas fa-times me-2"></i>Annuler
+                                  </a>
+                              </div>
+                          </form>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          {% endblock %}
+          
+          {% block scripts %}
+          <script>
+          document.getElementById('postmortemForm').addEventListener('submit', async function(e) {
+              e.preventDefault();
+              
+              const formData = new FormData(this);
+              const data = Object.fromEntries(formData);
+              
+              // Traiter la timeline
+              if (data.timeline) {
+                  data.timeline = data.timeline.split('\n').filter(line => line.trim()).map(line => {
+                      const [time, ...descriptionParts] = line.split(' - ');
+                      return {
+                          time: time.trim(),
+                          title: 'Événement',
+                          description: descriptionParts.join(' - ').trim()
+                      };
+                  });
+              }
+              
+              // Traiter les action items
+              if (data.action_items) {
+                  data.action_items = data.action_items.split('\n').filter(line => line.trim()).map(line => {
+                      const parts = line.split(' | ');
+                      return {
+                          description: parts[0] || '',
+                          type: parts[1] || '',
+                          priority: parts[2] || '',
+                          owner: parts[3] || '',
+                          tracking_bug: parts[4] || ''
+                      };
+                  });
+              }
+              
+              try {
+                  const response = await fetch('/api/postmortems', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify(data)
+                  });
+                  
+                  const result = await response.json();
+                  
+                  if (result.success) {
+                      alert('Post-mortem créé avec succès !');
+                      window.location.href = '/';
+                  } else {
+                      alert('Erreur lors de la création: ' + result.error);
+                  }
+              } catch (error) {
+                  alert('Erreur lors de la création: ' + error.message);
+              }
+          });
+          </script>
+          {% endblock %}
+          EOF
+          
+          # Template postmortem.html
+          cat > /app/templates/postmortem.html << 'EOF'
+          {% extends "base.html" %}
+          
+          {% block title %}{{ postmortem.title }} - Post-Mortems SRE{% endblock %}
+          
+          {% block content %}
+          <div class="row">
+              <div class="col-12">
+                  <div class="card">
+                      <div class="card-header">
+                          <h4>{{ postmortem.title }}</h4>
+                          <div class="d-flex gap-2 mt-2">
+                              <span class="badge bg-primary">{{ postmortem.owner }}</span>
+                              <span class="badge bg-{% if postmortem.status == 'Final' %}success{% elif postmortem.status == 'En cours de révision' %}warning{% else %}secondary{% endif %}">{{ postmortem.status }}</span>
+                              <span class="badge bg-info">{{ postmortem.incident_date[:10] }}</span>
+                          </div>
+                      </div>
+                      <div class="card-body">
+                          <h5>Executive Summary</h5>
+                          <p><strong>Impact:</strong> {{ postmortem.executive_summary.impact if postmortem.executive_summary else 'N/A' }}</p>
+                          <p><strong>Cause racine:</strong> {{ postmortem.executive_summary.root_cause if postmortem.executive_summary else 'N/A' }}</p>
+                          
+                          {% if postmortem.timeline %}
+                          <h5 class="mt-4">Timeline</h5>
+                          <div class="timeline">
+                              {% for event in postmortem.timeline %}
+                              <div class="timeline-item">
+                                  <strong>{{ event.time }}</strong> - {{ event.description }}
+                              </div>
+                              {% endfor %}
+                          </div>
+                          {% endif %}
+                          
+                          {% if postmortem.action_items %}
+                          <h5 class="mt-4">Action Items</h5>
+                          <div class="table-responsive">
+                              <table class="table table-sm">
+                                  <thead>
+                                      <tr>
+                                          <th>Description</th>
+                                          <th>Type</th>
+                                          <th>Priority</th>
+                                          <th>Owner</th>
+                                          <th>Tracking</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {% for item in postmortem.action_items %}
+                                      <tr>
+                                          <td>{{ item.description }}</td>
+                                          <td>{{ item.type }}</td>
+                                          <td><span class="badge bg-{% if item.priority == 'P0' %}danger{% elif item.priority == 'P1' %}warning{% else %}secondary{% endif %}">{{ item.priority }}</span></td>
+                                          <td>{{ item.owner }}</td>
+                                          <td>{{ item.tracking_bug }}</td>
+                                      </tr>
+                                      {% endfor %}
+                                  </tbody>
+                              </table>
+                          </div>
+                          {% endif %}
+                      </div>
+                  </div>
+              </div>
+          </div>
+          {% endblock %}
+          EOF
+          
+          # Template error.html
+          cat > /app/templates/error.html << 'EOF'
+          {% extends "base.html" %}
+          
+          {% block title %}Erreur - Post-Mortems SRE{% endblock %}
+          
+          {% block content %}
+          <div class="row">
+              <div class="col-12">
+                  <div class="alert alert-danger">
+                      <h4><i class="fas fa-exclamation-triangle me-2"></i>Erreur</h4>
+                      <p>{{ message }}</p>
+                      <a href="{{ url_for('index') }}" class="btn btn-primary">Retour à l'accueil</a>
+                  </div>
+              </div>
+          </div>
+          {% endblock %}
+          EOF
+          
+          # Démarrer l'application
+          cd /app
+          python app.py
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postmortem-flask-service
+  labels:
+    app: postmortem-flask
+spec:
+  selector:
+    app: postmortem-flask
+  ports:
+  - port: 80
+    targetPort: 5000
+    nodePort: 30001
+  type: NodePort

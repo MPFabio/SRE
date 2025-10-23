@@ -12,6 +12,7 @@ services:
       - "8088:8088"    # HEC (HTTP Event Collector)
     volumes:
       - splunk-data:/opt/splunk/var
+      - splunk-etc:/opt/splunk/etc
       - ./data:/opt/splunk/var/log/sre-lab
     networks:
       - sre-network
@@ -36,6 +37,7 @@ services:
 
 volumes:
   splunk-data:
+  splunk-etc:
 
 networks:
   sre-network:

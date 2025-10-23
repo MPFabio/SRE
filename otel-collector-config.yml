@@ -36,7 +36,7 @@ exporters:
 
   splunk_hec:
     endpoint: "http://splunk:8088/services/collector"
-    token: "0fb1ea0e-f232-4176-98c3-f2099ff7ac67"
+    token: "3aaffac1-df6b-456b-897a-8b0628a9b4cc"
     source: "otel-collector"
     sourcetype: "otel"
     index: "main"
@@ -46,7 +46,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [debug, logging]
+      exporters: [debug, logging, splunk_hec]
 
     metrics:
       receivers: [otlp, prometheus]

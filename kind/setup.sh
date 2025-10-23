@@ -40,6 +40,7 @@ kubectl apply -f manifests/postgres-deployment.yaml
 kubectl apply -f manifests/otel-collector-config.yaml
 kubectl apply -f manifests/otel-collector-deployment.yaml
 kubectl apply -f manifests/url-shortener-with-db.yaml
+kubectl apply -f manifests/postmortem-flask-deployment.yaml
 
 # Attendre que les pods soient prêts (avec délai plus long pour l'installation des dépendances)
 echo "[INFO] Attente que les pods soient prêts..."
@@ -59,6 +60,7 @@ echo ""
 echo "URLs d'accès :"
 echo "   - URL Shortener: http://localhost:30000"
 echo "   - Splunk: http://localhost:8000 (admin/admin123)"
+echo "   - Post-Mortems Flask: http://localhost:30001"
 echo "   - OpenTelemetry Collector: http://localhost:8889/metrics"
 
 echo ""
