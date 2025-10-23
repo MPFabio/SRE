@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postmortem-flask
+  labels:
+    app: postmortem-flask
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postmortem-flask
+  template:
+    metadata:
+      labels:
+        app: postmortem-flask
+    spec:
+      containers:
+      - name: postmortem-flask
+        image: python:3.11-slim
+        ports:
+        - containerPort: 5000
+        command: ["/bin/bash"]
+        args:
+        - -c
+        - |
+          # Installer les dépendances
+          pip install --no-cache-dir flask markdown
+          
+          # Copier l'application depuis le volume
+          cp -r /app-source/* /app/
+          
+          # Changer vers le répertoire de l'application
+          cd /app
+          
+          # Démarrer l'application Flask
+          python app.py
+        volumeMounts:
+        - name: app-source
+          mountPath: /app-source
+        - name: app-data
+          mountPath: /app
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: app-source
+        hostPath:
+          path: /mnt/data/postmortem
+          type: DirectoryOrCreate
+      - name: app-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postmortem-flask-service
+  labels:
+    app: postmortem-flask
+spec:
+  selector:
+    app: postmortem-flask
+  ports:
+  - port: 80
+    targetPort: 5000
+    nodePort: 30001
+  type: NodePort

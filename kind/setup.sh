@@ -40,7 +40,7 @@ kubectl apply -f manifests/postgres-deployment.yaml
 kubectl apply -f manifests/otel-collector-config.yaml
 kubectl apply -f manifests/otel-collector-deployment.yaml
 kubectl apply -f manifests/url-shortener-with-db.yaml
-kubectl apply -f manifests/postmortem-flask-deployment.yaml
+kubectl apply -f manifests/postmortem-flask-deployment-simple.yaml
 
 # Attendre que les pods soient prêts (avec délai plus long pour l'installation des dépendances)
 echo "[INFO] Attente que les pods soient prêts..."

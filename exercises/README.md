@@ -68,9 +68,12 @@ index=main source="otel-collector"
 ```
 Vous devriez voir des événements avec `source="otel-collector"`.
 
+**Étape 3.6 : Créer le Dashboard des 4 Golden Signals**
+> **[Guide Complet]** [SPLUNK_DASHBOARD_GUIDE.md](SPLUNK_DASHBOARD_GUIDE.md) - Création d'un dashboard Splunk avec les 4 Golden Signals
+
 **Livrables :**
 - Cluster opérationnel
-- Dashboards Splunk avec les "golden signals"
+- Dashboard Splunk avec les 4 Golden Signals (LATENCY, TRAFFIC, ERRORS, SATURATION)
 
 **Commandes utiles :**
 ```bash
