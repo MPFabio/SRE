@@ -46,7 +46,8 @@ SRE/
 │   ├── metrics/                   # Métriques simulées
 │   └── traces/                    # Traces simulées
 ├── exercises/
-│   └── README.md                  # Exercices détaillés du lab SRE
+│   ├── README.md                  # Exercices détaillés du lab SRE
+│   └── SPLUNK_SETUP.md            # Exercice 1 : Configuration Splunk
 ├── simulator/
 │   └── traffic_generator.py       # Génère le trafic simulé
 ├── ingest/
@@ -70,7 +71,6 @@ SRE/
 ├── requirements.txt               # Dépendances Python
 ├── config.json                    # Configuration du lab
 ├── PREREQUIS.md                   # Guide d'installation
-├── SPLUNK_SETUP.md                # Guide de configuration Splunk
 └── README.md                      # Ce fichier
 ```
 
@@ -123,7 +123,7 @@ SRE/
 
 **⚠️ IMPORTANT :** Une fois le lab démarré, vous devez configurer Splunk pour recevoir les métriques.
 
-**Suivez le guide détaillé :** [SPLUNK_SETUP.md](SPLUNK_SETUP.md)
+**Suivez le guide détaillé :** [exercises/SPLUNK_SETUP.md](exercises/SPLUNK_SETUP.md)
 
 **Résumé rapide :**
 1. Accédez à Splunk : http://localhost:8000 (admin/admin123)

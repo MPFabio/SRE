@@ -2,23 +2,23 @@
 
 Ce guide explique comment configurer Splunk pour recevoir les métriques du lab SRE. C'est le **premier exercice** du lab SRE.
 
-## 🎯 Objectif
+## Objectif
 
 Configurer Splunk pour recevoir et analyser les métriques, logs et traces du lab SRE.
 
-## 📋 Prérequis
+## Prérequis
 
 - Le lab SRE doit être démarré (voir README.md)
 - Splunk doit être accessible sur http://localhost:8000
 - OpenTelemetry Collector doit être en cours d'exécution
 
-## 🚀 Démarrage
+## Démarrage
 
 1. **Accédez à Splunk** : http://localhost:8000
 2. **Connectez-vous** : admin / admin123
 3. **Suivez les étapes ci-dessous**
 
-## 📋 Configuration du HTTP Event Collector (HEC)
+## Configuration du HTTP Event Collector (HEC)
 
 ### Étape 1 : Activer le HEC globalement
 
@@ -52,7 +52,7 @@ Configurer Splunk pour recevoir et analyser les métriques, logs et traces du la
 1. **Copiez le token généré** (ex: `3aaffac1-df6b-456b-897a-8b0628a9b4cc`)
 2. **Sauvegardez-le** - vous en aurez besoin !
 
-## 🔧 Mise à jour de la configuration OpenTelemetry
+## Mise à jour de la configuration OpenTelemetry
 
 Une fois le token créé, mettez à jour le fichier `otel-collector-config.yml` :
 
@@ -71,7 +71,7 @@ Puis redémarrez l'OpenTelemetry Collector :
 docker-compose restart otel-collector
 ```
 
-## 🔍 Vérification
+## Vérification
 
 ### Dans Splunk, recherchez :
 ```
@@ -83,7 +83,7 @@ index=main source="otel-collector"
 - Des métriques OpenTelemetry
 - Des données de l'URL Shortener
 
-## 🚨 Dépannage
+## Dépannage
 
 ### Problème : "Connection reset by peer"
 - **Solution** : Vérifiez que SSL est désactivé dans Splunk
@@ -94,13 +94,13 @@ index=main source="otel-collector"
 ### Problème : Pas de données dans Splunk
 - **Solution** : Vérifiez que le HEC est activé globalement
 
-## 📊 Recherches utiles dans Splunk
+## Recherches utiles dans Splunk
 
 - `index=main source="otel-collector"` - Métriques OpenTelemetry
 - `index=main sourcetype="otel"` - Données structurées
 - `index=main` - Toutes les données
 
-## 🎯 Prochaines étapes
+## Prochaines étapes
 
 Une fois Splunk configuré, vous pouvez :
 1. **Commencer les exercices** dans `exercises/README.md`
