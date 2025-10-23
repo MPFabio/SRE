@@ -615,8 +615,9 @@ spec:
           }
           EOF
           
-          # Démarrer l'application
-          python /app/app.py
+          # Changer vers le répertoire /app et démarrer l'application
+          cd /app
+          python app.py
         resources:
           requests:
             memory: "128Mi"

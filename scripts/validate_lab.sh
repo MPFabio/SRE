@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🔍 Validation du lab SRE..."
+echo "[INFO] Validation du lab SRE..."
 
 # Vérifier que kubectl est configuré
 if ! kubectl cluster-info &> /dev/null; then
@@ -30,7 +30,7 @@ kubectl get services
 
 # Tester l'URL Shortener
 echo ""
-echo "🧪 Test de l'URL Shortener..."
+echo "[INFO] Test de l'URL Shortener..."
 if curl -s http://localhost:30000/health > /dev/null; then
     echo "[SUCCESS] URL Shortener accessible sur http://localhost:30000"
 else
@@ -39,7 +39,7 @@ fi
 
 # Tester les métriques
 echo ""
-echo "📈 Test des métriques..."
+echo "[INFO] Test des métriques..."
 if curl -s http://localhost:30000/metrics > /dev/null; then
     echo "[SUCCESS] Métriques disponibles sur http://localhost:30000/metrics"
 else
@@ -47,10 +47,41 @@ else
 fi
 
 echo ""
-echo "🎯 URLs d'accès :"
+# Tester Splunk (Docker Compose)
+echo ""
+echo "[INFO] Test de Splunk..."
+if curl -s http://localhost:8000 > /dev/null; then
+    echo "[SUCCESS] Splunk accessible sur http://localhost:8000"
+else
+    echo "[WARN] Splunk non accessible (vérifiez docker-compose up -d)"
+fi
+
+# Tester OpenTelemetry Collector (Docker Compose)
+echo ""
+echo "[INFO] Test de l'OpenTelemetry Collector..."
+if curl -s http://localhost:8889/metrics > /dev/null; then
+    echo "[SUCCESS] OpenTelemetry Collector accessible sur http://localhost:8889/metrics"
+else
+    echo "[WARN] OpenTelemetry Collector non accessible"
+fi
+
+# Tester Post-Mortems (Kubernetes)
+echo ""
+echo "[INFO] Test de l'interface Post-Mortems..."
+if curl -s http://localhost:30001 > /dev/null; then
+    echo "[SUCCESS] Interface Post-Mortems accessible sur http://localhost:30001"
+else
+    echo "[WARN] Interface Post-Mortems non accessible"
+fi
+
+echo ""
+echo "[INFO] URLs d'accès :"
 echo "   - URL Shortener: http://localhost:30000"
 echo "   - Métriques: http://localhost:30000/metrics"
 echo "   - Health Check: http://localhost:30000/health"
+echo "   - Splunk: http://localhost:8000 (admin/admin123)"
+echo "   - OpenTelemetry: http://localhost:8889/metrics"
+echo "   - Post-Mortems: http://localhost:30001"
 
 echo ""
 echo "[SUCCESS] Validation terminée ! Le lab SRE est prêt à être utilisé."
