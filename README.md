@@ -35,7 +35,12 @@ SRE/
 │   ├── start_lab.sh              # Démarrage automatique (Linux/macOS)
 │   ├── start_lab.ps1             # Démarrage automatique (Windows)
 │   ├── validate_lab.sh           # Validation du lab (Linux/macOS)
-│   └── validate_lab.ps1          # Validation du lab (Windows)
+│   ├── validate_lab.ps1          # Validation du lab (Windows)
+│   ├── test_lab.py               # Tests automatisés du lab
+│   ├── validate_setup.py         # Validation des prérequis
+│   ├── validate_setup_simple.py  # Validation simple des prérequis
+│   ├── install_prerequisites.sh  # Installation prérequis (Linux/macOS)
+│   └── install_prerequisites.ps1 # Installation prérequis (Windows)
 ├── data/
 │   ├── logs/                      # Logs simulés sur 30 jours
 │   ├── metrics/                   # Métriques simulées
@@ -61,11 +66,6 @@ SRE/
 │   ├── slo_config.json            # Définition des SLOs
 │   ├── burn_rate_calc.py          # Calcul du burn rate
 │   └── error_budget_tracker.py    # Suivi de l'error budget
-├── scripts/start_lab.sh           # Script de démarrage automatique
-├── scripts/start_lab.ps1          # Script de démarrage (PowerShell)
-├── scripts/validate_lab.sh        # Script de validation
-├── scripts/validate_lab.ps1       # Script de validation (PowerShell)
-├── test_lab.py                    # Tests automatisés du lab
 ├── otel-collector-config.yml      # Configuration OpenTelemetry
 ├── requirements.txt               # Dépendances Python
 ├── config.json                    # Configuration du lab
@@ -76,9 +76,52 @@ SRE/
 
 ## Démarrage Rapide
 
-### Configuration Splunk (OBLIGATOIRE)
+### Prérequis
 
-**⚠️ IMPORTANT :** Avant de commencer, vous devez configurer Splunk pour recevoir les métriques.
+- Docker et Docker Compose
+- KinD (Kubernetes in Docker)
+- kubectl
+- Python 3.8+
+- Git
+
+## Démarrage du Lab
+
+### Démarrage automatique (recommandé)
+
+**Linux/macOS :**
+```bash
+./scripts/start_lab.sh
+```
+
+**Windows PowerShell :**
+```powershell
+.\scripts\start_lab.ps1
+```
+
+### Démarrage manuel
+
+1. **Démarrer Splunk et OpenTelemetry** :
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Déployer le cluster KinD** :
+   ```bash
+   cd kind
+   chmod +x setup.sh
+   ./setup.sh
+   cd ..
+   ```
+
+3. **Vérifier le déploiement** :
+   ```bash
+   kubectl get pods
+   kubectl get services
+   ```
+
+## Configuration Splunk (Premier Exercice)
+
+**⚠️ IMPORTANT :** Une fois le lab démarré, vous devez configurer Splunk pour recevoir les métriques.
 
 **Suivez le guide détaillé :** [SPLUNK_SETUP.md](SPLUNK_SETUP.md)
 
@@ -88,14 +131,6 @@ SRE/
 3. Activez le HEC globalement (désactivez SSL)
 4. Créez un token HEC
 5. Mettez à jour `otel-collector-config.yml` avec le token
-
-### Prérequis
-
-- Docker et Docker Compose
-- KinD (Kubernetes in Docker)
-- kubectl
-- Python 3.8+
-- Git
 
 ## Installation des Prérequis
 
@@ -107,15 +142,15 @@ SRE/
 ```powershell
 # Exécuter en tant qu'administrateur
 Set-ExecutionPolicy Bypass -Scope Process -Force
-.\install_prerequisites.ps1
+.\scripts\install_prerequisites.ps1
 ```
 
 **macOS/Linux :**
 ```bash
 # Rendre le script exécutable
-chmod +x install_prerequisites.sh
+chmod +x scripts/install_prerequisites.sh
 # Exécuter l'installation
-./install_prerequisites.sh
+./scripts/install_prerequisites.sh
 ```
 
 ### Prérequis Nécessaires

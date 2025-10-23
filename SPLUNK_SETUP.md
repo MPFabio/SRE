@@ -1,8 +1,18 @@
-# Configuration Splunk pour le Lab SRE
+# Exercice 1 : Configuration Splunk pour l'Observabilité
 
-Ce guide explique comment configurer Splunk pour recevoir les métriques du lab SRE.
+Ce guide explique comment configurer Splunk pour recevoir les métriques du lab SRE. C'est le **premier exercice** du lab SRE.
 
-## 🚀 Démarrage rapide
+## 🎯 Objectif
+
+Configurer Splunk pour recevoir et analyser les métriques, logs et traces du lab SRE.
+
+## 📋 Prérequis
+
+- Le lab SRE doit être démarré (voir README.md)
+- Splunk doit être accessible sur http://localhost:8000
+- OpenTelemetry Collector doit être en cours d'exécution
+
+## 🚀 Démarrage
 
 1. **Accédez à Splunk** : http://localhost:8000
 2. **Connectez-vous** : admin / admin123

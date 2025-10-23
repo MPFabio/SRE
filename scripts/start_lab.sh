@@ -40,7 +40,7 @@ fi
 # Démarrer le cluster KinD
 echo "[INFO] Démarrage du cluster KinD..."
 if ! kind get clusters | grep -q "sre-lab"; then
-    cd kind
+    cd ../kind
     chmod +x setup.sh
     ./setup.sh
     cd ..
@@ -50,9 +50,9 @@ fi
 
 # Validation
 echo "🔍 Validation du déploiement..."
-if [ -f "validate_lab.sh" ]; then
-    chmod +x validate_lab.sh
-    ./validate_lab.sh
+if [ -f "scripts/validate_lab.sh" ]; then
+    chmod +x scripts/validate_lab.sh
+    ./scripts/validate_lab.sh
 else
     echo "[WARN] Script de validation non trouvé, validation manuelle..."
     kubectl get pods

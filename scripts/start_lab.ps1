@@ -45,7 +45,7 @@ if ($splunkStatus -notmatch "Up") {
 Write-Host "📦 Démarrage du cluster KinD..." -ForegroundColor Yellow
 $kindClusters = kind get clusters
 if ($kindClusters -notmatch "sre-lab") {
-    Set-Location kind
+    Set-Location ..\kind
     .\setup.sh
     Set-Location ..
 } else {
@@ -54,8 +54,8 @@ if ($kindClusters -notmatch "sre-lab") {
 
 # Validation
 Write-Host "🔍 Validation du déploiement..." -ForegroundColor Yellow
-if (Test-Path "validate_lab.ps1") {
-    .\validate_lab.ps1
+if (Test-Path "scripts\validate_lab.ps1") {
+    .\scripts\validate_lab.ps1
 } else {
     Write-Host "⚠️  Script de validation non trouvé, validation manuelle..." -ForegroundColor Yellow
     kubectl get pods
