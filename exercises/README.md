@@ -42,7 +42,7 @@ Ce dossier contient les exercices détaillés pour le Lab SRE. Chaque exercice e
 **Étape 3.3 : Configurer les paramètres d'entrée**
 1. **Sourcetype** : `Automatique`
 2. **Index** : Cliquez sur **"ajouter tous >>"** pour sélectionner tous les index
-3. **Index par défaut** : `Défaut`
+3. **Index par défaut** : Sélectionnez **"main"** dans le dropdown
 4. Cliquez sur "Suivant" ou "Créer"
 
 **Étape 3.4 : Mettre à jour la configuration OpenTelemetry**
