@@ -83,47 +83,6 @@ SRE/
 - Python 3.8+
 - Git
 
-## Démarrage du Lab
-
-### Démarrage automatique (recommandé)
-
-**Linux/macOS :**
-```bash
-./scripts/start_lab.sh
-```
-
-**Windows PowerShell :**
-```powershell
-.\scripts\start_lab.ps1
-```
-
-### Démarrage manuel
-
-1. **Démarrer Splunk et OpenTelemetry** :
-   ```bash
-   docker-compose up -d
-   ```
-
-2. **Déployer le cluster KinD** :
-   ```bash
-   cd kind
-   chmod +x setup.sh
-   ./setup.sh
-   cd ..
-   ```
-
-3. **Vérifier le déploiement** :
-   ```bash
-   kubectl get pods
-   kubectl get services
-   ```
-
-## Exercices SRE
-
-**📚 Guide complet des exercices :** [exercises/README.md](exercises/README.md)
-
-**Le premier exercice inclut la configuration Splunk nécessaire pour recevoir les métriques.**
-
 ## Installation des Prérequis
 
 > **[Guide Complet]** [PREREQUIS.md](PREREQUIS.md) - Installation détaillée pour Windows, macOS et Linux
@@ -193,6 +152,41 @@ docker --version && kind --version && kubectl version --client && python --versi
    kubectl get services
    ```
 
+## Démarrage du Lab
+
+### Démarrage automatique (recommandé)
+
+**Linux/macOS :**
+```bash
+./scripts/start_lab.sh
+```
+
+**Windows PowerShell :**
+```powershell
+.\scripts\start_lab.ps1
+```
+
+### Démarrage manuel
+
+1. **Démarrer Splunk et OpenTelemetry** :
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Déployer le cluster KinD** :
+   ```bash
+   cd kind
+   chmod +x setup.sh
+   ./setup.sh
+   cd ..
+   ```
+
+3. **Vérifier le déploiement** :
+   ```bash
+   kubectl get pods
+   kubectl get services
+   ```
+
 ### Accès aux Services
 
 - **URL Shortener :** http://localhost:30000
@@ -208,9 +202,13 @@ docker --version && kind --version && kubectl version --client && python --versi
   - Gestion et visualisation des incidents
 
 
-## Exercices
+## Exercices SRE
 
 > **[Exercices Détaillés]** [exercises/README.md](exercises/README.md) - Guide complet des exercices SRE avec objectifs, étapes et livrables
+
+**Le premier exercice inclut la configuration Splunk nécessaire pour recevoir les métriques.**
+
+## Exercices
 
 Les exercices sont organisés par difficulté croissante et couvrent tous les aspects du SRE :
 
