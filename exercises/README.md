@@ -46,7 +46,7 @@ Ce dossier contient les exercices détaillés pour le Lab SRE. Chaque exercice e
 4. Cliquez sur "Suivant" ou "Créer"
 
 **Étape 3.4 : Mettre à jour la configuration OpenTelemetry**
-1. Copiez le token généré (ex: `3aaffac1-df6b-456b-897a-8b0628a9b4cc`)
+1. Copiez le token généré
 2. Mettez à jour le fichier `otel-collector-config.yml` :
    ```yaml
    splunk_hec:

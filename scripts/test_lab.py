@@ -23,7 +23,7 @@ class LabTester:
         
     def test_service_health(self):
         """Teste la santé du service URL Shortener"""
-        logger.info("🔍 Test de la santé du service...")
+        logger.info("[INFO] Test de la santé du service...")
         
         try:
             response = requests.get(f"{self.service_url}/health", timeout=10)
@@ -39,7 +39,7 @@ class LabTester:
     
     def test_url_shortening(self):
         """Teste la fonctionnalité de raccourcissement d'URL"""
-        logger.info("🔗 Test du raccourcissement d'URL...")
+        logger.info("[INFO] Test du raccourcissement d'URL...")
         
         try:
             # Test de création d'URL courte
@@ -99,10 +99,10 @@ class LabTester:
     
     def test_splunk_connection(self):
         """Teste la connexion à Splunk"""
-        logger.info("🔍 Test de la connexion à Splunk...")
+        logger.info("[INFO] Test de la connexion à Splunk...")
         
         try:
-            response = requests.get(f"{self.splunk_url}/services/server/info", timeout=10)
+            response = requests.get(f"{self.splunk_url}", timeout=10)
             if response.status_code == 200:
                 logger.info("[SUCCESS] Splunk accessible")
                 return True
@@ -115,7 +115,7 @@ class LabTester:
     
     def test_otel_collector(self):
         """Teste l'OpenTelemetry Collector"""
-        logger.info("🔍 Test de l'OpenTelemetry Collector...")
+        logger.info("[INFO] Test de l'OpenTelemetry Collector...")
         
         try:
             response = requests.get(f"{self.otel_url}/metrics", timeout=10)
@@ -131,7 +131,7 @@ class LabTester:
     
     def test_traffic_generation(self):
         """Teste la génération de trafic"""
-        logger.info("🚦 Test de la génération de trafic...")
+        logger.info("[INFO] Test de la génération de trafic...")
         
         try:
             # Génère quelques requêtes de test
@@ -154,7 +154,7 @@ class LabTester:
     
     def run_all_tests(self):
         """Exécute tous les tests"""
-        logger.info("🧪 Démarrage des tests du Lab SRE...")
+        logger.info("[TEST] Démarrage des tests du Lab SRE...")
         print("="*60)
         
         tests = [
@@ -169,7 +169,7 @@ class LabTester:
         results = []
         
         for test_name, test_func in tests:
-            print(f"\n🔍 {test_name}...")
+            print(f"\n[INFO] {test_name}...")
             try:
                 result = test_func()
                 results.append((test_name, result))
@@ -202,7 +202,7 @@ class LabTester:
 
 def main():
     """Fonction principale"""
-    print("🧪 Testeur du Lab SRE")
+    print("[TEST] Testeur du Lab SRE")
     print("====================")
     
     tester = LabTester()
