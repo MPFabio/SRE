@@ -1,0 +1,179 @@
+{{- if .Values.persistence.prometheus.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.prometheus.size }}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      securityContext:
+        fsGroup: 65534
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.48.0
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time={{ .Values.retention.prometheus }}
+            - --storage.tsdb.retention.size={{ .Values.retention.prometheusSize }}
+            - --web.enable-lifecycle
+            - --web.enable-remote-write-receiver
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - { name: config, mountPath: /etc/prometheus/prometheus.yml, subPath: prometheus.yml }
+            - { name: rules,  mountPath: /etc/prometheus/rules }
+            - { name: data,   mountPath: /prometheus }
+          readinessProbe:
+            httpGet: { path: /-/ready, port: 9090 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources: {{- toYaml .Values.resources.prometheus | nindent 12 }}
+      volumes:
+        - { name: config, configMap: { name: prometheus-config } }
+        - { name: rules,  configMap: { name: prometheus-rules } }
+        {{- if .Values.persistence.prometheus.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: prometheus-data
+        {{- else }}
+        - { name: data,   emptyDir: {} }
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: alertmanager
+  ports:
+    - port: 9093
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.34.1
+          args:
+            - --config.file=/etc/alertmanager/alertmanager.yml
+            - --storage.path=/alertmanager
+          ports:
+            - containerPort: 9093
+          volumeMounts:
+            - { name: config, mountPath: /etc/alertmanager/alertmanager.yml, subPath: alertmanager.yml }
+            - { name: data,   mountPath: /alertmanager }
+          resources: {{- toYaml .Values.resources.small | nindent 12 }}
+      volumes:
+        - { name: config, configMap: { name: alertmanager-config } }
+        - { name: data,   emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      securityContext:
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.2.2
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: {{ .Values.grafana.adminUser | quote }}
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: lab-secrets, key: GRAFANA_ADMIN_PASSWORD }
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: "false"
+          volumeMounts:
+            - { name: provisioning, mountPath: /etc/grafana/provisioning/datasources/datasources.yml, subPath: datasources.yml }
+            - { name: provisioning, mountPath: /etc/grafana/provisioning/dashboards/dashboards.yml, subPath: dashboards.yml }
+            - { name: dashboards,   mountPath: /etc/grafana/provisioning/dashboards/sre-overview.json, subPath: sre-overview.json }
+            - { name: data,         mountPath: /var/lib/grafana }
+          readinessProbe:
+            httpGet: { path: /api/health, port: 3000 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources: {{- toYaml .Values.resources.grafana | nindent 12 }}
+      volumes:
+        - { name: provisioning, configMap: { name: grafana-provisioning } }
+        - { name: dashboards,   configMap: { name: grafana-dashboards } }
+        - { name: data,         emptyDir: {} }

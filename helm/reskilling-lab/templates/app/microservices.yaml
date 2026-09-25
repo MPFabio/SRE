@@ -1,0 +1,87 @@
+{{- $svcs := list
+  (dict "name" "catalog-service" "port" 8081 "db" true)
+  (dict "name" "cart-service"    "port" 8082 "db" false)
+  (dict "name" "orders-service"  "port" 8083 "db" true)
+  (dict "name" "payment-service" "port" 8084 "db" false)
+  (dict "name" "users-service"   "port" 8085 "db" true)
+}}
+{{- range $s := $svcs }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $s.name }}
+  labels: {{- include "lab.labels" $ | nindent 4 }}
+spec:
+  selector:
+    app: {{ $s.name }}
+  ports:
+    - port: {{ $s.port }}
+      targetPort: {{ $s.port }}
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $s.name }}
+  labels: {{- include "lab.labels" $ | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $s.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $s.name }}
+        {{- include "lab.labels" $ | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ $s.name }}
+          image: {{ if $.Values.image.registry }}{{ $.Values.image.registry }}/{{ end }}{{ $s.name }}:{{ $.Values.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $s.port }}
+          env:
+            - name: PORT
+              value: {{ $s.port | quote }}
+            - name: ENVIRONMENT
+              value: lab
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: otel-collector:4317
+            - name: CATALOG_SERVICE_URL
+              value: http://catalog-service:8081
+            - name: CART_SERVICE_URL
+              value: http://cart-service:8082
+            - name: ORDERS_SERVICE_URL
+              value: http://orders-service:8083
+            - name: PAYMENT_SERVICE_URL
+              value: http://payment-service:8084
+            - name: REDIS_URL
+              value: redis://redis:6379
+            {{- if $s.db }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: lab-secrets, key: POSTGRES_PASSWORD }
+            - name: DATABASE_URL
+              value: {{ include "lab.databaseUrl" $ | quote }}
+            - name: DB_POOL_MIN
+              value: {{ $.Values.db.poolMin | quote }}
+            - name: DB_POOL_MAX
+              value: {{ $.Values.db.poolMax | quote }}
+            {{- end }}
+            {{- if eq $s.name "users-service" }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef: { name: lab-secrets, key: JWT_SECRET }
+            {{- end }}
+          readinessProbe:
+            httpGet: { path: /ready, port: {{ $s.port }} }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: {{ $s.port }} }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources: {{- toYaml $.Values.resources.microservice | nindent 12 }}
+{{- end }}

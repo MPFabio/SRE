@@ -1,0 +1,165 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - port: 8080
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: api-gateway
+          image: {{ if .Values.image.registry }}{{ .Values.image.registry }}/{{ end }}api-gateway:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: ENVIRONMENT
+              value: lab
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: otel-collector:4317
+            - name: CATALOG_SERVICE_URL
+              value: http://catalog-service:8081
+            - name: CART_SERVICE_URL
+              value: http://cart-service:8082
+            - name: ORDERS_SERVICE_URL
+              value: http://orders-service:8083
+            - name: PAYMENT_SERVICE_URL
+              value: http://payment-service:8084
+            - name: USERS_SERVICE_URL
+              value: http://users-service:8085
+          readinessProbe:
+            httpGet: { path: /ready, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources: {{- toYaml .Values.resources.gateway | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lab-controller
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: lab-controller
+  ports:
+    - port: 8090
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lab-controller
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lab-controller
+  template:
+    metadata:
+      labels:
+        app: lab-controller
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: lab-controller
+          image: {{ if .Values.image.registry }}{{ .Values.image.registry }}/{{ end }}lab-controller:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8090
+          env:
+            - name: PORT
+              value: "8090"
+            - name: CATALOG_SERVICE_URL
+              value: http://catalog-service:8081
+            - name: CART_SERVICE_URL
+              value: http://cart-service:8082
+            - name: ORDERS_SERVICE_URL
+              value: http://orders-service:8083
+            - name: PAYMENT_SERVICE_URL
+              value: http://payment-service:8084
+            - name: USERS_SERVICE_URL
+              value: http://users-service:8085
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: lab-secrets, key: POSTGRES_PASSWORD }
+            - name: DATABASE_URL
+              value: {{ include "lab.databaseUrl" . | quote }}
+          readinessProbe:
+            httpGet: { path: /health, port: 8090 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources: {{- toYaml .Values.resources.microservice | nindent 12 }}
+{{- if .Values.traffic.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traffic-generator
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: traffic-generator
+  ports:
+    - port: 8089
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-generator
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic-generator
+  template:
+    metadata:
+      labels:
+        app: traffic-generator
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: traffic-generator
+          image: {{ if .Values.image.registry }}{{ .Values.image.registry }}/{{ end }}traffic-generator:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8089
+          env:
+            - name: LOCUST_WEB
+              value: "true"
+            - name: LOCUST_HOST
+              value: http://api-gateway:8080
+            - name: LOCUST_USERS
+              value: {{ .Values.traffic.users | quote }}
+            - name: LOCUST_SPAWN_RATE
+              value: {{ .Values.traffic.spawnRate | quote }}
+          resources: {{- toYaml .Values.resources.small | nindent 12 }}
+{{- end }}

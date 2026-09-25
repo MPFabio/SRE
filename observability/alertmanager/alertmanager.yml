@@ -1,0 +1,47 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'severity', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default-receiver'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical-receiver'
+      continue: true
+    
+    - match:
+        category: slo
+      receiver: 'slo-receiver'
+    
+    - match:
+        category: error_budget
+      receiver: 'slo-receiver'
+
+receivers:
+  - name: 'default-receiver'
+    webhook_configs:
+      - url: 'http://lab-controller:8090/api/webhooks/alertmanager'
+        send_resolved: true
+
+  - name: 'critical-receiver'
+    webhook_configs:
+      - url: 'http://lab-controller:8090/api/webhooks/alertmanager'
+        send_resolved: true
+
+  - name: 'slo-receiver'
+    webhook_configs:
+      - url: 'http://lab-controller:8090/api/webhooks/alertmanager'
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service']
+
+templates: []

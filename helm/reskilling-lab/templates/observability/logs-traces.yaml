@@ -1,0 +1,181 @@
+{{- if .Values.persistence.loki.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-data
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.loki.size }}
+---
+{{- end }}
+{{- if .Values.persistence.tempo.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tempo-data
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.tempo.size }}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: loki
+  ports:
+    - port: 3100
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      securityContext:
+        fsGroup: 10001
+      containers:
+        - name: loki
+          image: grafana/loki:3.7.8
+          args: ["-config.file=/etc/loki/local-config.yaml"]
+          ports:
+            - containerPort: 3100
+          volumeMounts:
+            - { name: config, mountPath: /etc/loki/local-config.yaml, subPath: loki-config.yml }
+            - { name: data,   mountPath: /loki }
+          readinessProbe:
+            httpGet: { path: /ready, port: 3100 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources: {{- toYaml .Values.resources.loki | nindent 12 }}
+      volumes:
+        - { name: config, configMap: { name: loki-config } }
+        {{- if .Values.persistence.loki.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: loki-data
+        {{- else }}
+        - { name: data,   emptyDir: {} }
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: tempo
+  ports:
+    - { port: 3200, name: http }
+    - { port: 4317, name: otlp-grpc }
+    - { port: 4318, name: otlp-http }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: tempo
+          image: grafana/tempo:2.3.1
+          args: ["-config.file=/etc/tempo/tempo.yml"]
+          ports:
+            - { containerPort: 3200 }
+            - { containerPort: 4317 }
+          volumeMounts:
+            - { name: config, mountPath: /etc/tempo/tempo.yml, subPath: tempo-config.yml }
+            - { name: data,   mountPath: /tmp/tempo }
+          readinessProbe:
+            httpGet: { path: /ready, port: 3200 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources: {{- toYaml .Values.resources.tempo | nindent 12 }}
+      volumes:
+        - { name: config, configMap: { name: tempo-config } }
+        {{- if .Values.persistence.tempo.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: tempo-data
+        {{- else }}
+        - { name: data,   emptyDir: {} }
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: otel-collector
+  ports:
+    - { port: 4317, name: otlp-grpc }
+    - { port: 4318, name: otlp-http }
+    - { port: 8889, name: metrics }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+        {{- include "lab.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.161.0
+          args: ["--config=/etc/otel/config.yml"]
+          ports:
+            - { containerPort: 4317 }
+            - { containerPort: 8889 }
+          volumeMounts:
+            - { name: config, mountPath: /etc/otel/config.yml, subPath: otel-collector-config.yml }
+          resources: {{- toYaml .Values.resources.collector | nindent 12 }}
+      volumes:
+        - { name: config, configMap: { name: otel-collector-config } }

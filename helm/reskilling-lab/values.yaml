@@ -1,0 +1,85 @@
+image:
+  registry: ""
+  tag: latest
+  pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  className: alb
+  host: ""
+  annotations: {}
+
+postgres:
+  user: capshop
+  database: capshop
+  password: capshop-lab-local-dev-only
+  maxConnections: 50
+  storage: 2Gi
+  storageClass: ""
+
+redis:
+  maxMemory: 100mb
+
+jwtSecret: reskilling-lab-local-dev-only-9f3a7c2e1b
+
+grafana:
+  adminUser: admin
+  adminPassword: admin
+
+db:
+  poolMin: 1
+  poolMax: 10
+
+retention:
+  prometheus: 15d
+  prometheusSize: 4GB
+  loki: 168h
+
+persistence:
+  prometheus:
+    enabled: false
+    size: 5Gi
+  loki:
+    enabled: false
+    size: 5Gi
+  tempo:
+    enabled: false
+    size: 3Gi
+  storageClass: ""
+
+traffic:
+  enabled: true
+  users: 10
+  spawnRate: 1
+
+resources:
+  microservice:
+    requests: { memory: 80Mi, cpu: 20m }
+    limits:   { memory: 256Mi, cpu: 1000m }
+  gateway:
+    requests: { memory: 96Mi, cpu: 25m }
+    limits:   { memory: 384Mi, cpu: 1000m }
+  postgres:
+    requests: { memory: 96Mi, cpu: 50m }
+    limits:   { memory: 512Mi, cpu: 1000m }
+  redis:
+    requests: { memory: 32Mi, cpu: 10m }
+    limits:   { memory: 128Mi, cpu: 500m }
+  prometheus:
+    requests: { memory: 224Mi, cpu: 50m }
+    limits:   { memory: 1Gi, cpu: 1000m }
+  loki:
+    requests: { memory: 192Mi, cpu: 40m }
+    limits:   { memory: 512Mi, cpu: 1000m }
+  tempo:
+    requests: { memory: 240Mi, cpu: 40m }
+    limits:   { memory: 512Mi, cpu: 1000m }
+  grafana:
+    requests: { memory: 128Mi, cpu: 25m }
+    limits:   { memory: 384Mi, cpu: 500m }
+  collector:
+    requests: { memory: 112Mi, cpu: 25m }
+    limits:   { memory: 512Mi, cpu: 1000m }
+  small:
+    requests: { memory: 24Mi, cpu: 5m }
+    limits:   { memory: 128Mi, cpu: 250m }

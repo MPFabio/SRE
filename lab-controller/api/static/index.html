@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operations Console — Reskilling Internal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-void: #ffffff;
+            --bg-panel: #ffffff;
+            --bg-surface: #f5f7f9;
+            --bg-elevated: #eef2f5;
+            --border-dim: #dfe4e9;
+            --border-active: #b9c2cb;
+            --text-primary: #16232e;
+            --text-secondary: #55636f;
+            --text-dim: #7b8794;
+            --signal-red: #c8102e;
+            --signal-amber: #b26a00;
+            --signal-green: #1a7f44;
+            --signal-blue: #0070AD;
+            --signal-blue-alt: #17ABDA;
+            --glow-red: rgba(200,16,46,0.08);
+            --glow-green: rgba(26,127,68,0.08);
+            --glow-blue: rgba(0,112,173,0.08);
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.55; }
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-void);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .header {
+            position: sticky;
+            top: 0;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-dim);
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+            z-index: 100;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--signal-blue), var(--signal-blue-alt));
+            color: #fff;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .logo-text {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: var(--text-primary);
+        }
+        
+        .logo-text span {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .nav-link {
+            font-size: 14px;
+            font-weight: 500;
+            padding: 10px 16px;
+            color: var(--text-dim);
+            text-decoration: none;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .nav-link:hover {
+            color: var(--text-secondary);
+            background: var(--bg-surface);
+        }
+        
+        .nav-link.active {
+            color: var(--text-primary);
+            background: var(--bg-elevated);
+        }
+        
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20px;
+            right: 20px;
+            height: 2px;
+            background: var(--signal-blue);
+            border-radius: 2px;
+        }
+        
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--signal-green);
+        }
+        
+        .status-dot.alert {
+            background: var(--signal-red);
+        }
+        
+        .main {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .metric-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--signal-blue), var(--signal-blue-alt));
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+        }
+        
+        .metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+        
+        .metric-value.alert {
+            color: var(--signal-red);
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            color: var(--text-primary);
+        }
+        
+        .section-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border-active), transparent);
+        }
+        
+        .trigger-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+        
+        .trigger-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 20px 24px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .trigger-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 60%, rgba(200,16,46,0.04));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .trigger-card:hover {
+            border-color: var(--signal-red);
+            transform: translateY(-1px);
+        }
+        
+        .trigger-card:hover::before {
+            opacity: 1;
+        }
+        
+        .trigger-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .trigger-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+        
+        .severity {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+        
+        .severity-P1 { background: var(--glow-red); color: var(--signal-red); border: 1px solid rgba(200,16,46,0.25); }
+        .severity-P2 { background: rgba(178,106,0,0.08); color: var(--signal-amber); border: 1px solid rgba(178,106,0,0.25); }
+        .severity-P3 { background: var(--glow-blue); color: var(--signal-blue-alt); border: 1px solid rgba(0,112,173,0.3); }
+        .severity-P4 { background: var(--glow-green); color: var(--signal-green); border: 1px solid rgba(26,127,68,0.25); }
+        
+        .trigger-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .incident-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .incident-row {
+            display: grid;
+            grid-template-columns: auto 1fr auto auto;
+            gap: 20px;
+            align-items: center;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .incident-row:hover {
+            border-color: var(--border-active);
+            background: var(--bg-surface);
+        }
+        
+        .incident-row.active-incident {
+            border-left: 3px solid var(--signal-red);
+            animation: pulse-glow 2s ease infinite;
+        }
+        
+        .incident-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+            background: var(--bg-elevated);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .incident-info h3 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        
+        .incident-info p {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        
+        .status {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .status-triggered { background: var(--glow-red); color: var(--signal-red); }
+        .status-investigating { background: rgba(178,106,0,0.08); color: var(--signal-amber); }
+        .status-identified { background: var(--glow-blue); color: var(--signal-blue-alt); }
+        .status-mitigating { background: rgba(178,106,0,0.08); color: var(--signal-amber); }
+        .status-resolved { background: var(--glow-green); color: var(--signal-green); }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            color: var(--text-dim);
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+        
+        .empty-state p {
+            font-size: 14px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(22,35,46,0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .modal.active { display: flex; }
+        
+        .modal-content {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-active);
+            border-radius: 4px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 28px;
+            border-bottom: 1px solid var(--border-dim);
+            position: sticky;
+            top: 0;
+            background: var(--bg-panel);
+            z-index: 10;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .modal-close:hover {
+            border-color: var(--signal-red);
+            color: var(--signal-red);
+        }
+        
+        .modal-body {
+            padding: 28px;
+        }
+        
+        .detail-section {
+            margin-bottom: 28px;
+        }
+        
+        .detail-label {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 24px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: var(--border-dim);
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-bottom: 16px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 6px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--signal-blue);
+            border: 2px solid var(--bg-panel);
+        }
+        
+        .timeline-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+        }
+        
+        .timeline-event {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .witness-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+        }
+        
+        .witness-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .witness-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .witness-role {
+            font-size: 10px;
+            color: var(--signal-blue);
+            background: rgba(0,112,173,0.08);
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+        
+        .witness-observation {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+        
+        .witness-cause {
+            font-size: 12px;
+            color: var(--text-dim);
+            padding-left: 12px;
+            border-left: 2px solid var(--signal-amber);
+        }
+        
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-dim);
+        }
+        
+        .btn {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 10px 20px;
+            border: 1px solid var(--border-dim);
+            border-radius: 3px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            border-color: var(--text-dim);
+            color: var(--text-primary);
+        }
+        
+        .btn-primary {
+            background: var(--signal-blue);
+            border-color: var(--signal-blue);
+            color: #fff;
+        }
+        
+        .btn-primary:hover {
+            background: #005a8c;
+            border-color: #005a8c;
+        }
+        
+        .btn-success {
+            background: var(--signal-green);
+            border-color: var(--signal-green);
+            color: #fff;
+        }
+        
+        .btn-success:hover {
+            background: #156636;
+            border-color: #156636;
+        }
+        
+        .toil-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 20px 24px;
+            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .toil-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        
+        .toil-desc {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+        }
+        
+        .toil-suggestion {
+            font-size: 11px;
+            color: var(--signal-green);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .toil-meta {
+            text-align: right;
+        }
+        
+        .toil-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--signal-amber);
+        }
+        
+        .toil-freq {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+        
+        .pm-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 24px 28px;
+            margin-bottom: 16px;
+        }
+        
+        .pm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        
+        .pm-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .pm-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        
+        .pm-section {
+            margin-bottom: 16px;
+        }
+        
+        .pm-header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pm-progress {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+
+        .pm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 10px 20px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .pm-meta-label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--text-dim);
+        }
+
+        .pm-todo {
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        .pm-hint {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+
+        .pm-edit-head {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .pm-edit-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .pm-edit input,
+        .pm-edit select {
+            width: 100%;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 14px;
+            color: var(--text-primary);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+        }
+
+        .pm-edit input:focus,
+        .pm-edit select:focus {
+            outline: none;
+            border-color: var(--signal-blue);
+        }
+
+        .pm-list {
+            list-style: none;
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .pm-list li {
+            padding-left: 14px;
+            position: relative;
+        }
+
+        .pm-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 11px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--signal-blue);
+        }
+
+        .pm-meta {
+            color: var(--text-dim);
+            font-size: 12px;
+        }
+
+        .pm-edit {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-dim);
+        }
+
+        .pm-edit textarea {
+            width: 100%;
+            margin-bottom: 16px;
+            padding: 10px 12px;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        .pm-edit textarea:focus {
+            outline: none;
+            border-color: var(--signal-blue);
+        }
+
+        .pm-edit-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pm-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+        }
+        
+        .pm-content {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">C</div>
+            <div class="logo-text">Operations <span>Console</span></div>
+        </div>
+        <nav class="nav">
+            <a href="#" class="nav-link active" data-tab="incidents">Incidents</a>
+            <a href="#" class="nav-link" data-tab="postmortems">Post-Mortems</a>
+            <a href="#" class="nav-link" data-tab="toil">Automation</a>
+        </nav>
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="system-status"></div>
+                <span>Lab</span>
+            </div>
+        </div>
+    </header>
+    
+    <main class="main">
+        <section id="incidents" class="tab-content active">
+            <div class="metrics-row">
+                <div class="metric-card">
+                    <div class="metric-label">Active Incidents</div>
+                    <div class="metric-value" id="active-incidents">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Total Triggered</div>
+                    <div class="metric-value" id="total-incidents">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Avg MTTR</div>
+                    <div class="metric-value" id="avg-mttr">--</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Post-Mortems</div>
+                    <div class="metric-value" id="postmortem-count">0</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-title">Trigger Incident</span>
+                    <div class="section-line"></div>
+                </div>
+                <div class="trigger-grid" id="trigger-grid"></div>
+            </div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-title">Incident History</span>
+                    <div class="section-line"></div>
+                </div>
+                <div class="incident-list" id="incident-list"></div>
+            </div>
+        </section>
+        
+        <section id="postmortems" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-title">Post-Mortem Reports</span>
+                    <div class="section-line"></div>
+                </div>
+                <div id="postmortem-list"></div>
+            </div>
+        </section>
+        
+        <section id="toil" class="tab-content">
+            <div class="metrics-row" id="toil-metrics"></div>
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-title">Identified Toil Tasks</span>
+                    <div class="section-line"></div>
+                </div>
+                <div id="toil-list"></div>
+            </div>
+        </section>
+    </main>
+    
+    <div class="modal" id="incident-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Incident Details</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+    
+    <script>
+        let currentIncident = null;
+        let postMortemsCache = [];
+        const NEWLINE = String.fromCharCode(10);
+        
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = e.target.dataset.tab;
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                e.target.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(tab).classList.add('active');
+            });
+        });
+        
+        async function loadIncidentTypes() {
+            const response = await fetch('/api/incident-types');
+            const types = await response.json();
+            document.getElementById('trigger-grid').innerHTML = types.map(t => `
+                <div class="trigger-card" onclick="triggerIncident('${t.type}')">
+                    <div class="trigger-header">
+                        <div class="trigger-title">${t.title}</div>
+                        <span class="severity severity-${t.severity}">${t.severity}</span>
+                    </div>
+                    <div class="trigger-desc">${t.description}</div>
+                </div>
+            `).join('');
+        }
+        
+        async function triggerIncident(type) {
+            const response = await fetch('/api/incidents/trigger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ incident_type: type, auto_generate_reports: true })
+            });
+            loadIncidents();
+        }
+        
+        async function loadIncidents() {
+            const response = await fetch('/api/incidents');
+            const incidents = await response.json();
+            
+            const activeCount = incidents.filter(i => i.status !== 'resolved').length;
+            document.getElementById('active-incidents').textContent = activeCount;
+            document.getElementById('active-incidents').classList.toggle('alert', activeCount > 0);
+            document.getElementById('total-incidents').textContent = incidents.length;
+            document.getElementById('system-status').classList.toggle('alert', activeCount > 0);
+            
+            const resolved = incidents.filter(i => i.mttr_seconds);
+            if (resolved.length > 0) {
+                const avgMttr = resolved.reduce((sum, i) => sum + i.mttr_seconds, 0) / resolved.length;
+                document.getElementById('avg-mttr').textContent = formatDuration(avgMttr);
+            }
+            
+            const list = document.getElementById('incident-list');
+            if (incidents.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">◇</div><p>No incidents recorded. Trigger one above to begin.</p></div>';
+                return;
+            }
+            
+            list.innerHTML = incidents.map(i => `
+                <div class="incident-row ${i.status !== 'resolved' ? 'active-incident' : ''}" onclick="showIncident('${i.id}')">
+                    <span class="incident-id">${i.id.split('-').slice(-1)[0]}</span>
+                    <div class="incident-info">
+                        <h3>${i.title}</h3>
+                        <p>${new Date(i.triggered_at).toLocaleString()}</p>
+                    </div>
+                    <span class="severity severity-${i.severity}">${i.severity}</span>
+                    <span class="status status-${i.status}">${i.status}</span>
+                </div>
+            `).join('');
+        }
+        
+        async function showIncident(id) {
+            const response = await fetch('/api/incidents/' + id);
+            currentIncident = await response.json();
+            
+            document.getElementById('modal-title').textContent = currentIncident.title;
+            
+            const witnessHtml = currentIncident.witness_reports.map(w => `
+                <div class="witness-card">
+                    <div class="witness-header">
+                        <span class="witness-name">${w.name}</span>
+                        <span class="witness-role">${w.role}</span>
+                    </div>
+                    <div class="witness-observation">${w.observation}</div>
+                    <div class="witness-cause"><strong>Suspected:</strong> ${w.suspected_cause}</div>
+                </div>
+            `).join('');
+            
+            const timelineHtml = currentIncident.timeline.map(t => `
+                <div class="timeline-item">
+                    <div class="timeline-time">${new Date(t.timestamp).toLocaleTimeString()}</div>
+                    <div class="timeline-event">${t.event}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('modal-body').innerHTML = `
+                <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                    <span class="severity severity-${currentIncident.severity}">${currentIncident.severity}</span>
+                    <span class="status status-${currentIncident.status}">${currentIncident.status}</span>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">Description</div>
+                    <p style="color: var(--text-secondary); line-height: 1.7;">${currentIncident.description}</p>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">Affected Services</div>
+                    <p style="color: var(--signal-amber);">${currentIncident.affected_services.join(' → ')}</p>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">Timeline</div>
+                    <div class="timeline">${timelineHtml}</div>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">Witness Reports (${currentIncident.witness_reports.length})</div>
+                    ${witnessHtml || '<p style="color: var(--text-dim);">No witness reports available.</p>'}
+                </div>
+                
+                <div class="btn-row">
+                    ${currentIncident.status !== 'resolved' ? `
+                        <button class="btn" onclick="updateStatus('investigating')">Investigating</button>
+                        <button class="btn" onclick="updateStatus('identified')">Identified</button>
+                        <button class="btn" onclick="updateStatus('mitigating')">Mitigating</button>
+                        <button class="btn btn-success" onclick="updateStatus('resolved')">Mark Resolved</button>
+                    ` : `
+                        <button class="btn btn-primary" onclick="generatePostMortem()">Generate Post-Mortem</button>
+                    `}
+                </div>
+            `;
+            
+            document.getElementById('incident-modal').classList.add('active');
+        }
+        
+        async function updateStatus(status) {
+            await fetch('/api/incidents/' + currentIncident.id + '/status?status=' + status, { method: 'PUT' });
+            closeModal();
+            loadIncidents();
+        }
+        
+        async function generatePostMortem() {
+            await fetch('/api/postmortems/generate/' + currentIncident.id, { method: 'POST' });
+            closeModal();
+            loadPostMortems();
+        }
+        
+        function closeModal() {
+            document.getElementById('incident-modal').classList.remove('active');
+            currentIncident = null;
+        }
+        
+        async function loadPostMortems() {
+            const response = await fetch('/api/postmortems');
+            const pms = await response.json();
+            postMortemsCache = pms;
+            document.getElementById('postmortem-count').textContent = pms.length;
+
+            const list = document.getElementById('postmortem-list');
+            if (pms.length === 0) {
+                list.innerHTML = '<div class="empty-state"><p>Aucun post-mortem. Résolvez un incident pour en générer un.</p></div>';
+                return;
+            }
+
+            const esc = (t) => String(t == null ? '' : t)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const filled = (v) => Array.isArray(v) ? v.length > 0
+                : Boolean(v && String(v).trim() && !String(v).startsWith('À compléter'));
+
+            const ANALYSIS = ['root_cause', 'detection', 'resolution', 'trigger',
+                'system_reaction', 'missing_protections', 'user_impact',
+                'lessons_learned', 'things_that_went_well',
+                'things_that_went_poorly', 'where_we_got_lucky', 'action_items'];
+
+            list.innerHTML = pms.map(pm => {
+                const done = ANALYSIS.filter(f => filled(pm[f])).length;
+
+                const textBlock = (label, value) => `
+                    <div class="pm-section">
+                        <div class="pm-label">${label}</div>
+                        <div class="pm-content ${filled(value) ? '' : 'pm-todo'}">${esc(value) || 'À compléter'}</div>
+                    </div>`;
+
+                const listBlock = (label, items) => `
+                    <div class="pm-section">
+                        <div class="pm-label">${label}</div>
+                        ${items && items.length
+                            ? `<ul class="pm-list">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`
+                            : '<div class="pm-content pm-todo">À compléter</div>'}
+                    </div>`;
+
+                const actionBlock = () => `
+                    <div class="pm-section">
+                        <div class="pm-label">Actions correctives</div>
+                        ${pm.action_items && pm.action_items.length
+                            ? `<ul class="pm-list">${pm.action_items.map(a => `<li>${esc(a.task || a.description)} <span class="pm-meta">${esc(a.type || '')} ${esc(a.priority || '')} · ${esc(a.owner)} · ${esc(a.due_date || '')}</span></li>`).join('')}</ul>`
+                            : '<div class="pm-content pm-todo">À compléter</div>'}
+                    </div>`;
+
+                return `
+                <div class="pm-card" id="pm-${pm.id}">
+                    <div class="pm-header">
+                        <div>
+                            <div class="pm-title">${esc(pm.title)}</div>
+                            <div class="pm-date">${new Date(pm.created_at).toLocaleString()} · ${esc(pm.status)}</div>
+                        </div>
+                        <div class="pm-header-right">
+                            <span class="pm-progress">${done}/${ANALYSIS.length} sections</span>
+                            <button class="btn" onclick="togglePostMortemEdit('${pm.id}')">Éditer</button>
+                        </div>
+                    </div>
+
+                    <div class="pm-grid">
+                        <div><span class="pm-meta-label">Durée</span> ${esc(pm.duration) || '—'}</div>
+                        <div><span class="pm-meta-label">Services</span> ${esc(pm.products_affected) || '—'}</div>
+                        <div><span class="pm-meta-label">Responsable</span> ${esc(pm.owner) || '—'}</div>
+                        <div><span class="pm-meta-label">Participants</span> ${pm.participants.length ? esc(pm.participants.join(', ')) : '—'}</div>
+                    </div>
+
+                    ${textBlock('Impact (calculé)', pm.impact)}
+                    ${textBlock('Impact utilisateur', pm.user_impact)}
+                    ${textBlock('Cause racine', pm.root_cause)}
+                    ${textBlock('Élément déclencheur', pm.trigger)}
+                    ${textBlock('Réaction du système', pm.system_reaction)}
+                    ${textBlock('Protections manquantes', pm.missing_protections)}
+                    ${textBlock('Détection', pm.detection)}
+                    ${textBlock('Résolution', pm.resolution)}
+                    ${listBlock('Ce qui a bien fonctionné', pm.things_that_went_well)}
+                    ${listBlock('Ce qui a mal fonctionné', pm.things_that_went_poorly)}
+                    ${listBlock('Où nous avons eu de la chance', pm.where_we_got_lucky)}
+                    ${listBlock('Enseignements', pm.lessons_learned)}
+                    ${actionBlock()}
+                </div>`;
+            }).join('');
+        }
+
+        function togglePostMortemEdit(pmId) {
+            const pm = postMortemsCache.find(x => x.id === pmId);
+            if (!pm) return;
+            const card = document.getElementById('pm-' + pmId);
+            if (card.querySelector('.pm-edit')) { loadPostMortems(); return; }
+
+            const area = (id, label, value, rows, hint) => `
+                <div class="pm-label">${label}</div>
+                ${hint ? `<div class="pm-hint">${hint}</div>` : ''}
+                <textarea id="${id}-${pmId}" rows="${rows}">${value == null ? '' : value}</textarea>`;
+            const lines = (arr) => (arr || []).join(NEWLINE);
+            const raw = (v) => (v && !String(v).startsWith('À compléter')) ? v : '';
+
+            const form = document.createElement('div');
+            form.className = 'pm-edit';
+            form.innerHTML = `
+                <div class="pm-edit-head">Analyse — à compléter par l'équipe</div>
+
+                <div class="pm-edit-row">
+                    <div><div class="pm-label">Responsable</div>
+                        <input id="edit-owner-${pmId}" value="${pm.owner || ''}"></div>
+                    <div><div class="pm-label">Statut</div>
+                        <select id="edit-status-${pmId}">
+                            ${['Brouillon', 'Review', 'Final'].map(s =>
+                                `<option ${pm.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select></div>
+                </div>
+
+                ${area('edit-root', 'Cause racine', raw(pm.root_cause), 3,
+                       'Décrivez un mécanisme, pas un symptôme.')}
+                ${area('edit-trigger', 'Élément déclencheur', pm.trigger, 2,
+                       'Qu\'est-ce qui a déclenché la panne à ce moment précis ?')}
+                ${area('edit-reaction', 'Réaction du système', pm.system_reaction, 2)}
+                ${area('edit-protections', 'Protections manquantes', pm.missing_protections, 2,
+                       'Quel garde-fou aurait évité ou limité l\'incident ?')}
+                ${area('edit-userimpact', 'Impact utilisateur', pm.user_impact, 2)}
+                ${area('edit-detection', 'Détection', pm.detection, 2,
+                       'Comment l\'incident a-t-il été découvert ?')}
+                ${area('edit-resolution', 'Résolution', pm.resolution, 2)}
+                ${area('edit-well', 'Ce qui a bien fonctionné', lines(pm.things_that_went_well), 3,
+                       'Une ligne par élément.')}
+                ${area('edit-poorly', 'Ce qui a mal fonctionné', lines(pm.things_that_went_poorly), 3,
+                       'Une ligne par élément.')}
+                ${area('edit-lucky', 'Où nous avons eu de la chance', lines(pm.where_we_got_lucky), 3,
+                       'Ce qui aurait pu aggraver l\'incident et ne s\'est pas produit.')}
+                ${area('edit-lessons', 'Enseignements', lines(pm.lessons_learned), 3,
+                       'Une ligne par enseignement.')}
+                ${area('edit-actions', 'Actions correctives',
+                       (pm.action_items || []).map(a =>
+                           [a.task || a.description, a.type || 'prevent',
+                            a.priority || 'P2', a.owner || '', a.due_date || ''].join(' | ')).join(NEWLINE), 4,
+                       'Une par ligne : tâche | type (prevent/mitigate/detect) | priorité (P0-P3) | responsable | échéance')}
+
+                <div class="pm-edit-actions">
+                    <button class="btn btn-primary" onclick="savePostMortem('${pmId}')">Enregistrer</button>
+                    <button class="btn" onclick="loadPostMortems()">Annuler</button>
+                </div>`;
+            card.appendChild(form);
+            form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        async function savePostMortem(pmId) {
+            const val = (id) => (document.getElementById(id + '-' + pmId).value || '').trim();
+            const list = (id) => val(id).split(NEWLINE).map(l => l.trim()).filter(Boolean);
+
+            const actions = list('edit-actions').map(line => {
+                const [task, type, priority, owner, due] = line.split('|').map(x => (x || '').trim());
+                return { task, type: type || 'prevent', priority: priority || 'P2',
+                         owner: owner || 'Non assigné', due_date: due || '', status: 'open' };
+            });
+
+            const response = await fetch('/api/postmortems/' + pmId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    owner: val('edit-owner'),
+                    status: val('edit-status'),
+                    root_cause: val('edit-root'),
+                    trigger: val('edit-trigger'),
+                    system_reaction: val('edit-reaction'),
+                    missing_protections: val('edit-protections'),
+                    user_impact: val('edit-userimpact'),
+                    detection: val('edit-detection'),
+                    resolution: val('edit-resolution'),
+                    things_that_went_well: list('edit-well'),
+                    things_that_went_poorly: list('edit-poorly'),
+                    where_we_got_lucky: list('edit-lucky'),
+                    lessons_learned: list('edit-lessons'),
+                    action_items: actions,
+                }),
+            });
+
+            if (!response.ok) { alert('Enregistrement impossible'); return; }
+            await loadPostMortems();
+        }
+
+        
+        async function loadToil() {
+            const [summaryRes, tasksRes] = await Promise.all([fetch('/api/toil/summary'), fetch('/api/toil')]);
+            const summary = await summaryRes.json();
+            const tasks = await tasksRes.json();
+            
+            document.getElementById('toil-metrics').innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-label">Tasks Identified</div>
+                    <div class="metric-value">${summary.total_toil_tasks}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Automatable</div>
+                    <div class="metric-value">${summary.automatable_tasks}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Time/Incident</div>
+                    <div class="metric-value">${summary.time_spent_per_incident_minutes}m</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Potential Savings</div>
+                    <div class="metric-value" style="color: var(--signal-green);">${summary.potential_automation_savings_minutes}m</div>
+                </div>
+            `;
+            
+            document.getElementById('toil-list').innerHTML = tasks.map(t => `
+                <div class="toil-card">
+                    <div>
+                        <div class="toil-name">${t.name}</div>
+                        <div class="toil-desc">${t.description}</div>
+                        ${t.automation_suggestion ? `<div class="toil-suggestion">💡 ${t.automation_suggestion}</div>` : ''}
+                    </div>
+                    <div class="toil-meta">
+                        <div class="toil-time">${t.time_spent_minutes}m</div>
+                        <div class="toil-freq">${t.frequency}</div>
+                        ${t.automatable ? `<button class="btn btn-success" style="margin-top: 12px;" onclick="automateTask('${t.id}')">Automate</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function automateTask(id) {
+            await fetch('/api/toil/' + id + '/automate', { method: 'POST' });
+            loadToil();
+        }
+        
+        function formatDuration(s) {
+            if (s < 60) return Math.round(s) + 's';
+            if (s < 3600) return Math.round(s/60) + 'm';
+            return Math.round(s/3600) + 'h';
+        }
+        
+        loadIncidentTypes();
+        loadIncidents();
+        loadPostMortems();
+        loadToil();
+        setInterval(loadIncidents, 10000);
+    </script>
+</body>
+</html>
