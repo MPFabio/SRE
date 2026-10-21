@@ -125,3 +125,69 @@ do
 done
 ```
 
+
+- Installer le lab dans son namespace
+
+Les images sont poussees sur `docker-push.reskilling.internal` et tirees depuis
+`docker.reskilling.internal`. Les trois secrets sont obligatoires.
+
+```console
+export NAMESPACE=stagiaire04
+export REGISTRY_PULL=docker.reskilling.internal/stagiaire04
+
+helm install lab helm/reskilling-lab \
+    --namespace $NAMESPACE \
+    --set image.registry=$REGISTRY_PULL \
+    --set image.tag=lab \
+    --set ingress.enabled=false \
+    --set postgres.password=$(openssl rand -hex 24) \
+    --set jwtSecret=$(openssl rand -hex 32) \
+    --set grafana.adminPassword=$(openssl rand -hex 8) \
+    --wait --timeout 6m
+```
+
+Le chart ne cree ni Role ni RoleBinding : il s'installe avec le role `edit`
+du namespace.
+
+- Verifier
+
+```console
+kubectl get pods --namespace $NAMESPACE
+```
+
+Les vingt pods doivent etre `Running`.
+
+- Recuperer le mot de passe Grafana
+
+```console
+kubectl get secret lab-secrets --namespace $NAMESPACE \
+    --output jsonpath='{.data.GRAFANA_ADMIN_PASSWORD}' | base64 --decode
+```
+
+- Acceder aux interfaces
+
+En attendant l'Ingress, depuis `utils-stagiaireXX` :
+
+```console
+kubectl port-forward --namespace $NAMESPACE svc/api-gateway 8080:8080 &
+kubectl port-forward --namespace $NAMESPACE svc/lab-controller 8090:8090 &
+kubectl port-forward --namespace $NAMESPACE svc/grafana 3000:3000 &
+kubectl port-forward --namespace $NAMESPACE svc/prometheus 9090:9090 &
+```
+
+Puis depuis le poste de travail, un tunnel SSH vers la VM :
+
+```console
+ssh -L 8080:localhost:8080 -L 8090:localhost:8090 \
+    -L 3000:localhost:3000 -L 9090:localhost:9090 \
+    stagiaire04@utils-stagiaire04
+```
+
+Boutique sur http://localhost:8080, console sur http://localhost:8090,
+Grafana sur http://localhost:3000, Prometheus sur http://localhost:9090.
+
+- Supprimer le lab
+
+```console
+helm uninstall lab --namespace $NAMESPACE
+```
