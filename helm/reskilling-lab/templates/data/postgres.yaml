@@ -67,6 +67,11 @@ spec:
         - name: init
           configMap:
             name: postgres-init
+        {{- if not .Values.postgres.persistence }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  {{- if .Values.postgres.persistence }}
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -78,3 +83,4 @@ spec:
         resources:
           requests:
             storage: {{ .Values.postgres.storage }}
+  {{- end }}

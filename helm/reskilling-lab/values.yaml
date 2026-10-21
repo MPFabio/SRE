@@ -14,6 +14,7 @@ postgres:
   database: capshop
   password: ""
   maxConnections: 50
+  persistence: false
   storage: 2Gi
   storageClass: ""
 
