@@ -1,3 +1,4 @@
+#!/bin/sh
 set -e
 
 if [ "$LOCUST_WEB" = "true" ]; then
