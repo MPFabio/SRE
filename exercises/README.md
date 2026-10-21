@@ -18,6 +18,10 @@ make start
 make test
 ```
 
+Animateur : avant chaque session, `make clean` puis `make start` pour
+repartir d'un historique vide. Sinon les apprenants trouvent les incidents,
+post-mortems et MTTR des sessions precedentes dans la console.
+
 **Documentation de référence** :
 - [Guide Observabilité](../docs/OBSERVABILITY.md)
 - [Guide SLOs et Alerting](../docs/SLOS_ALERTING.md)
@@ -118,8 +122,15 @@ sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests
 
 ### 2.3 Traces avec Tempo
 
-1. Dans Grafana, allez dans Explore → Tempo
-2. Cherchez des traces du service `api-gateway`
+1. Dans Grafana, allez dans Explore → Tempo, onglet **TraceQL**
+2. Filtrez les checkouts parmi les traces de `api-gateway` :
+
+```traceql
+{ resource.service.name = "api-gateway" && name = "POST /api/orders" }
+```
+
+Sans filtre sur le nom de la requête, les checkouts sont noyés parmi les
+consultations de produits et les sondes `/health`.
 
 **Exercice** :
 - Trouvez une trace d'un checkout complet
@@ -251,7 +262,7 @@ docker compose restart prometheus
 ### 4.2 Détecter et trier
 
 **Checklist** :
-- [ ] Vérifier les alertes dans Alertmanager
+- [ ] Vérifier les alertes dans Alertmanager (http://localhost:9093)
 - [ ] Identifier le service impacté
 - [ ] Évaluer la sévérité (P1-P4)
 - [ ] Quantifier l'impact utilisateur
@@ -272,7 +283,12 @@ histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_buck
 ```
 
 **Traces** (Tempo) :
-- Trouvez une trace lente
+- Trouvez une trace lente :
+
+```traceql
+{ resource.service.name = "payment-service" && duration > 1s }
+```
+
 - Identifiez le span problématique
 
 ### 4.4 Résoudre
@@ -283,8 +299,9 @@ histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_buck
 
 ### 4.5 Documenter le post-mortem
 
-Dans l'onglet **Post-Mortems**, cliquez sur *Generate Post-Mortem* depuis
-l'incident resolu. La console ne produit qu'un **squelette**: elle calcule ce
+Dans l'onglet **Incidents**, ouvrez l'incident resolu et cliquez sur
+*Generate Post-Mortem*. Le post-mortem apparait dans l'onglet
+**Post-Mortems**. La console ne produit qu'un **squelette**: elle calcule ce
 qu'elle sait (impact, duree, services, timeline) et laisse vide tout ce qui
 releve de l'analyse. C'est vous qui redigez le post-mortem.
 
@@ -301,7 +318,8 @@ completer. Cliquez sur **Éditer**.
 | Reaction du systeme | vide | **oui** |
 | Protections manquantes | vide | **oui** |
 | Impact utilisateur | vide | **oui** |
-| Detection / Resolution | vide | **oui** |
+| Detection | vide | **oui** |
+| Resolution | vide | **oui** |
 | Ce qui a bien fonctionne | vide | **oui** |
 | Ce qui a mal fonctionne | vide | **oui** |
 | Ou nous avons eu de la chance | vide | **oui** |
@@ -375,18 +393,11 @@ Choisissez la tâche avec le score le plus élevé et écrivez un script :
 #!/bin/bash
 # health_monitor.sh
 
-declare -A PORTS=(
-    [catalog]=8081
-    [cart]=8082
-    [orders]=8083
-    [payment]=8084
-    [users]=8085
-)
+for entry in catalog:8081 cart:8082 orders:8083 payment:8084 users:8085; do
+    service="${entry%%:*}"
+    port="${entry##*:}"
 
-for service in "${!PORTS[@]}"; do
-    url="http://localhost:${PORTS[$service]}/health"
-
-    if ! curl --silent --fail "$url" > /dev/null; then
+    if ! curl --silent --fail --max-time 5 "http://localhost:${port}/health" > /dev/null; then
         echo "$(date) - $service unhealthy, restarting..."
         docker compose restart "${service}-service"
     fi
