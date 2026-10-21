@@ -1,0 +1,82 @@
+{{- if .Values.isolation.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-cross-namespace
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - podSelector: {}
+    {{- if .Values.ingress.enabled }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.isolation.networkPolicy.ingressNamespace }}
+    {{- end }}
+    {{- range .Values.isolation.networkPolicy.extraIngressNamespaces }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+    {{- end }}
+  egress:
+    - to:
+        - podSelector: {}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    {{- if .Values.isolation.networkPolicy.allowExternalEgress }}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+    {{- end }}
+{{- end }}
+{{- if .Values.isolation.resourceQuota.enabled }}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: lab-quota
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  hard:
+    requests.memory: {{ .Values.isolation.resourceQuota.requestsMemory }}
+    limits.memory: {{ .Values.isolation.resourceQuota.limitsMemory }}
+    requests.cpu: {{ .Values.isolation.resourceQuota.requestsCpu }}
+    limits.cpu: {{ .Values.isolation.resourceQuota.limitsCpu }}
+    pods: {{ .Values.isolation.resourceQuota.pods | quote }}
+    persistentvolumeclaims: {{ .Values.isolation.resourceQuota.pvcs | quote }}
+    services.loadbalancers: "0"
+    services.nodeports: "0"
+{{- end }}
+{{- if .Values.isolation.limitRange.enabled }}
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: lab-limits
+  labels: {{- include "lab.labels" . | nindent 4 }}
+spec:
+  limits:
+    - type: Container
+      default:
+        memory: {{ .Values.isolation.limitRange.defaultMemory }}
+        cpu: {{ .Values.isolation.limitRange.defaultCpu }}
+      defaultRequest:
+        memory: {{ .Values.isolation.limitRange.defaultRequestMemory }}
+        cpu: {{ .Values.isolation.limitRange.defaultRequestCpu }}
+      max:
+        memory: {{ .Values.isolation.limitRange.maxMemory }}
+        cpu: {{ .Values.isolation.limitRange.maxCpu }}
+{{- end }}

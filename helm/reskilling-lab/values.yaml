@@ -12,7 +12,7 @@ ingress:
 postgres:
   user: capshop
   database: capshop
-  password: capshop-lab-local-dev-only
+  password: ""
   maxConnections: 50
   storage: 2Gi
   storageClass: ""
@@ -20,11 +20,11 @@ postgres:
 redis:
   maxMemory: 100mb
 
-jwtSecret: reskilling-lab-local-dev-only-9f3a7c2e1b
+jwtSecret: ""
 
 grafana:
   adminUser: admin
-  adminPassword: admin
+  adminPassword: ""
 
 db:
   poolMin: 1
@@ -34,6 +34,31 @@ retention:
   prometheus: 15d
   prometheusSize: 4GB
   loki: 168h
+
+isolation:
+  networkPolicy:
+    enabled: true
+    ingressNamespace: ingress-nginx
+    extraIngressNamespaces: []
+    allowExternalEgress: false
+
+  resourceQuota:
+    enabled: false
+    requestsMemory: 3Gi
+    limitsMemory: 8Gi
+    requestsCpu: "1"
+    limitsCpu: "18"
+    pods: 30
+    pvcs: 4
+
+  limitRange:
+    enabled: false
+    defaultRequestMemory: 64Mi
+    defaultRequestCpu: 10m
+    defaultMemory: 256Mi
+    defaultCpu: 500m
+    maxMemory: 1Gi
+    maxCpu: "2"
 
 persistence:
   prometheus:
