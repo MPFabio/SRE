@@ -267,7 +267,7 @@ Chaque **span** contient :
 ### Connexion
 
 - URL : http://localhost:3000
-- Login : admin / admin
+- Login : admin, mot de passe `GRAFANA_ADMIN_PASSWORD` du fichier `.env`
 
 ### Dashboard "SRE Overview"
 

@@ -36,6 +36,20 @@ else
     DOCKER_COMPOSE="docker-compose"
 fi
 
+secret_aleatoire() {
+    head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'
+}
+
+if [ ! -f .env ]; then
+    sed -e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(secret_aleatoire 24)/" \
+        -e "s/^JWT_SECRET=.*/JWT_SECRET=$(secret_aleatoire 32)/" \
+        -e "s/^GRAFANA_ADMIN_PASSWORD=.*/GRAFANA_ADMIN_PASSWORD=$(secret_aleatoire 8)/" \
+        .env.example > .env
+    printf "${GREEN}Fichier .env genere avec des secrets aleatoires${NC}\n"
+fi
+
+GRAFANA_PASSWORD="$(grep '^GRAFANA_ADMIN_PASSWORD=' .env | cut -d= -f2-)"
+
 printf "${BLUE}Construction des images...${NC}\n"
 $DOCKER_COMPOSE build
 
@@ -48,7 +62,7 @@ echo ""
 echo "Interfaces disponibles:"
 echo "  - E-Commerce Frontend:  http://localhost:8080"
 echo "  - Lab Controller:       http://localhost:8090"
-echo "  - Grafana:              http://localhost:3000 (admin/admin)"
+echo "  - Grafana:              http://localhost:3000 (admin / ${GRAFANA_PASSWORD})"
 echo "  - Prometheus:           http://localhost:9090"
 echo "  - Alertmanager:         http://localhost:9093"
 echo "  - Locust (Traffic):     http://localhost:8089"

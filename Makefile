@@ -180,7 +180,7 @@ urls: ## Affiche toutes les URLs du lab
 	@echo "    Operations Console: http://localhost:8090"
 	@echo ""
 	@echo "  $(YELLOW)Observabilite$(NC)"
-	@echo "    Grafana:            http://localhost:3000  (admin/admin)"
+	@echo "    Grafana:            http://localhost:3000  (admin / GRAFANA_ADMIN_PASSWORD dans .env)"
 	@echo "    Prometheus:         http://localhost:9090"
 	@echo "    Alertmanager:       http://localhost:9093"
 	@echo "    Loki et Tempo:      internes au reseau Docker (via Grafana)"

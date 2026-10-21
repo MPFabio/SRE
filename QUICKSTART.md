@@ -67,7 +67,7 @@ Première exécution : ~5 minutes (téléchargement des images)
 |-----------|-----|-------------|
 | Boutique CapShop | http://localhost:8080 | - |
 | Operations Console | http://localhost:8090 | - |
-| Grafana | http://localhost:3000 | admin / admin (modifiable dans .env) |
+| Grafana | http://localhost:3000 | admin / mot de passe affiché par `./start.sh` |
 | Prometheus | http://localhost:9090 | - |
 | Alertmanager | http://localhost:9093 | - |
 | Locust (generateur de trafic) | http://localhost:8089 | - |
@@ -78,15 +78,22 @@ Première exécution : ~5 minutes (téléchargement des images)
 make test
 ```
 
-## 5. Configuration (facultatif en local)
+## 5. Configuration
+
+Au premier lancement, `./start.sh` cree le fichier `.env` a partir de
+`.env.example`, avec des valeurs aleatoires pour `POSTGRES_PASSWORD`,
+`JWT_SECRET` et `GRAFANA_ADMIN_PASSWORD`. Ce fichier reste sur le poste et
+n'est jamais commite.
+
+Pour imposer vos propres valeurs, creez-le avant le premier lancement :
 
 ```bash
 cp .env.example .env
 ```
 
-Les valeurs par defaut conviennent a un poste local. Pour un deploiement
-partage, y definir `POSTGRES_PASSWORD`, `JWT_SECRET` et
-`GRAFANA_ADMIN_PASSWORD`.
+Les mots de passe PostgreSQL et Grafana ne sont lus qu'a l'initialisation des
+volumes. Pour les changer ensuite : `make clean`, modifier `.env`, puis
+`make start`.
 
 ## 6. Premier exercice : Déclencher un incident
 

@@ -31,7 +31,7 @@ voir **[helm/README.md](helm/README.md)**.
 |---------|-----|-------------|
 | Boutique CapShop | http://localhost:8080 | Site e-commerce à auditer |
 | Operations Console | http://localhost:8090 | Gestion incidents/post-mortems |
-| Grafana | http://localhost:3000 | Dashboards (admin/admin) |
+| Grafana | http://localhost:3000 | Dashboards (admin, mot de passe affiché par `./start.sh`) |
 | Prometheus | http://localhost:9090 | Métriques |
 | Loki | interne au reseau Docker | Logs, interroges depuis Grafana |
 | Tempo | interne au reseau Docker | Traces, interrogees depuis Grafana |
@@ -317,17 +317,14 @@ Le scenario **Database Saturation** s'appuie sur ce dimensionnement :
 
 ## Configuration
 
-Les valeurs par defaut conviennent a un lab local. Pour un deploiement
-partage, copier et adapter :
-
-```bash
-cp .env.example .env
-```
+Aucun secret n'est ecrit dans le depot. Au premier lancement, `./start.sh`
+genere un fichier `.env` avec des valeurs aleatoires, a partir de
+`.env.example`. Sans ce fichier, `docker compose` refuse de demarrer.
 
 | Variable | Role |
 |---|---|
 | `POSTGRES_PASSWORD` | Mot de passe PostgreSQL |
-| `JWT_SECRET` | Signature des tokens (absent = genere au demarrage) |
+| `JWT_SECRET` | Signature des tokens |
 | `GRAFANA_ADMIN_PASSWORD` | Acces Grafana |
 | `DB_POOL_MAX` | Taille du pool (scenario de saturation) |
 | `CORS_ORIGINS` | Origines autorisees (defaut `*`) |
