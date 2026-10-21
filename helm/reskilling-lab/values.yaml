@@ -1,5 +1,5 @@
 image:
-  registry: ""
+  registry: docker.reskilling.internal/stagiaire04
   tag: latest
   pullPolicy: IfNotPresent
 
