@@ -25,8 +25,8 @@ boutique e-commerce tech premium qui rencontre des problèmes de fiabilité.
 
 ## Prérequis
 
-L'application fil rouge est installe dans votre namespace et les interfaces sont ouvertes :
-voir [Installer l'application fil rouge dans EKS](../../AWS_SECURE/Readme.md), etapes 5 a 8.
+L'application fil rouge est installée dans votre namespace et les interfaces sont ouvertes :
+voir [Installer l'application fil rouge dans EKS](../../AWS_SECURE/Readme.md), étapes 5 à 8.
 
 Toutes les commandes `kubectl` se lancent sur votre machine
 `utils-stagiaireXX`. Les adresses `http://localhost:...` s'ouvrent dans le
@@ -37,7 +37,7 @@ navigateur de votre poste, tunnel SSH ouvert. Avec FoxyProxy, remplacez
 kubectl get pods
 ```
 
-Les vingt pods doivent etre `Running`.
+Les vingt pods doivent être `Running`.
 
 **Documentation de référence** :
 - [Guide Observabilité](../../docs/OBSERVABILITY.md)
@@ -138,18 +138,20 @@ sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests
 ```
 
 > Hors incident, le taux d'erreur reste faible, autour de 0,2 % : le
-> prestataire de paiement simule echoue aleatoirement dans 2 % des cas.
-> Declenchez un incident depuis l'Operations Console (bonus 3) pour le voir
+> prestataire de paiement simulé échoue aléatoirement dans 2 % des cas.
+> Déclenchez un incident depuis l'Operations Console (bonus 3) pour le voir
 > monter.
 >
 > La gateway ne compte que le trafic des clients. Les appels entre services
 > (orders vers payment, cart vers catalog...) n'y figurent pas. Le trafic total
-> d'un service se lit dans ses propres metriques, sans les health checks :
-> `sum(rate(payment_requests_total{endpoint!~"/health|/ready|/metrics"}[5m]))`.
+> d'un service se lit dans ses propres métriques, sans les health checks.
+> Pour comparer, découpez par route :
+> `sum by (method) (rate(gateway_requests_total{service="payment"}[5m]))` et
+> `sum by (method, endpoint) (rate(payment_requests_total{endpoint!~"/health|/ready|/metrics"}[5m]))`.
 
 **Questions** :
 - Quel service reçoit le plus de requêtes ?
-- Pour payment, comparez le trafic vu par la gateway et celui mesure par le service lui-meme. D'ou vient l'ecart ?
+- Pour payment, comparez le trafic vu par la gateway et celui mesure par le service lui-même. D'ou vient l'écart ?
 - Quelle est la latence moyenne du catalog ? (`rate(catalog_request_duration_seconds_sum[5m]) / rate(catalog_request_duration_seconds_count[5m])`)
 
 <details>
@@ -170,11 +172,14 @@ sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests
 
 - **Service le plus sollicité** : **catalog**. Tout le monde consulte les
   produits, peu de gens achètent.
-- **Écart gateway / service pour payment** : la gateway ne voit presque aucun
-  paiement, car les clients ne l'appellent pas directement. Les paiements
-  viennent d'**orders**, à l'intérieur du cluster, sans passer par la gateway.
-  Une observabilité limitée au point d'entrée ne voit pas le trafic entre
-  services.
+- **Écart gateway / service pour payment** : les deux débits sont proches,
+  mais ne mesurent pas la même chose. Découpé par route, la gateway ne voit
+  que des `GET /api/circuit-breaker` (des clients qui consultent l'état du
+  circuit breaker) et **aucun paiement**. Le service, lui, reçoit en plus
+  les `POST /api/payments`, envoyés par **orders** à l'intérieur du
+  cluster, sans passer par la gateway. Un total peut sembler cohérent tout
+  en cachant un trafic complètement différent : une observabilité limitée
+  au point d'entrée ne voit pas le trafic entre services.
 - **Latence moyenne du catalog** : quelques millisecondes à quelques dizaines
   hors incident. Une moyenne cache les requêtes lentes, d'où l'usage du P99
   pour les SLOs.
@@ -429,52 +434,52 @@ circuit breaker pourrait alors protéger le système.
 
 ### 3.5 Documenter le post-mortem
 
-Dans l'onglet **Incidents**, ouvrez l'incident resolu et cliquez sur
-*Generate Post-Mortem*. Le post-mortem apparait dans l'onglet
+Dans l'onglet **Incidents**, ouvrez l'incident résolu et cliquez sur
+*Generate Post-Mortem*. Le post-mortem apparaît dans l'onglet
 **Post-Mortems**. La console ne produit qu'un **squelette**: elle calcule ce
-qu'elle sait (impact, duree, services, timeline) et laisse vide tout ce qui
-releve de l'analyse. C'est vous qui redigez le post-mortem.
+qu'elle sait (impact, durée, services, timeline) et laisse vide tout ce qui
+relève de l'analyse. C'est vous qui rédigez le post-mortem.
 
-Le compteur `n/12 sections` en haut de chaque fiche indique ce qu'il reste a
-completer. Cliquez sur **Éditer**.
+Le compteur `n/12 sections` en haut de chaque fiche indique ce qu'il reste à
+compléter. Cliquez sur **Éditer**.
 
-| Section | Origine | A votre charge |
+| Section | Origine | À votre charge |
 |---------|---------|----------------|
-| Impact, duree, services | calcules depuis l'incident | non |
-| Timeline | calculee depuis l'incident | non |
-| Participants | issus des temoignages | non |
-| Cause racine | vide (pistes des temoins fournies) | **oui** |
-| Element declencheur | vide | **oui** |
-| Reaction du systeme | vide | **oui** |
+| Impact, durée, services | calcules depuis l'incident | non |
+| Timeline | calculée depuis l'incident | non |
+| Participants | issus des témoignages | non |
+| Cause racine | vide (pistes des témoins fournies) | **oui** |
+| Élément déclencheur | vide | **oui** |
+| Réaction du système | vide | **oui** |
 | Protections manquantes | vide | **oui** |
 | Impact utilisateur | vide | **oui** |
-| Detection | vide | **oui** |
-| Resolution | vide | **oui** |
-| Ce qui a bien fonctionne | vide | **oui** |
-| Ce qui a mal fonctionne | vide | **oui** |
-| Ou nous avons eu de la chance | vide | **oui** |
+| Détection | vide | **oui** |
+| Résolution | vide | **oui** |
+| Ce qui a bien fonctionné | vide | **oui** |
+| Ce qui a mal fonctionné | vide | **oui** |
+| Où nous avons eu de la chance | vide | **oui** |
 | Enseignements | vide | **oui** |
 | Actions correctives | vide | **oui** (3 minimum) |
 
 Les actions se saisissent une par ligne, au format
 `tache | type | priorite | responsable | echeance`, ou *type* vaut
-`prevent` (empecher la recurrence), `mitigate` (limiter l'impact) ou
-`detect` (raccourcir la detection).
+`prevent` (empêcher la récurrence), `mitigate` (limiter l'impact) ou
+`detect` (raccourcir la détection).
 
-> **Cause racine.** Elle decrit un mecanisme, pas un symptome. « Le service
-> etait lent » est un symptome; « le pool de connexions etait dimensionne a 10
+> **Cause racine.** Elle décrit un mécanisme, pas un symptôme. « Le service
+> était lent » est un symptôme; « le pool de connexions était dimensionné a 10
 > alors que le pic demande 30 » est une cause racine.
 
-> **Ou nous avons eu de la chance.** Section souvent oubliee, et pourtant la
-> plus revelatrice: qu'est-ce qui aurait pu aggraver l'incident et ne s'est pas
-> produit ? Un incident survenu en heures ouvrees, un cache encore chaud, une
-> dependance qui n'a pas cede. Chaque reponse designe une fragilite non traitee.
+> **Ou nous avons eu de la chance.** Section souvent oubliée, et pourtant la
+> plus révélatrice: qu'est-ce qui aurait pu aggraver l'incident et ne s'est pas
+> produit ? Un incident survenu en heures ouvrées, un cache encore chaud, une
+> dépendance qui n'a pas cédé. Chaque réponse désigne une fragilité non traitée.
 
-> **Post-mortem sans blame.** Decrivez les decisions avec l'information
+> **Post-mortem sans blame.** Décrivez les décisions avec l'information
 > disponible au moment des faits, pas avec le recul. On ne cherche pas un
-> responsable, mais un systeme qui a permis l'erreur.
+> responsable, mais un système qui a permis l'erreur.
 
-Passez le statut a *Final* quand votre analyse est complete.
+Passez le statut à *Final* quand votre analyse est complète.
 
 <details>
 <summary>Réponses</summary>
@@ -515,8 +520,8 @@ Points attendus pour l'incident de latence du paiement :
 
 ### 4.1 Analyser les métriques historiques
 
-Utilisez Prometheus pour analyser l'historique disponible. Elargissez la
-fenetre a `[24h:5m]` si l'application tourne depuis plus d'une journee.
+Utilisez Prometheus pour analyser l'historique disponible. Élargissez la
+fenêtre à `[24h:5m]` si l'application tourne depuis plus d'une journée.
 
 ```promql
 # Disponibilité par service
@@ -532,8 +537,8 @@ avg_over_time(
 ```
 
 > Pour que ces mesures aient du sens, faites tourner au moins un incident
-> (bonus 3) avant de figer vos SLOs: sans erreur observee, la disponibilite
-> mesuree vaut 100% et l'error budget du bonus 4.3 est ininterpretable.
+> (bonus 3) avant de figer vos SLOs: sans erreur observée, la disponibilité
+> mesurée vaut 100% et l'error budget du bonus 4.3 est ininterpretable.
 
 <details>
 <summary>Ça bloque ?</summary>
@@ -625,8 +630,8 @@ En PromQL, le budget consommé sur la période observée :
 
 Créez une règle d'alerte pour votre SLO :
 
-Sur `utils-stagiaireXX`, creez le fichier `my_slo_alerts.yml`, en adaptant le
-seuil au SLO que vous avez defini :
+Sur `utils-stagiaireXX`, créez le fichier `my_slo_alerts.yml`, en adaptant le
+seuil au SLO que vous avez défini :
 
 ```yaml
 groups:
@@ -642,13 +647,13 @@ groups:
           description: "P99 a {{ $value | humanizeDuration }}, seuil 300ms."
 ```
 
-Validez la regle avec l'outil de Prometheus, dans son pod :
+Validez la règle avec l'outil de Prometheus, dans son pod :
 
 ```bash
 kubectl exec -i deploy/prometheus -- sh -c 'cat > /tmp/regle.yml && promtool check rules /tmp/regle.yml' < my_slo_alerts.yml
 ```
 
-Les regles de Prometheus sont dans la ConfigMap `prometheus-rules`. Ajoutez-y
+Les règles de Prometheus sont dans la ConfigMap `prometheus-rules`. Ajoutez-y
 votre fichier :
 
 ```bash
@@ -656,7 +661,7 @@ kubectl patch configmap prometheus-rules --type merge \
   --patch "$(printf 'data:\n  my_slo_alerts.yml: |\n'; sed 's/^/    /' my_slo_alerts.yml)"
 ```
 
-Le fichier apparait dans le pod au bout d'une minute environ :
+Le fichier apparaît dans le pod au bout d'une minute environ :
 
 ```bash
 kubectl exec deploy/prometheus -- ls /etc/prometheus/rules/
@@ -668,8 +673,10 @@ Quand `my_slo_alerts.yml` est present, rechargez Prometheus :
 curl --request POST http://localhost:9090/-/reload
 ```
 
-La regle apparait dans http://localhost:9090/alerts. Un `helm upgrade` de l'application fil rouge
-remplace la ConfigMap : la regle est alors a ajouter de nouveau.
+La règle apparaît dans http://localhost:9090/alerts. Elle survit à un
+`helm upgrade`, qui ne touche pas aux clés qu'il n'a pas créées, mais pas à
+une réinstallation (`helm uninstall` puis `helm install`) : il faut alors
+l'ajouter de nouveau.
 
 <details>
 <summary>Ça bloque ?</summary>
@@ -732,8 +739,8 @@ Calculez le score de priorité :
 Score = Fréquence × Temps × Automatisabilité
 ```
 
-Les taches de l'onglet Automation sont declenchees par incident. Convertissez
-leur frequence en occurrences par semaine a partir du nombre d'incidents
+Les taches de l'onglet Automation sont déclenchées par incident. Convertissez
+leur fréquence en occurrences par semaine a partir du nombre d'incidents
 observes, puis remplissez :
 
 | Tâche | Fréquence | Temps | Auto (0-1) | Score |
@@ -782,7 +789,7 @@ for deploy in api-gateway catalog-service cart-service orders-service payment-se
 done
 ```
 
-Testez-le en provoquant une panne de la base de donnees :
+Testez-le en provoquant une panne de la base de données :
 
 ```bash
 kubectl scale statefulset postgres --replicas=0
@@ -792,9 +799,9 @@ kubectl scale statefulset postgres --replicas=1
 
 **Questions** :
 - Quels services le script relance-t-il, et pourquoi ceux-la ?
-- Les relancer suffit-il a retablir le service ?
-- Kubernetes relance deja un container dont la liveness probe echoue :
-  qu'apporte ce script en plus, et qu'automatiseriez-vous plutot ?
+- Les relancer suffit-il a rétablir le service ?
+- Kubernetes relance déjà un container dont la liveness probe échoue :
+  qu'apporte ce script en plus, et qu'automatiseriez-vous plutôt ?
 
 <details>
 <summary>Ça bloque ?</summary>
@@ -884,8 +891,9 @@ Créez un document contenant :
 <details>
 <summary>Ça bloque ?</summary>
 
-Reprenez vos livrables : tableau des services (1.2), dashboard (2.4), SLOs (si faits)
-et règle d'alerte (3), post-mortem (4), script et calcul de gain (5). Le
+Reprenez vos livrables : tableau des services (1.2), dashboard (2.4),
+post-mortem (3), SLOs et règle d'alerte (4, si faits), script et calcul de
+gain (5). Le
 rapport les assemble, il ne demande pas de nouvelle manipulation.
 
 </details>

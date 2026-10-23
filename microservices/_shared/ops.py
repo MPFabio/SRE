@@ -45,7 +45,7 @@ def register_ops_endpoints(app: FastAPI, service_name: str,
 
         @app.post("/api/chaos")
         async def set_chaos(config: ChaosConfig):
-            """Active/desactive l'injection de chaos a chaud (pilote par le Lab Controller)"""
+            """Active/desactive l'injection de chaos a chaud (pilote par l'Operations Console)"""
             return chaos.apply(config)
 
     return app

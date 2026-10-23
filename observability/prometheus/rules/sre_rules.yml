@@ -189,7 +189,8 @@ groups:
           description: "{{ $value | humanize }} erreur(s)/s sur l'operation {{ $labels.operation }}."
 
       - alert: DatabaseDown
-        expr: pg_up == 0
+        # Base arrêtée, l'exporter ne répond plus à temps : pg_up disparaît au lieu de valoir 0.
+        expr: pg_up == 0 or up{job="postgres"} == 0
         for: 1m
         labels:
           severity: critical

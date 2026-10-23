@@ -129,15 +129,19 @@ async def refresh_cart_gauges():
 
 
 async def get_product_from_catalog(product_id: int):
+    """Renvoie le produit, None s'il n'existe pas ; 503 si le catalogue est injoignable."""
     try:
         response = await http_client.get(
             f"{CATALOG_SERVICE_URL}/api/products/{product_id}", timeout=5.0)
-        if response.status_code == 200:
-            return response.json()
-        return None
-    except Exception as e:
+    except httpx.HTTPError as e:
         logger.error(f"Error calling catalog service: {e}")
+        raise HTTPException(status_code=503, detail="Catalog unavailable")
+    if response.status_code == 404:
         return None
+    if response.status_code != 200:
+        logger.error(f"Catalog service returned {response.status_code} for product {product_id}")
+        raise HTTPException(status_code=503, detail="Catalog unavailable")
+    return response.json()
 
 register_metrics_middleware(app, REQUEST_COUNT, REQUEST_LATENCY)
 

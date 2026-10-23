@@ -275,8 +275,10 @@ où passe le temps d'une requête.
 <summary>Ça bloque ?</summary>
 
 - Tableau de dépannage de l'étape 3 du guide.
-- Pour ne garder que les traces lentes :
-  `{ resource.service.name = "reviews-service" && duration > 20ms }`.
+- Pour comparer les traces, triez les résultats sur la colonne **Duration**.
+  Une création d'avis prend quelques millisecondes : pour ne garder que les
+  plus lentes, ajustez le seuil à ce que vous observez, par exemple
+  `{ resource.service.name = "reviews-service" && duration > 5ms }`.
 - Version prête à l'emploi : [Go](../fil-rouge/reviews-service/go/3-traces/) ou [Python](../fil-rouge/reviews-service/python/3-traces/).
 
 </details>

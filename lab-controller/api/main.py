@@ -40,14 +40,14 @@ async def lifespan(_app):
     postmortems_db = await PersistentStore(db_pool, "lab.postmortems", PostMortem).load()
     toil_tasks_db = await PersistentStore(db_pool, "lab.toil_tasks", ToilTask).load()
     await init_toil_tasks()
-    logger.info("Lab Controller connecte a PostgreSQL")
+    logger.info("Operations Console connectee a PostgreSQL")
     yield
     await db_pool.close()
 
 db_pool = None
 recent_alerts = deque(maxlen=200)
 
-app = FastAPI(title="Lab Controller", version="1.0.0", docs_url="/api/docs", lifespan=lifespan)
+app = FastAPI(title="Operations Console", version="1.0.0", docs_url="/api/docs", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -527,7 +527,7 @@ async def trigger_incident(request: TriggerIncidentRequest, background_tasks: Ba
         timeline=[{
             "timestamp": datetime.now().isoformat(),
             "event": "Incident triggered",
-            "actor": "Lab Controller"
+            "actor": "Operations Console"
         }],
         triggered_at=datetime.now().isoformat(),
         chaos_config=scenario["chaos_config"]
@@ -847,5 +847,5 @@ async def home():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8090"))
-    logger.info(f"Starting Lab Controller on port {port}")
+    logger.info(f"Starting Operations Console on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
