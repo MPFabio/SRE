@@ -11,16 +11,18 @@ Vous êtes consultant SRE engagé pour auditer **CapShop**, une boutique e-comme
 
 ## Prérequis
 
-Lab demarre et operationnel : voir [QUICKSTART.md](../QUICKSTART.md).
+Le lab est installe dans votre namespace et les interfaces sont ouvertes :
+voir [Installer le lab SRE dans EKS](../AWS_SECURE/Readme.md), etapes 5 a 8.
+
+Toutes les commandes `kubectl` se lancent sur votre machine
+`utils-stagiaireXX`. Les adresses `http://localhost:...` s'ouvrent dans le
+navigateur de votre poste, tunnel SSH ouvert.
 
 ```bash
-make start
-make test
+kubectl get pods
 ```
 
-Animateur : avant chaque session, `make clean` puis `make start` pour
-repartir d'un historique vide. Sinon les apprenants trouvent les incidents,
-post-mortems et MTTR des sessions precedentes dans la console.
+Les vingt pods doivent etre `Running`.
 
 **Documentation de référence** :
 - [Guide Observabilité](../docs/OBSERVABILITY.md)
@@ -48,7 +50,12 @@ post-mortems et MTTR des sessions precedentes dans la console.
 
 ### 1.2 Identifier les microservices
 
-Listez les 6 microservices et leur rôle, à partir de `docker-compose.yml` et de votre parcours d'achat :
+Listez les 6 microservices et leur rôle, à partir de votre parcours d'achat et de :
+
+```bash
+kubectl get deployments,services
+```
+
 
 | Service | Port | Rôle |
 |---------|------|------|
@@ -90,12 +97,14 @@ sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests
 > ne produit pas d'erreur en regime nominal. Declenchez un incident depuis
 > l'Operations Console (exercice 4) pour la voir remonter des valeurs.
 >
-> Rappel: la gateway ne compte que le trafic qui la traverse. Le trafic
-> interne entre services n'y figure pas, ce qui fait apparaitre le catalogue
-> comme le service le plus sollicite.
+> La gateway ne compte que le trafic des clients. Les appels entre services
+> (orders vers payment, cart vers catalog...) n'y figurent pas. Le trafic total
+> d'un service se lit dans ses propres metriques, sans les sondes de sante :
+> `sum(rate(payment_requests_total{endpoint!~"/health|/ready|/metrics"}[5m]))`.
 
 **Questions** :
 - Quel service reçoit le plus de requêtes ?
+- Pour payment, comparez le trafic vu par la gateway et celui mesure par le service lui-meme. D'ou vient l'ecart ?
 - Quelle est la latence moyenne du catalog ? (`rate(catalog_request_duration_seconds_sum[5m]) / rate(catalog_request_duration_seconds_count[5m])`)
 
 ### 2.2 Logs avec Loki
@@ -220,8 +229,8 @@ Error Budget = (100% - SLO%) × Période
 
 Créez une règle d'alerte pour votre SLO :
 
-Creez un fichier dans `observability/prometheus/rules/`, en adaptant le seuil
-au SLO que vous avez defini :
+Sur `utils-stagiaireXX`, creez le fichier `my_slo_alerts.yml`, en adaptant le
+seuil au SLO que vous avez defini :
 
 ```yaml
 groups:
@@ -237,12 +246,34 @@ groups:
           description: "P99 a {{ $value | humanizeDuration }}, seuil 300ms."
 ```
 
-Validez avant de recharger Prometheus :
+Validez la regle avec l'outil de Prometheus, dans son pod :
 
 ```bash
-docker compose exec prometheus promtool check rules /etc/prometheus/rules/votre-fichier.yml
-docker compose restart prometheus
+kubectl exec -i deploy/prometheus -- sh -c 'cat > /tmp/regle.yml && promtool check rules /tmp/regle.yml' < my_slo_alerts.yml
 ```
+
+Les regles de Prometheus sont dans la ConfigMap `prometheus-rules`. Ajoutez-y
+votre fichier :
+
+```bash
+kubectl patch configmap prometheus-rules --type merge \
+  --patch "$(printf 'data:\n  my_slo_alerts.yml: |\n'; sed 's/^/    /' my_slo_alerts.yml)"
+```
+
+Le fichier apparait dans le pod au bout d'une minute environ :
+
+```bash
+kubectl exec deploy/prometheus -- ls /etc/prometheus/rules/
+```
+
+Quand `my_slo_alerts.yml` est present, rechargez Prometheus :
+
+```bash
+curl --request POST http://localhost:9090/-/reload
+```
+
+La regle apparait dans http://localhost:9090/alerts. Un `helm upgrade` du lab
+remplace la ConfigMap : la regle est alors a ajouter de nouveau.
 
 **Livrable** : Tableau des SLOs + fichier de règles
 
@@ -393,16 +424,30 @@ Choisissez la tâche avec le score le plus élevé et écrivez un script :
 #!/bin/bash
 # health_monitor.sh
 
-for entry in catalog:8081 cart:8082 orders:8083 payment:8084 users:8085; do
-    service="${entry%%:*}"
-    port="${entry##*:}"
+for deploy in api-gateway catalog-service cart-service orders-service payment-service users-service; do
+    desired=$(kubectl get deployment "$deploy" --output jsonpath='{.spec.replicas}')
+    ready=$(kubectl get deployment "$deploy" --output jsonpath='{.status.readyReplicas}')
 
-    if ! curl --silent --fail --max-time 5 "http://localhost:${port}/health" > /dev/null; then
-        echo "$(date) - $service unhealthy, restarting..."
-        docker compose restart "${service}-service"
+    if [ "${ready:-0}" -lt "$desired" ]; then
+        echo "$(date) - $deploy : ${ready:-0}/$desired pret, redemarrage..."
+        kubectl rollout restart deployment/"$deploy"
     fi
 done
 ```
+
+Testez-le en provoquant une panne de la base de donnees :
+
+```bash
+kubectl scale statefulset postgres --replicas=0
+bash health_monitor.sh
+kubectl scale statefulset postgres --replicas=1
+```
+
+**Questions** :
+- Quels services le script relance-t-il, et pourquoi ceux-la ?
+- Les relancer suffit-il a retablir le service ?
+- Kubernetes relance deja un conteneur dont la sonde `liveness` echoue :
+  qu'apporte ce script en plus, et qu'automatiseriez-vous plutot ?
 
 ### 5.4 Mesurer l'impact
 
