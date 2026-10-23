@@ -886,6 +886,20 @@
                     <input type="email" required placeholder="vous@exemple.com">
                 </div>
                 <div class="form-group">
+                    <label>Adresse</label>
+                    <input type="text" id="checkout-street" required placeholder="1 rue de Rivoli">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Code postal</label>
+                        <input type="text" id="checkout-postal" required placeholder="75001" maxlength="10">
+                    </div>
+                    <div class="form-group">
+                        <label>Ville</label>
+                        <input type="text" id="checkout-city" required placeholder="Paris">
+                    </div>
+                </div>
+                <div class="form-group">
                     <label>Numéro de carte</label>
                     <input type="text" required placeholder="4242 4242 4242 4242" maxlength="19">
                 </div>
@@ -1179,32 +1193,27 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         user_id: USER_ID,
-                        items: cart.map(i => ({ product_id: i.id, quantity: i.qty, price: i.price }))
+                        shipping_address: {
+                            street: document.getElementById('checkout-street').value,
+                            postal_code: document.getElementById('checkout-postal').value,
+                            city: document.getElementById('checkout-city').value,
+                            country: 'FR'
+                        }
                     })
                 });
                 const order = await orderRes.json();
-                
-                const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-                const payRes = await fetch('/api/payments', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        order_id: order.id || order.order_id,
-                        user_id: USER_ID,
-                        amount: total,
-                        method: 'card'
-                    })
-                });
-                const payment = await payRes.json();
-                
-                if (payment.status === 'completed' || payment.status === 'success') {
-                    closeCheckout();
-                    cart = [];
-                    updateCartBadge();
-                    showConfirmation(order.id || order.order_id);
-                } else {
-                    throw new Error('Paiement refusé');
+
+                if (!orderRes.ok) {
+                    const reason = typeof order.detail === 'string' ? order.detail : 'commande refusée';
+                    throw new Error(orderRes.status === 502 ? 'Paiement refusé' : reason);
                 }
+
+                closeCheckout();
+                cart = [];
+                updateCartBadge();
+                showConfirmation(order.id);
+                btn.disabled = false;
+                btn.textContent = 'Payer';
             } catch (err) {
                 showToast('Erreur: ' + err.message);
                 btn.disabled = false;

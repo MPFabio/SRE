@@ -4,6 +4,7 @@ from typing import List, Optional
 from prometheus_client import Counter, Histogram
 import uvicorn
 from contextlib import asynccontextmanager
+import asyncio
 import os
 
 
@@ -18,11 +19,34 @@ REQUEST_COUNT = Counter('catalog_requests_total', 'Total requests', ['method', '
 REQUEST_LATENCY = Histogram('catalog_request_duration_seconds', 'Request latency', ['method', 'endpoint'])
 PRODUCTS_SERVED = Counter('catalog_products_served_total', 'Products served')
 STOCK_CHECKS = Counter('catalog_stock_checks_total', 'Stock availability checks', ['result'])
+RESTOCKS = Counter('catalog_restocks_total', 'Products restocked')
+
+RESTOCK_INTERVAL = int(os.getenv("RESTOCK_INTERVAL", "60"))
+RESTOCK_THRESHOLD = int(os.getenv("RESTOCK_THRESHOLD", "5"))
+RESTOCK_QUANTITY = int(os.getenv("RESTOCK_QUANTITY", "30"))
+
+
+async def restock_loop():
+    while True:
+        await asyncio.sleep(RESTOCK_INTERVAL)
+        try:
+            result = await db.execute(
+                "UPDATE catalog.products SET stock = stock + $1 WHERE stock < $2",
+                RESTOCK_QUANTITY, RESTOCK_THRESHOLD, operation="restock")
+            restocked = int(result.split()[-1])
+            if restocked:
+                RESTOCKS.inc(restocked)
+                logger.info("Restocked %d product(s)", restocked)
+        except Exception as exc:
+            logger.warning("Restock failed: %s", exc)
+
 
 @asynccontextmanager
 async def lifespan(_app):
     await db.connect()
+    restock = asyncio.create_task(restock_loop())
     yield
+    restock.cancel()
     await db.disconnect()
 
 app = FastAPI(title="Catalog Service", version="1.0.0", lifespan=lifespan)
