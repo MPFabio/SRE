@@ -1,9 +1,21 @@
 # reviews-service : exemple de module fil rouge
 
 Service d'avis produits, écrit deux fois avec le même comportement :
-[`python/`](python/) (FastAPI) et [`go/`](go/) (bibliothèque standard).
-C'est un exemple parmi d'autres : votre module peut porter sur un autre
-métier et être écrit autrement.
+en Python (FastAPI) et en Go (bibliothèque standard). C'est un exemple
+parmi d'autres : votre module peut porter sur un autre métier et être
+écrit autrement.
+
+Chaque langage est découpé en trois étapes, qui se construisent et se
+déploient chacune seule :
+
+| Étape | Go | Python |
+|---|---|---|
+| 1. API et `/health` | [`go/1-base`](go/1-base/) | [`python/1-base`](python/1-base/) |
+| 2. Métriques business | [`go/2-metriques`](go/2-metriques/) | [`python/2-metriques`](python/2-metriques/) |
+| 3. Traces OpenTelemetry | [`go/3-traces`](go/3-traces/) | [`python/3-traces`](python/3-traces/) |
+
+Les guides [module-go.md](../module-go.md) et
+[module-python.md](../module-python.md) expliquent chaque étape.
 
 ## API
 
@@ -35,11 +47,12 @@ Chaque publication d'avis produit une trace avec deux étapes :
 ## Construire et tester
 
 ```bash
-docker build --tag reviews-service:1.0 fil-rouge/reviews-service/python
+docker build --tag reviews-service:1.0 fil-rouge/reviews-service/go/3-traces
 docker run --rm --publish 8086:8086 reviews-service:1.0
 ```
 
-Version Go : remplacer `python` par `go`. Dans un autre terminal :
+Pour une autre étape ou la version Python, changez le dossier. Dans un
+autre terminal :
 
 ```bash
 curl --request POST localhost:8086/api/reviews/3 \

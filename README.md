@@ -1,42 +1,36 @@
-# Reskilling - Lab SRE E-Commerce
+# CapShop - Lab fil rouge DevOps / SRE
 
-Lab complet pour apprendre les pratiques SRE en auditant une boutique e-commerce tech réaliste.
+Application fil rouge des parcours DevOps Infra et DevOps SRE. **CapShop**
+est une boutique e-commerce en microservices, livrée avec une stack
+d'observabilité complète. Chaque apprenant la déploie dans son namespace du
+cluster EKS, y ajoute son propre module, puis l'observe, la casse et la
+répare.
 
-## Contexte
+## Par où commencer
 
-Vous êtes engagé comme consultant SRE pour auditer **CapShop**, une boutique e-commerce tech premium. Le site rencontre des problèmes de fiabilité et la direction vous demande de :
+| Vous voulez... | Document |
+|---|---|
+| Installer le lab dans votre namespace EKS | [AWS_SECURE/Readme.md](AWS_SECURE/Readme.md) |
+| Développer et brancher votre module sur CapShop | [fil-rouge/README.md](fil-rouge/README.md) |
+| Aller plus loin : architecture, observabilité, incidents, SLOs, toil | [Exercices bonus](exercises/README.md) |
+| Préparer le cluster pour une promotion (formateur) | [helm/README.md](helm/README.md) |
+| Faire tourner le lab sur votre poste avec Docker | [QUICKSTART.md](QUICKSTART.md) |
 
-- Mettre en place une observabilité complète
-- Définir des SLOs pertinents
-- Investiguer et résoudre des incidents
-- Proposer des automatisations
+## Interfaces
 
-## Démarrage rapide
+Sur EKS, ces adresses s'ouvrent depuis votre poste à travers le tunnel SSH
+(voir l'installation, étape 8).
 
-```bash
-./start.sh          # ou: make start
-make test           # verifie les 13 composants
-make stop
-```
-
-Prerequis, installation de Docker et depannage : voir
-**[QUICKSTART.md](QUICKSTART.md)**.
-
-Pour un deploiement multi-apprenants sur Kubernetes, un namespace chacun :
-voir **[helm/README.md](helm/README.md)**.
-
-## Interfaces disponibles
-
-| Service | URL | Description |
-|---------|-----|-------------|
-| Boutique CapShop | http://localhost:8080 | Site e-commerce à auditer |
-| Operations Console | http://localhost:8090 | Gestion incidents/post-mortems |
-| Grafana | http://localhost:3000 | Dashboards (admin, mot de passe affiché par `./start.sh`) |
-| Prometheus | http://localhost:9090 | Métriques |
-| Loki | interne au reseau Docker | Logs, interroges depuis Grafana |
-| Tempo | interne au reseau Docker | Traces, interrogees depuis Grafana |
-| Alertmanager | http://localhost:9093 | Alertes |
+| Service | URL | Rôle |
+|---------|-----|------|
+| Boutique CapShop | http://localhost:8080 | Le site e-commerce |
+| Operations Console | http://localhost:8090 | Incidents, post-mortems, toil |
+| Grafana | http://localhost:3000 | Dashboards, Explore (logs et traces) |
+| Prometheus | http://localhost:9090 | Métriques et alertes |
+| Alertmanager | http://localhost:9093 | Routage des alertes |
 | Locust | http://localhost:8089 | Générateur de trafic |
+
+Loki et Tempo n'ont pas d'interface propre : on les interroge depuis Grafana.
 
 ## Architecture
 
@@ -58,327 +52,149 @@ voir **[helm/README.md](helm/README.md)**.
       |                             |              |
       +-------------+---------------+--------------+
                     v
-          +--------------------+
-          | PostgreSQL (:5432) |   Schemas: catalog, orders, users, lab
-          +--------------------+   (interne au reseau Docker)
+          +--------------------+        +----------------------+
+          | PostgreSQL (:5432) |        | Votre module (:8086) |
+          +--------------------+        |  Go, Python, autre   |
+                                        +----------------------+
 ```
 
-| Donnee | Stockage |
+| Donnée | Stockage |
 |---|---|
-| Produits, commandes, comptes, objets du lab | PostgreSQL |
+| Produits, commandes, comptes, objets du lab | PostgreSQL (schémas `catalog`, `orders`, `users`, `lab`) |
 | Panier | Redis (TTL 24h) |
 
-### Socle commun
+Les cinq services métier partagent un socle, `microservices/_shared/` :
+observabilité (logs, OpenTelemetry), injection de chaos, routes `/health`,
+`/ready`, `/metrics` et `/api/chaos`, pool PostgreSQL instrumenté. La
+gateway a sa propre implémentation : son `/health` agrège l'état des
+services et répond `degraded` si l'un d'eux est indisponible.
 
-Les 5 services metier partagent `microservices/_shared/` :
+Votre module rejoint cette architecture à côté des six services : le lab le
+déploie, le surveille et collecte ses logs et ses traces comme les autres.
 
-| Module | Role |
-|---|---|
-| `observability.py` | Logging, OpenTelemetry, CORS, auto-instrumentation |
-| `chaos.py` | `ChaosController` : injection pilotable a chaud |
-| `ops.py` | `/health`, `/ready`, `/metrics`, `/api/chaos` |
-| `db.py` | Pool asyncpg avec metriques Prometheus |
-
-L'API Gateway a sa propre implementation : son `/health` agrege l'etat des
-services amont et repond `degraded` si l'un d'eux est indisponible.
-
-### Stack d'observabilité
+### Observabilité
 
 ```
 +---------------------------------------------------------------------+
 |                          Grafana (:3000)                            |
-|              Dashboards - Explore - Alerting                        |
 +-------------------------------+-------------------------------------+
-                                |
-        +-----------------------+-----------------------+
         |                       |                       |
         v                       v                       v
 +---------------+     +---------------+     +---------------+
 |  Prometheus   |     |     Loki      |     |    Tempo      |
-|   (:9090)     |     |    (interne)  |     |   (interne)   |
 |   Métriques   |     |     Logs      |     |    Traces     |
-+-------+-------+     +---------------+     +---------------+
-        |
-        +----------+----------+----------+----------+
-        v          v          v          v          v
-  +----------+ +--------+ +--------+ +--------+ +----------+
-  | Alert-   | |Blackbox| | Redis  | |Postgres| |  OTel    |
-  | manager  | |Exporter| |Exporter| |Exporter| |Collector |
-  | (:9093)  | |        | |        | |        | | (:4317)  |
-  +----------+ +--------+ +--------+ +--------+ +----------+
++-------+-------+     +-------^-------+     +-------^-------+
+        |                     |                     |
+        |               Promtail (logs        OTel Collector
+        |               des pods)             (:4317, OTLP)
+        v
+  Alertmanager, Blackbox, exporters Redis et PostgreSQL
 ```
 
-Loki, Tempo et les exporters s'interrogent depuis Grafana. Prometheus les
-scrape sur le reseau Docker.
+- **Métriques** : Prometheus scrape `/metrics` de chaque service.
+- **Logs** : Promtail lit la sortie standard des pods ; le label `job` porte
+  le nom du conteneur (`{job="payment-service"}`).
+- **Traces** : les services envoient leurs spans en OTLP au collecteur, qui
+  les transmet à Tempo.
 
-## Les 3 piliers de l'observabilité
+Requêtes et usages détaillés : [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
 
-### 1. Métriques (Prometheus)
+## Incidents simulés
 
-Accès : http://localhost:9090 ou via Grafana
+L'Operations Console déclenche des incidents en injectant des pannes dans
+les services :
 
-```promql
-# Requêtes par seconde par service (vues depuis l'API Gateway)
-sum by (service) (rate(gateway_requests_total[5m]))
+| Scénario | Sévérité | Panne injectée |
+|---|---|---|
+| Latence du paiement | P1 | +3 s sur l'appel au prestataire de paiement |
+| Erreurs du catalogue | P2 | 30 % d'erreurs 500 sur catalog |
+| Saturation de la base | P1 | +2 s et 20 % d'erreurs sur catalog |
+| Panier indisponible | P2 | 80 % d'erreurs sur cart |
+| Échecs d'authentification | P1 | 90 % d'erreurs sur users |
 
-# Latence P99 (exemple : service payment)
-histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[5m])))
+Chaque incident est livré avec des témoignages fictifs, à vérifier contre
+les métriques : ils ne disent pas toujours vrai. Les runbooks aident à
+l'investigation :
+[latence du paiement](docs/runbooks/payment-latency.md),
+[erreurs du catalogue](docs/runbooks/catalog-errors.md),
+[service indisponible](docs/runbooks/service-down.md),
+[saturation de la base](docs/runbooks/database-saturation.md).
 
-# Taux d'erreur global
-sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests_total[5m]))
-```
-
-### 2. Logs (Loki)
-
-Grafana > Explore > source de donnees **Loki**.
-
-```logql
-# Tous les logs du payment service
-{job="payment-service"}
-
-# Erreurs uniquement
-{job="payment-service"} |= "error"
-
-# Reponses 5xx sur la gateway
-{job="api-gateway"} |~ " 5[0-9]{2} "
-
-# Taux d'erreur par service
-sum by (job) (rate({job=~".+-service"} |= "error" [5m]))
-```
-
-Le label `job` porte le nom du conteneur : `api-gateway`, `catalog-service`,
-`cart-service`, `orders-service`, `payment-service`, `users-service`,
-`lab-controller`.
-
-### 3. Traces (Tempo)
-
-Grafana > Explore > source de donnees **Tempo**.
-
-| Onglet | Usage |
-|---|---|
-| Search | Filtrer par service, nom de span ou duree |
-| TraceQL | `{ resource.service.name = "orders-service" }` |
-| TraceID | Ouvrir une trace precise |
-
-Une trace de checkout traverse api-gateway, orders-service, cart-service,
-payment-service et catalog-service. Le graphe de services (Grafana >
-Explore > Tempo > Service Graph) reconstruit ces appels a partir des
-metriques generees par Tempo.
-
-## Scénarios d'incidents
-
-L'Operations Console (http://localhost:8090) permet de déclencher des incidents réalistes :
-
-### 1. Payment Latency (P1)
-- **Impact** : Checkouts lents, circuit breaker peut s'ouvrir
-- **Symptômes** : Latence P99 > 3s
-- **Investigation** : Dashboard Payment, traces Tempo
-
-### 2. Catalog Errors (P2)
-- **Impact** : Produits non affichés
-- **Symptômes** : 30% erreurs 500
-- **Investigation** : Logs Loki, métriques erreurs
-
-### 3. Database Saturation (P1)
-- **Impact** : Tous services dégradés
-- **Symptômes** : Latence généralisée
-- **Investigation** : Corrélation traces, métriques système
-
-### 4. Cart Service Down (P2)
-- **Impact** : Impossible d'ajouter au panier
-- **Symptômes** : 80% erreurs
-- **Investigation** : Logs pods, métriques mémoire
-
-### 5. Auth Failures (P1)
-- **Impact** : Aucune connexion possible
-- **Symptômes** : 90% erreurs login
-- **Investigation** : Logs JWT, config
-
-## Injection de chaos manuelle
+## Diagnostic sur Kubernetes
 
 ```bash
-# Ajouter 3s de latence au payment service
-make chaos SERVICE=payment LATENCY=3000
-
-# Injecter 30% d'erreurs au catalog
-make chaos SERVICE=catalog ERRORS=0.3
-
-# Combiné : latence + erreurs
-make chaos SERVICE=payment LATENCY=2000 ERRORS=0.2
-
-# Arrêter le chaos
-make chaos-stop
+kubectl get pods                                   # état des pods
+kubectl logs deploy/payment-service --tail 50      # logs d'un service
+kubectl describe pod -l app=payment-service        # événements, redémarrages
+kubectl rollout restart deployment/payment-service # redémarrer un service
+kubectl exec deploy/catalog-service -- curl --silent localhost:8081/ready
+kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capshop
 ```
-
-## Workflow incident > post-mortem
-
-1. **Alerte** : Détection via Grafana/Alertmanager
-2. **Triage** : Évaluation de la sévérité (P1-P4)
-3. **Investigation** : Utilisation des 3 piliers
-4. **Résolution** : Fix et validation
-5. **Post-mortem** : Documentation via Operations Console
 
 ## Structure du projet
 
 ```
+├── AWS_SECURE/                # Installation du lab dans un namespace EKS
+├── fil-rouge/                 # Conditions d'intégration + module d'exemple
+│   └── reviews-service/       #   avis produits, en Python et en Go
 ├── microservices/
-│   ├── _shared/               # Socle commun aux 5 services metier
-│   │   ├── observability.py   #   logging, OTel, CORS
-│   │   ├── chaos.py           #   ChaosController
-│   │   ├── ops.py             #   /health /ready /metrics /api/chaos
-│   │   └── db.py              #   pool asyncpg + metriques
-│   ├── requirements-base.txt  # Dependances communes
+│   ├── _shared/               # Socle commun aux 5 services métier
 │   ├── api-gateway/           # Boutique CapShop + routage (static/)
 │   ├── catalog-service/       # Produits (PostgreSQL)
 │   ├── cart-service/          # Panier (Redis)
 │   ├── orders-service/        # Commandes (PostgreSQL)
-│   ├── payment-service/       # Paiements + Circuit Breaker
-│   └── users-service/         # Auth JWT (PostgreSQL)
-│
-├── observability/
-│   ├── postgres/init/         # Schema SQL + donnees initiales
-│   ├── prometheus/            # Métriques + règles d'alertes
-│   ├── loki/ tempo/           # Logs et traces
-│   ├── grafana/               # Dashboards + provisioning
-│   ├── alertmanager/          # Gestion alertes
-│   ├── promtail/ blackbox/    # Collecte logs et probes
-│   └── otel-collector-config.yml
-│
+│   ├── payment-service/       # Paiements + circuit breaker
+│   └── users-service/         # Authentification JWT (PostgreSQL)
 ├── lab-controller/api/        # Operations Console
-│   ├── main.py                #   incidents, post-mortems, toil
-│   ├── store.py               #   stockage persistant (PostgreSQL)
-│   └── static/                #   frontend
-│
 ├── traffic-generator/         # Locust
 ├── helm/                      # Chart Kubernetes, un namespace par apprenant
-├── docs/                      # Documentation + runbooks
-├── exercises/                 # Guides d'exercices
-│
-├── .env.example               # Secrets a copier en .env
-├── docker-compose.yml
-├── start.sh + Makefile (make help)
-└── README.md
+├── observability/             # Configurations Prometheus, Grafana, Loki...
+├── docs/                      # Guides et runbooks
+├── exercises/                 # Exercices bonus, avec aides et réponses
+├── docker-compose.yml         # Mode local
+└── start.sh + Makefile        # Mode local
 ```
 
 ## Documentation
 
-### Guides
-- [Démarrage rapide](QUICKSTART.md)
-- [Déploiement Kubernetes](helm/README.md)
-- [Observabilité (Prometheus/Loki/Tempo)](docs/OBSERVABILITY.md)
-- [SLOs et Alerting](docs/SLOS_ALERTING.md)
-- [Incidents et Post-Mortems](docs/INCIDENTS.md)
+- [Installation sur EKS](AWS_SECURE/Readme.md)
+- [Module fil rouge](fil-rouge/README.md)
+- [Chart Helm et déploiement d'une promotion](helm/README.md)
+- [Observabilité](docs/OBSERVABILITY.md)
+- [SLOs et alerting](docs/SLOS_ALERTING.md)
+- [Incidents et post-mortems](docs/INCIDENTS.md)
+- [Exercices bonus](exercises/README.md)
 
-### Runbooks
-- [Payment Latency](docs/runbooks/payment-latency.md)
-- [Catalog Errors](docs/runbooks/catalog-errors.md)
-- [Service Down](docs/runbooks/service-down.md)
-- [Database Saturation](docs/runbooks/database-saturation.md)
+## Mode local (Docker Compose)
 
-### Exercices
-- [Exercices pratiques](exercises/README.md) (exercices bonus, avec aides et réponses)
+Pour développer ou tester le lab sur un poste, sans cluster :
+
+```bash
+./start.sh          # ou : make start
+make test           # vérifie les composants
+make stop
+```
+
+Prérequis, secrets et dépannage : [QUICKSTART.md](QUICKSTART.md).
+`./start.sh` génère un fichier `.env` avec des secrets aléatoires ; aucun
+secret n'est écrit dans le dépôt.
+
+Commandes utiles (`make help` pour la liste complète) :
+
+```bash
+make status                                  # état des services
+make logs-payment                            # logs d'un service
+make incident-payment                        # déclenche un incident
+make incident-resolve                        # résout les incidents actifs
+make chaos SERVICE=payment LATENCY=3000      # chaos manuel
+make chaos-stop                              # arrête le chaos
+make psql                                    # shell PostgreSQL
+make test-purchase                           # simule un achat complet
+```
 
 ## Ressources
 
 - [Google SRE Book](https://sre.google/sre-book/table-of-contents/)
-- [Prometheus Documentation](https://prometheus.io/docs/)
-- [Grafana Documentation](https://grafana.com/docs/)
-- [Loki Documentation](https://grafana.com/docs/loki/)
-- [Tempo Documentation](https://grafana.com/docs/tempo/)
-
-## Base de données
-
-```bash
-# Ouvrir un shell SQL
-make psql
-
-# Compter les lignes par table
-make db-stats
-```
-
-Quatre schemas, un par domaine metier :
-
-| Schema | Contenu |
-|---|---|
-| `catalog` | Produits, categories |
-| `orders` | Commandes, lignes de commande |
-| `users` | Comptes, sessions |
-| `lab` | Incidents, post-mortems, toil (JSONB) |
-
-```sql
--- Exemples pour les exercices
-SELECT status, count(*) FROM lab.incidents GROUP BY status;
-SELECT * FROM orders.orders ORDER BY created_at DESC LIMIT 10;
-SELECT name, stock FROM catalog.products WHERE stock < 20;
-```
-
-Le scenario **Database Saturation** s'appuie sur ce dimensionnement :
-`DB_POOL_MAX=10` par service, `max_connections=50` cote serveur.
-
-## Configuration
-
-Aucun secret n'est ecrit dans le depot. Au premier lancement, `./start.sh`
-genere un fichier `.env` avec des valeurs aleatoires, a partir de
-`.env.example`. Sans ce fichier, `docker compose` refuse de demarrer.
-
-| Variable | Role |
-|---|---|
-| `POSTGRES_PASSWORD` | Mot de passe PostgreSQL |
-| `JWT_SECRET` | Signature des tokens |
-| `GRAFANA_ADMIN_PASSWORD` | Acces Grafana |
-| `DB_POOL_MAX` | Taille du pool (scenario de saturation) |
-| `CORS_ORIGINS` | Origines autorisees (defaut `*`) |
-
-Les conteneurs tournent en utilisateur non privilegie (`appuser`), avec
-des limites memoire et CPU. PostgreSQL, Redis, Loki, Tempo et les
-exporters sont joignables uniquement sur le reseau Docker.
-
-## Commandes Make
-
-```bash
-make help              # Liste toutes les commandes
-make start             # Démarre le lab
-make stop              # Arrête le lab
-make status            # Status des services
-make test              # Vérifie tous les services
-make logs              # Affiche les logs
-make logs-payment      # Logs d'un service spécifique
-make urls              # Affiche toutes les URLs
-
-# Base de données
-make psql              # Shell PostgreSQL
-make db-stats          # Lignes par table
-
-# Incidents
-make incident-payment  # Déclenche latence payment
-make incident-catalog  # Déclenche erreurs catalog
-make incident-resolve  # Résout les incidents
-make incident-list     # Liste les incidents actifs
-
-# Chaos
-make chaos SERVICE=payment LATENCY=3000 ERRORS=0.3
-make chaos-status      # Etat du chaos sur les 5 services
-make chaos-stop        # Arrête le chaos partout
-
-# Tests
-make test-purchase     # Simule un achat complet
-```
-
-## Commandes de diagnostic
-
-```bash
-# Voir les conteneurs
-docker compose ps
-
-# Logs d'un service
-docker compose logs --follow payment-service
-
-# Redémarrer un service
-docker compose restart payment-service
-
-# Verifier la connexion a la base
-curl http://localhost:8081/ready
-
-# Tout nettoyer et reconstruire
-make clean && make start
-```
+- [Prometheus](https://prometheus.io/docs/)
+- [Grafana](https://grafana.com/docs/), [Loki](https://grafana.com/docs/loki/), [Tempo](https://grafana.com/docs/tempo/)
+- [OpenTelemetry](https://opentelemetry.io/docs/)

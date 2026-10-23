@@ -1,4 +1,4 @@
-// Avis produits CapShop : exemple de référence du module fil rouge, en Go.
+// Avis produits CapShop, étape 3 : traces OpenTelemetry.
 package main
 
 import (
@@ -30,24 +30,26 @@ type Review struct {
 }
 
 var (
-	serviceName = env("SERVICE_NAME", "reviews-service")
-	tracer      = otel.Tracer("reviews-service")
+	forbidden = []string{"arnaque", "nul"}
 
+	mu      sync.Mutex
+	reviews = map[int][]Review{}
+
+	tracer = otel.Tracer("reviews-service")
+
+	// Trafic et latence de chaque route.
 	requests = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "http_requests_total", Help: "Requêtes HTTP"}, []string{"method", "route", "status"})
 	latency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "http_request_duration_seconds", Help: "Durée des requêtes HTTP"}, []string{"method", "route"})
+
+	// Métriques business.
 	created = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "reviews_created_total", Help: "Avis publiés"}, []string{"rating"})
 	rejected = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "reviews_rejected_total", Help: "Avis refusés"}, []string{"reason"})
 	average = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "reviews_average_rating", Help: "Note moyenne par produit"}, []string{"product_id"})
-
-	forbidden = []string{"arnaque", "nul"}
-
-	mu      sync.Mutex
-	reviews = map[int][]Review{}
 )
 
 func env(key, fallback string) string {
@@ -57,6 +59,7 @@ func env(key, fallback string) string {
 	return fallback
 }
 
+// setupTracing envoie les traces au collecteur OpenTelemetry du lab.
 func setupTracing(ctx context.Context) func(context.Context) error {
 	exporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithEndpoint(env("OTEL_EXPORTER_OTLP_ENDPOINT", "otel-collector:4317")),
@@ -68,9 +71,26 @@ func setupTracing(ctx context.Context) func(context.Context) error {
 	provider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(resource.NewWithAttributes(semconv.SchemaURL,
-			semconv.ServiceName(serviceName))))
+			semconv.ServiceName(env("SERVICE_NAME", "reviews-service")))))
 	otel.SetTracerProvider(provider)
 	return provider.Shutdown
+}
+
+func writeJSON(w http.ResponseWriter, status int, body any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(body)
+}
+
+func isForbidden(comment string) bool {
+	for _, word := range strings.Fields(strings.ToLower(comment)) {
+		for _, f := range forbidden {
+			if word == f {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 type recorder struct {
@@ -83,22 +103,16 @@ func (r *recorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
-// measure enregistre le nombre et la durée des requêtes d'une route.
+// measure compte les requêtes d'une route, mesure leur durée et ouvre un span.
 func measure(route string, next http.HandlerFunc) http.Handler {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		start := time.Now()
 		rec := &recorder{ResponseWriter: w, status: http.StatusOK}
-		next(rec, r)
-		requests.WithLabelValues(r.Method, route, strconv.Itoa(rec.status)).Inc()
-		latency.WithLabelValues(r.Method, route).Observe(time.Since(start).Seconds())
+		next(rec, req)
+		requests.WithLabelValues(req.Method, route, strconv.Itoa(rec.status)).Inc()
+		latency.WithLabelValues(req.Method, route).Observe(time.Since(start).Seconds())
 	})
 	return otelhttp.NewHandler(handler, route)
-}
-
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(body)
 }
 
 func listReviews(w http.ResponseWriter, req *http.Request) {
@@ -133,20 +147,17 @@ func createReview(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Chaque étape de traitement devient un span de la trace.
 	_, span := tracer.Start(req.Context(), "moderate_review")
 	span.SetAttributes(attribute.Int("product_id", id))
-	for _, word := range strings.Fields(strings.ToLower(review.Comment)) {
-		for _, f := range forbidden {
-			if word == f {
-				span.End()
-				rejected.WithLabelValues("moderation").Inc()
-				slog.Warn("avis refusé : modération", "product_id", id)
-				writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"detail": "Avis refusé par la modération"})
-				return
-			}
-		}
-	}
+	refused := isForbidden(review.Comment)
 	span.End()
+	if refused {
+		rejected.WithLabelValues("moderation").Inc()
+		slog.Warn("avis refusé : modération", "product_id", id)
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"detail": "Avis refusé par la modération"})
+		return
+	}
 
 	_, span = tracer.Start(req.Context(), "store_review")
 	mu.Lock()
@@ -178,7 +189,7 @@ func main() {
 	mux.Handle("POST /api/reviews/{product_id}", measure("/api/reviews/{product_id}", createReview))
 
 	addr := ":" + env("PORT", "8086")
-	slog.Info("démarrage", "service", serviceName, "addr", addr)
+	slog.Info("démarrage", "addr", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		slog.Error("arrêt", "error", err)
 		os.Exit(1)

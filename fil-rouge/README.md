@@ -5,9 +5,16 @@ votre choix : avis produits, livraison, fidélité, recommandations... Le lab
 l'accueille à côté des six services existants, et le surveille avec la même
 stack : Prometheus, Grafana, Loki, Tempo.
 
-Un exemple complet est fourni, en Python et en Go :
-[`reviews-service`](reviews-service/), un service d'avis produits. Vous
-pouvez le suivre, vous en inspirer ou faire tout autre chose.
+Un exemple est fourni, [`reviews-service`](reviews-service/), un service
+d'avis produits. Vous pouvez le suivre, vous en inspirer ou faire tout
+autre chose. Deux guides le construisent pas à pas, en trois étapes :
+
+- [Écrire votre module en Go](module-go.md)
+- [Écrire votre module en Python](module-python.md)
+
+Chaque étape existe aussi en version prête à l'emploi. La suite du parcours
+s'appuie sur votre module : si vous êtes bloqué, déployez la version de
+l'étape où vous en êtes et continuez.
 
 ## Conditions pour s'intégrer au lab
 
