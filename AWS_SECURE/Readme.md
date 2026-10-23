@@ -127,24 +127,26 @@ L'identifiant est `admin`.
 
 ## 8. Acceder aux interfaces
 
-Sur `utils-stagiaireXX`, ouvrir les ports, et laisser le terminal ouvert :
+Sur `utils-stagiaireXX`, ouvrir les ports en arriere-plan. Ils restent actifs
+apres la deconnexion :
 
 ```sh
-kubectl port-forward svc/api-gateway 8080:8080 &
-kubectl port-forward svc/lab-controller 8090:8090 &
-kubectl port-forward svc/grafana 3000:3000 &
-kubectl port-forward svc/prometheus 9090:9090 &
-kubectl port-forward svc/alertmanager 9093:9093 &
-kubectl port-forward svc/traffic-generator 8089:8089 &
+for svc in api-gateway:8080 lab-controller:8090 grafana:3000 prometheus:9090 alertmanager:9093 traffic-generator:8089; do
+  nohup kubectl port-forward svc/${svc%%:*} ${svc##*:}:${svc##*:} > /dev/null 2>&1 &
+done
 ```
 
-Depuis votre poste, un tunnel SSH ramene ces ports, et laisser ce terminal
-ouvert aussi :
+Verifier que les six ports ecoutent :
 
 ```sh
-ssh -L 8080:localhost:8080 -L 8090:localhost:8090 -L 3000:localhost:3000 \
-    -L 9090:localhost:9090 -L 9093:localhost:9093 -L 8089:localhost:8089 \
-    utils-stagiaireXX
+ss -ltnp | grep kubectl
+```
+
+Depuis votre poste, ouvrir un tunnel SSH vers la machine, et laisser ce
+terminal ouvert :
+
+```sh
+ssh -L 8080:localhost:8080 -L 8090:localhost:8090 -L 3000:localhost:3000 -L 9090:localhost:9090 -L 9093:localhost:9093 -L 8089:localhost:8089 utils-stagiaireXX
 ```
 
 | Interface | Adresse |
@@ -156,7 +158,17 @@ ssh -L 8080:localhost:8080 -L 8090:localhost:8090 -L 3000:localhost:3000 \
 | Alertmanager | http://localhost:9093 |
 | Locust | http://localhost:8089 |
 
-Ce sont les adresses utilisees dans les exercices.
+Ce sont les adresses utilisees dans les exercices. Aucun reglage du navigateur
+n'est necessaire.
+
+Un port-forward vise un pod precis : si le pod redemarre, l'interface ne repond
+plus. Sur `utils-stagiaireXX`, arreter puis relancer les ports :
+
+```sh
+pkill -f "kubectl port-forward"
+```
+
+puis relancer la boucle ci-dessus.
 
 ## 9. Supprimer le lab
 
