@@ -1,5 +1,5 @@
 {
-  "name": "Reskilling SRE Lab",
+  "name": "Reskilling SRE",
   "build": { "dockerfile": "Dockerfile" },
   "workspaceFolder": "/workspaces/SRE",
 

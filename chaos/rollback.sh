@@ -1,9 +1,9 @@
 #!/bin/bash
-# Annule la panne provoquée par chaos/lancer.sh, en remettant l'état sauvegardé.
+# Annule la panne provoquée par chaos/inject.sh, en remettant l'état sauvegardé.
 # À utiliser si vous êtes bloqué, ou pour vérifier votre propre correction.
 set -euo pipefail
 
-SAUVEGARDE=${CHAOS_DIR:-$HOME/.chaos-lab}
+SAUVEGARDE=${CHAOS_DIR:-$HOME/.chaos-reskilling}
 NS=()
 [ -n "${STAGIAIRE:-}" ] && NS=(--namespace "$STAGIAIRE")
 k() { kubectl "${NS[@]}" "$@"; }

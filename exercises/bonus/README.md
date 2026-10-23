@@ -1,4 +1,4 @@
-# Exercices bonus - lab CapShop
+# Exercices bonus - fil rouge
 
 > Les exercices de la formation, sur votre module fil rouge, sont dans
 > [les exercices du parcours](../README.md).
@@ -25,8 +25,8 @@ boutique e-commerce tech premium qui rencontre des problèmes de fiabilité.
 
 ## Prérequis
 
-Le lab est installe dans votre namespace et les interfaces sont ouvertes :
-voir [Installer le lab SRE dans EKS](../../AWS_SECURE/Readme.md), etapes 5 a 8.
+L'application fil rouge est installe dans votre namespace et les interfaces sont ouvertes :
+voir [Installer l'application fil rouge dans EKS](../../AWS_SECURE/Readme.md), etapes 5 a 8.
 
 Toutes les commandes `kubectl` se lancent sur votre machine
 `utils-stagiaireXX`. Les adresses `http://localhost:...` s'ouvrent dans le
@@ -158,7 +158,7 @@ sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests
 - **La requête ne renvoie rien** : vérifiez la période en haut à droite
   (dernière heure) et que le générateur de trafic tourne
   (`kubectl get pods -l app=traffic-generator`).
-- **`gateway_requests_total` est vide** : laissez tourner le lab 5 minutes,
+- **`gateway_requests_total` est vide** : laissez tourner l'application 5 minutes,
   `rate(...[5m])` a besoin d'historique.
 - **Un service manque** dans la première requête : il n'a pas reçu de trafic
   client récemment, ou il est en panne (`kubectl get pods`).
@@ -297,7 +297,7 @@ Un dashboard basique "SRE Overview" est déjà provisionné dans Grafana, mais i
 4. **Panel Logs récents** (Logs panel)
    - Derniers logs d'erreur
 
-La marche à suivre (copier le dashboard, ajouter un panel, exporter) est dans
+La marche à suivre (copier le dashboard, ajouter un panel) est dans
 le [Guide Observabilité](../../docs/OBSERVABILITY.md#4-grafana---dashboards).
 
 <details>
@@ -321,7 +321,6 @@ incident.
 
 </details>
 
-**Livrable** : Dashboard exporté (JSON)
 
 ---
 
@@ -517,7 +516,7 @@ Points attendus pour l'incident de latence du paiement :
 ### 4.1 Analyser les métriques historiques
 
 Utilisez Prometheus pour analyser l'historique disponible. Elargissez la
-fenetre a `[24h:5m]` si le lab tourne depuis plus d'une journee.
+fenetre a `[24h:5m]` si l'application tourne depuis plus d'une journee.
 
 ```promql
 # Disponibilité par service
@@ -540,7 +539,7 @@ avg_over_time(
 <summary>Ça bloque ?</summary>
 
 - **Résultat vide** : la fenêtre `[1h:5m]` demande une heure de données.
-  Réduisez à `[30m:5m]` si le lab vient d'être installé.
+  Réduisez à `[30m:5m]` si l'application vient d'être installée.
 - **Disponibilité à 1 (100 %)** : aucune erreur 5xx sur la période,
   déclenchez d'abord un incident (bonus 3).
 - **Lire une valeur** : onglet **Table** de Prometheus. `0.998` signifie
@@ -669,7 +668,7 @@ Quand `my_slo_alerts.yml` est present, rechargez Prometheus :
 curl --request POST http://localhost:9090/-/reload
 ```
 
-La regle apparait dans http://localhost:9090/alerts. Un `helm upgrade` du lab
+La regle apparait dans http://localhost:9090/alerts. Un `helm upgrade` de l'application fil rouge
 remplace la ConfigMap : la regle est alors a ajouter de nouveau.
 
 <details>
@@ -805,7 +804,7 @@ kubectl scale statefulset postgres --replicas=1
 - **Les pods ne redeviennent pas prêts** après `--replicas=1` : postgres met
   une trentaine de secondes à démarrer. Suivez avec
   `kubectl get pods --watch`.
-- **Le lab reste dégradé** : relancez le script une fois postgres revenu, ou
+- **L'application fil rouge reste dégradé** : relancez le script une fois postgres revenu, ou
   `kubectl rollout restart deployment/<nom>`.
 
 </details>

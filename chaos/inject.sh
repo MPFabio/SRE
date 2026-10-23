@@ -1,6 +1,6 @@
 #!/bin/bash
 # Provoque une panne réelle dans votre namespace.
-# Usage : chaos/lancer.sh [scenario] [cible]
+# Usage : chaos/inject.sh [scenario] [cible]
 #   scenario : arret, memoire, image, port, base, cache,
 #              ou rien pour une panne au hasard sur la cible
 #   cible    : deployment visé (reviews-service par défaut)
@@ -10,13 +10,13 @@ SCENARIOS=(arret memoire image port base cache)
 SUR_LA_CIBLE=(arret memoire image port)
 SCENARIO=${1:-${SUR_LA_CIBLE[RANDOM % ${#SUR_LA_CIBLE[@]}]}}
 CIBLE=${2:-reviews-service}
-SAUVEGARDE=${CHAOS_DIR:-$HOME/.chaos-lab}
+SAUVEGARDE=${CHAOS_DIR:-$HOME/.chaos-reskilling}
 NS=()
 [ -n "${STAGIAIRE:-}" ] && NS=(--namespace "$STAGIAIRE")
 k() { kubectl "${NS[@]}" "$@"; }
 
 if [ -e "$SAUVEGARDE/panne" ]; then
-    echo "Une panne est déjà en cours. Réparez-la, ou lancez chaos/reparer.sh, avant d'en provoquer une autre."
+    echo "Une panne est déjà en cours. Réparez-la, ou lancez chaos/rollback.sh, avant d'en provoquer une autre."
     exit 1
 fi
 
@@ -32,7 +32,7 @@ case $SCENARIO in
         ;;
     arret|memoire|image|port)
         k get deployment "$CIBLE" > /dev/null || {
-            echo "Deployment $CIBLE introuvable. Précisez la cible : chaos/lancer.sh $SCENARIO <nom>"
+            echo "Deployment $CIBLE introuvable. Précisez la cible : chaos/inject.sh $SCENARIO <nom>"
             exit 1
         }
         mkdir -p "$SAUVEGARDE"

@@ -12,9 +12,9 @@ injectent des pannes dans le code, et se résolvent d'un clic.
 Sur `utils-stagiaireXX`, depuis la racine du repo :
 
 ```bash
-bash chaos/lancer.sh                 # une panne au hasard sur votre module
-bash chaos/lancer.sh memoire         # une panne précise
-bash chaos/lancer.sh port catalog-service   # une panne sur un autre service
+bash chaos/inject.sh                 # une panne au hasard sur votre module
+bash chaos/inject.sh memoire         # une panne précise
+bash chaos/inject.sh port catalog-service   # une panne sur un autre service
 ```
 
 La cible par défaut est `reviews-service`. Si votre module porte un autre
@@ -59,7 +59,7 @@ kubectl rollout history deployment/<service>
 Corrigez avec `kubectl` (`scale`, `set image`, `set resources`, `set env`,
 `rollout undo`...) puis vérifiez que les alertes repassent au vert.
 
-Bloqué ? `bash chaos/reparer.sh` remet le service dans l'état d'avant la
+Bloqué ? `bash chaos/rollback.sh` remet le service dans l'état d'avant la
 panne. Lancez-le aussi après votre propre correction : il nettoie la
 sauvegarde et permet de lancer la panne suivante.
 

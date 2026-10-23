@@ -1,4 +1,4 @@
-# Démarrage rapide - Reskilling SRE Lab
+# Démarrage rapide - Reskilling SRE
 
 ## 1. Prérequis
 
@@ -53,7 +53,7 @@ docker run --rm hello-world
 git clone https://github.com/MPFabio/SRE.git
 cd SRE
 
-# Démarrer le lab
+# Démarrer l'application fil rouge
 ./start.sh
 # ou
 make start
@@ -116,7 +116,7 @@ Observez l'impact dans :
 make incident-resolve
 ```
 
-## 8. Arrêter le lab
+## 8. Arrêter l'application fil rouge
 
 ```bash
 make stop          # arrete les conteneurs

@@ -1,7 +1,7 @@
 # Module fil rouge : brancher votre service
 
 Vous développez un module de CapShop, dans le langage et sur le métier de
-votre choix : avis produits, livraison, fidélité, recommandations... Le lab
+votre choix : avis produits, livraison, fidélité, recommandations... L'application fil rouge
 l'accueille à côté des six services existants, et le surveille avec la même
 stack : Prometheus, Grafana, Loki, Tempo.
 
@@ -16,7 +16,7 @@ Chaque étape existe aussi en version prête à l'emploi. La suite du parcours
 s'appuie sur votre module : si vous êtes bloqué, déployez la version de
 l'étape où vous en êtes et continuez.
 
-## Conditions pour s'intégrer au lab
+## Conditions pour s'intégrer à l'application fil rouge
 
 Votre module est libre, à quatre conditions près :
 
@@ -36,7 +36,7 @@ premier déploiement :
 Tant que `/metrics` n'existe pas, la target de votre module apparaît `down`
 dans Prometheus : c'est normal.
 
-## Ce que le lab fournit à votre container
+## Ce que l'application fil rouge fournit à votre container
 
 | Variable | Valeur |
 |---|---|
@@ -51,7 +51,7 @@ Vous pouvez ajouter les vôtres avec `--set learnerService.env.MA_VARIABLE=valeu
 
 ## Déployer votre module
 
-Sur `utils-stagiaireXX`, avec le lab déjà installé :
+Sur `utils-stagiaireXX`, avec l'application fil rouge déjà installé :
 
 ```bash
 helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values \

@@ -1,10 +1,10 @@
-# Guide Observabilité - Reskilling Lab
+# Guide Observabilité - Reskilling SRE
 
-Ce guide détaille l'utilisation des outils d'observabilité du lab.
+Ce guide détaille l'utilisation des outils d'observabilité de l'application fil rouge.
 
 ## Vue d'ensemble
 
-Le lab utilise la stack **Grafana** pour l'observabilité :
+L'application fil rouge utilise la stack **Grafana** pour l'observabilité :
 
 | Outil | Port | Rôle |
 |-------|------|------|
@@ -267,7 +267,7 @@ Chaque **span** contient :
 ### Connexion
 
 - URL : http://localhost:3000
-- Login : `admin`, mot de passe stocké dans le secret du lab :
+- Login : `admin`, mot de passe stocké dans le secret de l'application fil rouge :
 
 ```bash
 kubectl get secret lab-secrets --output jsonpath='{.data.GRAFANA_ADMIN_PASSWORD}' | base64 --decode
@@ -289,7 +289,7 @@ Menu de gauche, **Dashboards**, puis **SRE Overview**. Il contient :
 | Requests by Status Code | Time series | Requêtes par code HTTP |
 
 Il ne montre ni P50 et P90, ni taux d'erreur en pourcentage, ni logs :
-c'est l'objet de l'bonus 2.4.
+c'est l'objet du bonus 2.4.
 
 ### Modifier le dashboard
 
@@ -310,7 +310,7 @@ Pour ajouter un panel :
    (**Thresholds**) dans le même panneau
 6. **Back to dashboard**, puis **Save dashboard**
 
-### Requêtes pour l'bonus 2.4
+### Requêtes pour le bonus 2.4
 
 **Latence P50, P90, P99 par service** (Time series, unité *seconds*) : une
 requête par quantile, avec **Add query**. Dans **Options** → **Legend**,
@@ -340,11 +340,6 @@ sum(rate(gateway_requests_total[5m]))
 ```logql
 {job=~"api-gateway|.+-service"} |~ "(?i)error| 5[0-9]{2} "
 ```
-
-### Exporter le dashboard
-
-**Share** (ou **Export**) → **Export** → **Export as JSON** → **Save to
-file**. C'est le livrable de l'bonus 2.4.
 
 ## 5. Alertmanager
 

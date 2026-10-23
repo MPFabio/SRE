@@ -1,4 +1,4 @@
-# Guide Incidents et Post-Mortems - Reskilling Lab
+# Guide Incidents et Post-Mortems - Reskilling SRE
 
 Ce guide détaille le workflow de gestion d'incidents et la rédaction de post-mortems.
 
@@ -287,7 +287,7 @@ Le toil est un travail :
 - **Tactique** : Sans valeur durable
 - **Scalant** : Augmente avec la charge
 
-### Toil identifié dans le lab
+### Toil identifié dans l'application fil rouge
 
 L'Operations Console (onglet "Automation") identifie automatiquement :
 

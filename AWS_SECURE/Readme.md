@@ -1,4 +1,4 @@
-# Installer le lab SRE dans EKS
+# Installer l'application fil rouge dans EKS
 
 Toutes les commandes se lancent sur votre machine `utils-stagiaireXX`, une fois
 connecte, ou `kubectl` est deja configure sur votre namespace.
@@ -78,7 +78,7 @@ do
 done
 ```
 
-## 5. Installer le lab
+## 5. Installer l'application fil rouge
 
 Le cluster tire les images depuis `docker.reskilling.internal`. Les trois
 secrets sont obligatoires.
@@ -190,15 +190,15 @@ ssh -D 1080 -N utils-stagiaireXX
 Dans Chrome, installer l'extension **FoxyProxy Standard**, puis :
 
 1. Icone FoxyProxy, **Options**, onglet **Proxies**, **Add**
-2. Type **SOCKS5**, Hostname `127.0.0.1`, Port `1080`, titre `lab`, **Save**
-3. Icone FoxyProxy : selectionner **lab**
+2. Type **SOCKS5**, Hostname `127.0.0.1`, Port `1080`, titre `reskilling`, **Save**
+3. Icone FoxyProxy : selectionner **reskilling**
 
 Chrome fait resoudre les noms par la VM a travers le proxy SOCKS5 : les noms
 internes de la plateforme fonctionnent. Ouvrir ensuite
 `http://<nom de la VM>:8080`. Chrome ne fait jamais passer `localhost` par un
 proxy : utilisez bien le nom de la VM.
 
-Apres le lab, repasser FoxyProxy sur **Disable**, sinon la navigation echoue
+Apres la session, repasser FoxyProxy sur **Disable**, sinon la navigation echoue
 des que le tunnel est ferme.
 
 ### Adresses
@@ -228,13 +228,13 @@ n'a pas besoin d'etre relance.
 |---|---|---|
 | La page ne repond plus apres un redemarrage de pod | Port-forward tombe avec l'ancien pod | Relancer les ports, ci-dessus |
 | Option B : `ERR_PROXY_CONNECTION_FAILED` | Le terminal `ssh -D` est ferme | Relancer `ssh -D 1080 -N utils-stagiaireXX` |
-| Option B : "adresse IP introuvable" | Proxy configure en SOCKS4, ou FoxyProxy desactive | Type SOCKS5, et **lab** selectionne |
+| Option B : "adresse IP introuvable" | Proxy configure en SOCKS4, ou FoxyProxy desactive | Type SOCKS5, et **reskilling** selectionne |
 | Option B : `localhost` ne repond pas | Chrome ne passe pas `localhost` par le proxy | Utiliser le nom de la VM |
 | Option B : le nom repond mais la page reste vide | Ports ouverts sans `--address 0.0.0.0` | `pkill`, puis relancer la boucle de l'option B |
 
-## 9. Recuperer une correction du lab
+## 9. Recuperer une correction de l'application fil rouge
 
-Quand une correction du lab est publiee sur le repo, recuperer le code, puis
+Quand une correction de l'application fil rouge est publiee sur le repo, recuperer le code, puis
 refaire l'etape 4 (construire et pousser les images) avec le meme tag `lab`.
 Redemarrer ensuite les services, qui telechargent la nouvelle version :
 
@@ -251,7 +251,7 @@ Relancer enfin les ports de l'etape 8 : ils sont tombes avec les anciens pods.
 Pour mettre a jour votre propre module, voir le guide de votre langage dans
 [fil-rouge/](../fil-rouge/README.md).
 
-## 10. Supprimer le lab
+## 10. Supprimer l'application fil rouge
 
 ```sh
 helm uninstall lab --namespace $STAGIAIRE

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# SRE Lab - Script de démarrage
+# Reskilling SRE - Script de démarrage
 # =============================================================================
 
 set -o errexit
@@ -8,7 +8,7 @@ set -o errexit
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "Reskilling SRE Lab - E-Commerce Microservices"
+echo "Reskilling SRE - E-Commerce Microservices"
 echo "========================================"
 
 # Couleurs
@@ -57,11 +57,11 @@ printf "${BLUE}Demarrage des services...${NC}\n"
 $DOCKER_COMPOSE up --detach
 
 echo ""
-printf "${GREEN}Lab SRE demarre avec succes${NC}\n"
+printf "${GREEN}Application fil rouge demarree avec succes${NC}\n"
 echo ""
 echo "Interfaces disponibles:"
 echo "  - E-Commerce Frontend:  http://localhost:8080"
-echo "  - Lab Controller:       http://localhost:8090"
+echo "  - Operations Console:   http://localhost:8090"
 echo "  - Grafana:              http://localhost:3000 (admin / ${GRAFANA_PASSWORD})"
 echo "  - Prometheus:           http://localhost:9090"
 echo "  - Alertmanager:         http://localhost:9093"

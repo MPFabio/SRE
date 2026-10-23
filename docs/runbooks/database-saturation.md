@@ -14,7 +14,7 @@
 
 ## Contexte
 
-Dimensionnement du lab :
+Dimensionnement de l'application fil rouge :
 
 | Parametre | Valeur | Ou |
 |---|---|---|

@@ -45,7 +45,7 @@ circuit_breaker_state
 | Charge élevée | Haute | Vérifier RPS et CPU |
 | Dépendance lente (DB, externe) | Moyenne | Vérifier traces |
 | Fuite mémoire | Moyenne | Vérifier métriques mémoire |
-| Configuration chaos | Lab | Incident en cours dans l'Operations Console |
+| Configuration chaos | Application fil rouge | Incident en cours dans l'Operations Console |
 
 ## Résolution
 

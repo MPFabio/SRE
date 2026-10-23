@@ -190,7 +190,7 @@ Voir [`reviews-service/go/2-metriques/main.go`](reviews-service/go/2-metriques/m
 ### Vérifier
 
 En local : `curl localhost:8086/metrics | grep reviews_` après avoir publié
-un avis. Dans le lab, après déploiement, la target passe `up` dans
+un avis. Dans l'application fil rouge, après déploiement, la target passe `up` dans
 http://localhost:9090/targets et la requête suivante répond :
 
 ```promql
@@ -225,7 +225,7 @@ sum by (rating) (reviews_created_total)
    ```
 
 2. **Configurer l'envoi des traces** au démarrage, vers le collecteur du
-   lab (variable `OTEL_EXPORTER_OTLP_ENDPOINT`, en gRPC sans TLS), avec le
+   fil rouge (variable `OTEL_EXPORTER_OTLP_ENDPOINT`, en gRPC sans TLS), avec le
    nom du service : c'est lui qui apparaîtra dans Tempo. Voir
    `setupTracing` dans l'exemple.
 
@@ -284,9 +284,9 @@ Une trace de `POST` contient le span de la requête, ses étapes
 
 | Symptôme | Cause probable | Solution |
 |---|---|---|
-| `traces désactivées` ou erreurs d'export en local | Pas de collecteur hors du cluster | Normal en `docker run` ; tester dans le lab |
+| `traces désactivées` ou erreurs d'export en local | Pas de collecteur hors du cluster | Normal en `docker run` ; tester une fois déployé |
 | La trace s'arrête à votre service, sans `catalog-service` | Contexte de trace non propagé | `otel.SetTextMapPropagator(propagation.TraceContext{})`, client `otelhttp.NewTransport`, requête créée avec le contexte du span |
-| Tous les avis sont refusés en 503 en local | Pas de catalogue hors du cluster | Normal en `docker run` ; tester dans le lab |
+| Tous les avis sont refusés en 503 en local | Pas de catalogue hors du cluster | Normal en `docker run` ; tester une fois déployé |
 | Aucune trace dans Tempo | Mauvais endpoint, ou spans non terminés | Vérifier `OTEL_EXPORTER_OTLP_ENDPOINT` (`kubectl describe pod`), et que chaque `span.End()` est appelé |
 | Les spans d'étape sont des traces séparées | Le contexte de la requête n'est pas transmis | Démarrer les spans avec `req.Context()` |
 | Le service s'appelle `unknown_service` | Nom du service absent de la ressource | `semconv.ServiceName(...)` dans `setupTracing` |

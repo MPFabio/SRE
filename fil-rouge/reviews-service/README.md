@@ -65,8 +65,8 @@ curl localhost:8086/api/reviews/3
 curl localhost:8086/metrics
 ```
 
-L'étape 3 se teste dans le lab : hors du cluster, il n'y a ni
+L'étape 3 se teste une fois déployée : hors du cluster, il n'y a ni
 `otel-collector` pour recevoir les traces, ni `catalog-service` pour
 vérifier les produits, et les avis sont refusés en 503.
 
-Pour le déployer dans le lab, voir [le module fil rouge](../README.md).
+Pour le déployer dans l'application fil rouge, voir [le module fil rouge](../README.md).

@@ -169,7 +169,7 @@ Voir [`reviews-service/python/2-metriques/main.py`](reviews-service/python/2-met
 ### Vérifier
 
 En local : `curl localhost:8086/metrics | grep reviews_` après avoir publié
-un avis. Dans le lab, après déploiement, la target passe `up` dans
+un avis. Dans l'application fil rouge, après déploiement, la target passe `up` dans
 http://localhost:9090/targets et la requête suivante répond :
 
 ```promql
@@ -204,7 +204,7 @@ sum by (rating) (reviews_created_total)
    ```
 
 2. **Configurer l'envoi des traces** au démarrage, vers le collecteur du
-   lab (variable `OTEL_EXPORTER_OTLP_ENDPOINT`, gRPC sans TLS), avec le nom
+   fil rouge (variable `OTEL_EXPORTER_OTLP_ENDPOINT`, gRPC sans TLS), avec le nom
    du service : c'est lui qui apparaîtra dans Tempo.
 
    ```python
@@ -266,9 +266,9 @@ Une trace de `POST` contient le span de la requête, ses étapes
 
 | Symptôme | Cause probable | Solution |
 |---|---|---|
-| Erreurs d'export (`StatusCode.UNAVAILABLE`) en local | Pas de collecteur hors du cluster | Normal en `docker run` ; tester dans le lab |
+| Erreurs d'export (`StatusCode.UNAVAILABLE`) en local | Pas de collecteur hors du cluster | Normal en `docker run` ; tester une fois déployé |
 | La trace s'arrête à votre service, sans `catalog-service` | Client HTTP non instrumenté | `HTTPXClientInstrumentor().instrument()` avant les appels |
-| Tous les avis sont refusés en 503 en local | Pas de catalogue hors du cluster | Normal en `docker run` ; tester dans le lab |
+| Tous les avis sont refusés en 503 en local | Pas de catalogue hors du cluster | Normal en `docker run` ; tester une fois déployé |
 | Aucune trace dans Tempo | Mauvais endpoint | Vérifier `OTEL_EXPORTER_OTLP_ENDPOINT` avec `kubectl describe pod -l app=<nom>` |
 | Les traces sont pleines de `/health` | Probes Kubernetes tracées | `excluded_urls="health,metrics"` |
 | Le service s'appelle `unknown_service` | Nom absent de la ressource | `Resource({"service.name": ...})` |

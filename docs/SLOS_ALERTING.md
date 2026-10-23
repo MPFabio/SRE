@@ -1,4 +1,4 @@
-# Guide SLOs et Alerting - Reskilling Lab
+# Guide SLOs et Alerting - Reskilling SRE
 
 Ce guide explique comment définir des SLOs, calculer l'Error Budget, et configurer des alertes efficaces.
 

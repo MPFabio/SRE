@@ -1,4 +1,4 @@
-# Lab fil rouge DevOps / SRE
+# Application fil rouge DevOps / SRE
 
 Application fil rouge des parcours DevOps Infra et DevOps SRE : une
 boutique e-commerce en microservices, livrée avec une stack
@@ -10,12 +10,12 @@ répare.
 
 | Vous voulez... | Document |
 |---|---|
-| Installer le lab dans votre namespace EKS | [AWS_SECURE/Readme.md](AWS_SECURE/Readme.md) |
+| Installer l'application fil rouge dans votre namespace EKS | [AWS_SECURE/Readme.md](AWS_SECURE/Readme.md) |
 | Faire les exercices de la formation (fil rouge) | [Exercices du parcours](exercises/README.md) |
 | Développer et brancher votre module fil rouge | [fil-rouge/README.md](fil-rouge/README.md) |
 | Provoquer des pannes, les diagnostiquer et les corriger | [chaos/README.md](chaos/README.md) |
 | Aller plus loin : architecture, observabilité, incidents, SLOs, toil | [Exercices bonus](exercises/bonus/README.md) |
-| Faire tourner le lab sur votre poste avec Docker | [QUICKSTART.md](QUICKSTART.md) |
+| Faire tourner l'application fil rouge sur votre poste avec Docker | [QUICKSTART.md](QUICKSTART.md) |
 
 ## Interfaces
 
@@ -62,7 +62,7 @@ Loki et Tempo n'ont pas d'interface propre : on les interroge depuis Grafana.
 
 | Donnée | Stockage |
 |---|---|
-| Produits, commandes, comptes, objets du lab | PostgreSQL (schémas `catalog`, `orders`, `users`, `lab`) |
+| Produits, commandes, comptes, objets de l'application fil rouge | PostgreSQL (schémas `catalog`, `orders`, `users`, `lab`) |
 | Panier | Redis (TTL 24h) |
 
 Les cinq services métier partagent un socle, `microservices/_shared/` :
@@ -71,7 +71,7 @@ observabilité (logs, OpenTelemetry), injection de chaos, routes `/health`,
 gateway a sa propre implémentation : son `/health` agrège l'état des
 services et répond `degraded` si l'un d'eux est indisponible.
 
-Votre module rejoint cette architecture à côté des six services : le lab le
+Votre module rejoint cette architecture à côté des six services : l'application fil rouge le
 déploie, le surveille et collecte ses logs et ses traces comme les autres.
 
 ### Observabilité
@@ -136,7 +136,7 @@ kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capsho
 ## Structure du projet
 
 ```
-├── AWS_SECURE/                # Installation du lab dans un namespace EKS
+├── AWS_SECURE/                # Installation de l'application fil rouge dans un namespace EKS
 ├── chaos/                     # Pannes réelles à diagnostiquer et corriger
 ├── fil-rouge/                 # Conditions d'intégration + module d'exemple
 │   └── reviews-service/       #   avis produits, en Python et en Go
@@ -171,7 +171,7 @@ kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capsho
 
 ## Mode local (Docker Compose)
 
-Pour développer ou tester le lab sur un poste, sans cluster :
+Pour développer ou tester l'application fil rouge sur un poste, sans cluster :
 
 ```bash
 ./start.sh          # ou : make start

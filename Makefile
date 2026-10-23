@@ -10,21 +10,21 @@ NC     := \033[0m
 DC := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
 help: ## Affiche cette aide
-	@echo "$(GREEN)Reskilling SRE Lab - Commandes disponibles$(NC)"
+	@echo "$(GREEN)Reskilling SRE - Commandes disponibles$(NC)"
 	@echo ""
 	@grep --extended-regexp '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}'
 
 # =============================================================================
-# Gestion du Lab
+# Gestion de l'application fil rouge
 # =============================================================================
 
-start: ## Demarre le lab complet
+start: ## Demarre l'application fil rouge
 	@./start.sh
 
-stop: ## Arrete le lab
+stop: ## Arrete l'application fil rouge
 	@$(DC) down
 
-restart: stop start ## Redemarre le lab
+restart: stop start ## Redemarre l'application fil rouge
 
 build: ## Reconstruit toutes les images
 	@$(DC) build
@@ -139,7 +139,7 @@ test: ## Verifie que tous les services sont operationnels
 	@printf "Orders:         " && curl --silent --fail http://localhost:8083/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Payment:        " && curl --silent --fail http://localhost:8084/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Users:          " && curl --silent --fail http://localhost:8085/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
-	@printf "Lab Controller: " && curl --silent --fail http://localhost:8090/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
+	@printf "Operations Console: " && curl --silent --fail http://localhost:8090/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Prometheus:     " && curl --silent --fail http://localhost:9090/-/healthy > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Alertmanager:   " && curl --silent --fail http://localhost:9093/-/healthy > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Grafana:        " && curl --silent --fail http://localhost:3000/api/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
@@ -172,8 +172,8 @@ test-purchase: ## Simule un achat complet
 # URLs
 # =============================================================================
 
-urls: ## Affiche toutes les URLs du lab
-	@echo "$(GREEN)Reskilling SRE Lab - URLs$(NC)"
+urls: ## Affiche toutes les URLs de l'application fil rouge
+	@echo "$(GREEN)Reskilling SRE - URLs$(NC)"
 	@echo ""
 	@echo "  $(YELLOW)Applications$(NC)"
 	@echo "    Boutique CapShop:   http://localhost:8080"

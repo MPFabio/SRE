@@ -64,7 +64,7 @@ func env(key, fallback string) string {
 	return fallback
 }
 
-// setupTracing envoie les traces au collecteur OpenTelemetry du lab.
+// setupTracing envoie les traces au collecteur OpenTelemetry du fil rouge.
 func setupTracing(ctx context.Context) func(context.Context) error {
 	exporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithEndpoint(env("OTEL_EXPORTER_OTLP_ENDPOINT", "otel-collector:4317")),

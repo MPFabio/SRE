@@ -16,9 +16,9 @@ sont dans le dossier [bonus](bonus/README.md).
 
 ### Parcours DevOps SRE (sprint 2)
 
-| Transition | Exercice de la formation | Exercice du lab |
+| Transition | Exercice de la formation | Exercice associé |
 |---|---|---|
-| Prometheus et Grafana > OpenTelemetry | Métriques business | [P1](#p1--installer-le-lab), [P2](#p2--écrire-votre-module), [P3](#p3--déployer-votre-module), [P4](#p4--métriques-business) |
+| Prometheus et Grafana > OpenTelemetry | Métriques business | [P1](#p1--installer-lapplication-fil-rouge), [P2](#p2--écrire-votre-module), [P3](#p3--déployer-votre-module), [P4](#p4--métriques-business) |
 | | Dashboard | [P5](#p5--dashboard-de-votre-module) |
 | OpenTelemetry > Platform Engineering | Instrumenter avec OpenTelemetry | [P6](#p6--traces-et-étape-la-plus-lente) |
 | | Trace et étape la plus lente | [P6](#p6--traces-et-étape-la-plus-lente) |
@@ -27,17 +27,17 @@ sont dans le dossier [bonus](bonus/README.md).
 | | Lancer les scripts de chaos | [P7](#p7--chaos--diagnostiquer-et-corriger) |
 | | Diagnostiquer et corriger | [P7](#p7--chaos--diagnostiquer-et-corriger) |
 
-Votre service FastAPI devient ici un module de CapShop. Le lab est
+Votre service FastAPI devient ici un module de CapShop. L'application fil rouge est
 nécessaire dès les métriques, pour les voir dans Prometheus et Grafana : le
 déploiement (P1 et P3) arrive donc avant le module Kubernetes, qui le
 reprend ensuite.
 
 ### Parcours DevOps Infra (sprint 2)
 
-| Transition | Exercice de la formation | Exercice du lab |
+| Transition | Exercice de la formation | Exercice associé |
 |---|---|---|
 | Golang + Kubernetes > Platform Engineering | Développer un module en Go | [P2](#p2--écrire-votre-module) |
-| | Le déployer dans Kubernetes (stack complète) | [P1](#p1--installer-le-lab), [P3](#p3--déployer-votre-module) |
+| | Le déployer dans Kubernetes (stack complète) | [P1](#p1--installer-lapplication-fil-rouge), [P3](#p3--déployer-votre-module) |
 | Fin du module Prometheus et Grafana | Métriques business | [P4](#p4--métriques-business) |
 | | Dashboard | [P5](#p5--dashboard-de-votre-module) |
 | Fin du sprint 2 | Lancer les scripts de chaos | [P7](#p7--chaos--diagnostiquer-et-corriger) |
@@ -45,12 +45,12 @@ reprend ensuite.
 
 ---
 
-## P1 : Installer le lab
+## P1 : Installer l'application fil rouge
 
 **Objectif** : CapShop et sa stack d'observabilité tournent dans votre
 namespace.
 
-Suivez [Installer le lab dans EKS](../AWS_SECURE/Readme.md), étapes 1 à 8 :
+Suivez [Installer l'application fil rouge dans EKS](../AWS_SECURE/Readme.md), étapes 1 à 8 :
 construction des images, `helm install`, accès aux interfaces.
 
 <details>
@@ -78,16 +78,16 @@ un endpoint `/health`, construit en image Docker.
    ou [Python](../fil-rouge/module-python.md#étape-1--une-api-et-un-endpoint-health).
 3. Testez-le sur `utils-stagiaireXX` avec `docker run` et `curl`.
 
-Le module doit respecter quatre conditions pour s'intégrer au lab : image
+Le module doit respecter quatre conditions pour s'intégrer à l'application fil rouge : image
 Docker, port lu dans `PORT`, endpoint de health check, logs sur stdout.
-Voir [les conditions](../fil-rouge/README.md#conditions-pour-sintégrer-au-lab).
+Voir [les conditions](../fil-rouge/README.md#conditions-pour-sintégrer-à-lapplication-fil-rouge).
 
 <details>
 <summary>Ça bloque ?</summary>
 
 Chaque guide a son tableau de dépannage à la fin de l'étape 1. Si vous
 manquez de temps, construisez la version prête à l'emploi
-(`fil-rouge/reviews-service/go/1-base` ou `python/1-base`) et passez à P3 :
+([Go](../fil-rouge/reviews-service/go/1-base/) ou [Python](../fil-rouge/reviews-service/python/1-base/)) et passez à P3 :
 vous reprendrez votre propre code plus tard.
 
 </details>
@@ -106,7 +106,7 @@ vous reprendrez votre propre code plus tard.
 
 ## P3 : Déployer votre module
 
-**Objectif** : votre module tourne dans le lab, à côté des six services, et
+**Objectif** : votre module tourne dans l'application fil rouge, à côté des six services, et
 la stack le voit.
 
 1. Construisez et poussez l'image sur Nexus, puis activez le module dans le
@@ -145,8 +145,7 @@ Prometheus.
 questions du métier, et Prometheus les collecte.
 
 1. Listez trois ou quatre questions qu'un responsable métier se poserait
-   sur votre service. Pour des avis : combien en publie-t-on ? Combien en
-   refuse-t-on, et pourquoi ? Les clients sont-ils satisfaits ?
+   sur votre service.
 2. Pour chaque question, choisissez une métrique et son type (Counter,
    Gauge, Histogram) et ses labels.
 3. Implémentez-les et exposez `/metrics` : étape 2 du guide
@@ -161,7 +160,18 @@ questions du métier, et Prometheus les collecte.
 - La métrique existe mais reste à zéro : votre module ne reçoit pas de
   trafic. Appelez-le vous-même, ou lancez `bash fil-rouge/trafic.sh`
   (prévu pour l'exemple d'avis ; adaptez-le à vos routes).
-- Version prête à l'emploi : `fil-rouge/reviews-service/<langage>/2-metriques`.
+- Version prête à l'emploi : [Go](../fil-rouge/reviews-service/go/2-metriques/) ou [Python](../fil-rouge/reviews-service/python/2-metriques/).
+
+</details>
+
+<details>
+<summary>Exemple (module d'avis)</summary>
+
+| Question métier | Métrique | Type |
+|---|---|---|
+| Combien d'avis publie-t-on ? | `reviews_created_total{rating}` | Counter |
+| Combien en refuse-t-on, et pourquoi ? | `reviews_rejected_total{reason}` | Counter |
+| Les clients sont-ils satisfaits ? | `reviews_average_rating{product_id}` | Gauge |
 
 </details>
 
@@ -196,7 +206,6 @@ quelqu'un qui ne connaît pas son code.
    - le trafic et le taux d'erreur de votre service ;
    - la latence (P95 ou P99) ;
    - les logs récents de votre module (source Loki).
-4. Exportez-le en JSON : **Share** ou **Export**, **Export as JSON**.
 
 <details>
 <summary>Ça bloque ?</summary>
@@ -238,7 +247,6 @@ produits inconnus.
 - Le haut du dashboard répond à « le service va-t-il bien ? » (trafic,
   erreurs, latence) ; le bas détaille le métier.
 - Pendant une panne (P7), le dashboard le montre.
-- Le JSON exporté se réimporte dans un autre Grafana.
 
 </details>
 
@@ -269,7 +277,7 @@ où passe le temps d'une requête.
 - Tableau de dépannage de l'étape 3 du guide.
 - Pour ne garder que les traces lentes :
   `{ resource.service.name = "reviews-service" && duration > 20ms }`.
-- Version prête à l'emploi : `fil-rouge/reviews-service/<langage>/3-traces`.
+- Version prête à l'emploi : [Go](../fil-rouge/reviews-service/go/3-traces/) ou [Python](../fil-rouge/reviews-service/python/3-traces/).
 
 </details>
 
@@ -306,7 +314,7 @@ d'observabilité, la corriger et mesurer le temps que cela a pris.
 1. Lancez une panne au hasard sur votre module :
 
    ```bash
-   bash chaos/lancer.sh "" <votre module>
+   bash chaos/inject.sh "" <votre module>
    ```
 
    ou sans argument pour l'exemple `reviews-service`. Notez l'heure.
@@ -316,7 +324,7 @@ d'observabilité, la corriger et mesurer le temps que cela a pris.
    affichés dans la boutique (`learnerService.shop`), regardez aussi ce
    que voit un client.
 3. Corrigez avec `kubectl`, vérifiez le retour à la normale, puis lancez
-   `bash chaos/reparer.sh` pour nettoyer.
+   `bash chaos/rollback.sh` pour nettoyer.
 4. Recommencez avec d'autres scénarios, dont `base` et `cache`, qui
    touchent CapShop plutôt que votre module.
 
@@ -328,7 +336,7 @@ diagnostic et du retour à la normale.
 
 - Pistes par scénario dans [chaos/README.md](../chaos/README.md#pistes-et-solutions),
   séparées des solutions.
-- `bash chaos/reparer.sh` remet le service en l'état d'avant la panne.
+- `bash chaos/rollback.sh` remet le service en l'état d'avant la panne.
 
 </details>
 
@@ -338,7 +346,7 @@ diagnostic et du retour à la normale.
 - Pour chaque panne, vous savez dire **ce que vous avez vu en premier**
   (alerte, dashboard, trace) et **ce qui vous a donné la cause** (souvent
   `kubectl describe pod` ou les logs).
-- Votre correction rétablit le service sans `reparer.sh`.
+- Votre correction rétablit le service sans `rollback.sh`.
 - Délai de détection et MTTR calculés pour chaque panne.
 - Une idée par panne pour la détecter plus vite ou l'éviter : alerte sur le
   nombre de redémarrages, vérification de l'image dans le pipeline, limites
