@@ -73,7 +73,7 @@ db_pool_size - db_pool_idle
 # Latence des requetes, par operation
 histogram_quantile(0.99, sum by (le, operation) (rate(db_query_duration_seconds_bucket[5m])))
 
-# Erreurs de requete
+# Erreurs de requête
 rate(db_query_errors_total[5m])
 ```
 

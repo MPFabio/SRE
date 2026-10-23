@@ -1,11 +1,11 @@
 # Installer l'application fil rouge dans EKS
 
 Toutes les commandes se lancent sur votre machine `utils-stagiaireXX`, une fois
-connecte, ou `kubectl` est deja configure sur votre namespace.
+connecté, où `kubectl` est déjà configuré sur votre namespace.
 
 ## 1. Enregistrer votre identifiant
 
-Une fois pour toutes : il reste disponible apres une reconnexion et dans chaque
+Une fois pour toutes : il reste disponible après une reconnexion et dans chaque
 nouveau terminal.
 
 ```sh
@@ -37,8 +37,8 @@ sudo systemctl enable --now docker.service
 sudo usermod -aG docker $STAGIAIRE
 ```
 
-Le groupe `docker` n'est pris en compte qu'a la connexion suivante : se
-deconnecter (`exit`), se reconnecter, puis verifier :
+Le groupe `docker` n'est pris en compte qu'à la connexion suivante : se
+déconnecter (`exit`), se reconnecter, puis vérifier :
 
 ```sh
 docker version
@@ -48,7 +48,7 @@ echo $STAGIAIRE
 `docker version` doit afficher les parties `Client` et `Server`, sans
 `permission denied`.
 
-## 3. Recuperer le projet
+## 3. Récupérer le projet
 
 ```sh
 git clone https://github.com/MPFabio/SRE.git
@@ -93,10 +93,10 @@ helm install lab helm/reskilling-lab \
     --set grafana.adminPassword=$(openssl rand -hex 8)
 ```
 
-Le chart ne cree ni Role, ni RoleBinding, ni quota : il s'installe avec les
+Le chart ne crée ni Role, ni RoleBinding, ni quota : il s'installe avec les
 droits du namespace.
 
-## 6. Verifier
+## 6. Vérifier
 
 ```sh
 kubectl get pods --watch
@@ -106,7 +106,7 @@ Les vingt pods doivent passer `Running` en quelques minutes.
 
 | Message | Cause, solution |
 |---|---|
-| `ImagePullBackOff` sur une de vos images | image absente du Nexus : refaire l'etape 4 |
+| `ImagePullBackOff` sur une de vos images | image absente du Nexus : refaire l'étape 4 |
 | `ImagePullBackOff` sur une image publique (postgres, grafana...) | relancer avec `--set image.publicRegistry=docker.reskilling.internal` |
 
 Pour lire la raison exacte :
@@ -115,7 +115,7 @@ Pour lire la raison exacte :
 kubectl get events --sort-by=.lastTimestamp | tail -20
 ```
 
-## 7. Recuperer le mot de passe Grafana
+## 7. Récupérer le mot de passe Grafana
 
 ```sh
 kubectl get secret lab-secrets \
@@ -124,26 +124,26 @@ kubectl get secret lab-secrets \
 
 L'identifiant est `admin`.
 
-## 8. Acceder aux interfaces
+## 8. Accéder aux interfaces
 
-Les interfaces tournent dans le cluster. Deux facons de les ouvrir depuis le
+Les interfaces tournent dans le cluster. Deux façons de les ouvrir depuis le
 navigateur de votre poste, au choix :
 
 | | A. Tunnel SSH | B. Proxy SOCKS avec FoxyProxy |
 |---|---|---|
 | Sur votre poste | un terminal ouvert | un terminal ouvert + l'extension FoxyProxy dans Chrome |
 | Adresses | `http://localhost:8080`... | `http://<nom de la VM>:8080`... |
-| Ports ouverts sur le reseau | aucun | les six ports de la VM, visibles du reseau de la plateforme |
+| Ports ouverts sur le réseau | aucun | les six ports de la VM, visibles du réseau de la plateforme |
 
-Les exercices ecrivent les adresses en `http://localhost:...`. Avec
+Les exercices écrivent les adresses en `http://localhost:...`. Avec
 l'option B, remplacez `localhost` par le nom de la VM dans le navigateur. Les
-commandes `curl localhost:...` lancees sur `utils-stagiaireXX` fonctionnent
+commandes `curl localhost:...` lancées sur `utils-stagiaireXX` fonctionnent
 dans les deux cas.
 
 ### Option A : tunnel SSH
 
-Sur `utils-stagiaireXX`, ouvrir les ports en arriere-plan. Ils restent actifs
-apres la deconnexion :
+Sur `utils-stagiaireXX`, ouvrir les ports en arrière-plan. Ils restent actifs
+après la déconnexion :
 
 ```sh
 for svc in api-gateway:8080 lab-controller:8090 grafana:3000 prometheus:9090 alertmanager:9093 traffic-generator:8089; do
@@ -151,7 +151,7 @@ for svc in api-gateway:8080 lab-controller:8090 grafana:3000 prometheus:9090 ale
 done
 ```
 
-Verifier que les six ports ecoutent :
+Vérifier que les six ports écoutent :
 
 ```sh
 ss -ltnp | grep kubectl
@@ -164,11 +164,11 @@ terminal ouvert :
 ssh -L 8080:localhost:8080 -L 8090:localhost:8090 -L 3000:localhost:3000 -L 9090:localhost:9090 -L 9093:localhost:9093 -L 8089:localhost:8089 utils-stagiaireXX
 ```
 
-Aucun reglage du navigateur n'est necessaire.
+Aucun réglage du navigateur n'est nécessaire.
 
 ### Option B : proxy SOCKS avec FoxyProxy (Chrome)
 
-Sur `utils-stagiaireXX`, ouvrir les ports en arriere-plan, sur toutes les
+Sur `utils-stagiaireXX`, ouvrir les ports en arrière-plan, sur toutes les
 interfaces de la machine (`--address 0.0.0.0`), puis noter le nom de la
 machine :
 
@@ -189,17 +189,17 @@ ssh -D 1080 -N utils-stagiaireXX
 
 Dans Chrome, installer l'extension **FoxyProxy Standard**, puis :
 
-1. Icone FoxyProxy, **Options**, onglet **Proxies**, **Add**
+1. Icône FoxyProxy, **Options**, onglet **Proxies**, **Add**
 2. Type **SOCKS5**, Hostname `127.0.0.1`, Port `1080`, titre `reskilling`, **Save**
-3. Icone FoxyProxy : selectionner **reskilling**
+3. Icône FoxyProxy : sélectionner **reskilling**
 
-Chrome fait resoudre les noms par la VM a travers le proxy SOCKS5 : les noms
+Chrome fait résoudre les noms par la VM à travers le proxy SOCKS5 : les noms
 internes de la plateforme fonctionnent. Ouvrir ensuite
 `http://<nom de la VM>:8080`. Chrome ne fait jamais passer `localhost` par un
 proxy : utilisez bien le nom de la VM.
 
-Apres la session, repasser FoxyProxy sur **Disable**, sinon la navigation echoue
-des que le tunnel est ferme.
+Après la session, repasser FoxyProxy sur **Disable**, sinon la navigation échoue
+dès que le tunnel est fermé.
 
 ### Adresses
 
@@ -214,41 +214,41 @@ des que le tunnel est ferme.
 
 ### Relancer les ports
 
-Un port-forward vise un pod precis : si le pod redemarre, l'interface ne repond
-plus. Sur `utils-stagiaireXX`, arreter les ports :
+Un port-forward vise un pod précis : si le pod redémarre, l'interface ne répond
+plus. Sur `utils-stagiaireXX`, arrêter les ports :
 
 ```sh
 pkill -f "kubectl port-forward"
 ```
 
 puis relancer la boucle de votre option. Le tunnel ou le proxy sur votre poste
-n'a pas besoin d'etre relance.
+n'a pas besoin d'être relancé.
 
-| Symptome | Cause probable | Solution |
+| Symptôme | Cause probable | Solution |
 |---|---|---|
-| La page ne repond plus apres un redemarrage de pod | Port-forward tombe avec l'ancien pod | Relancer les ports, ci-dessus |
-| Option B : `ERR_PROXY_CONNECTION_FAILED` | Le terminal `ssh -D` est ferme | Relancer `ssh -D 1080 -N utils-stagiaireXX` |
-| Option B : "adresse IP introuvable" | Proxy configure en SOCKS4, ou FoxyProxy desactive | Type SOCKS5, et **reskilling** selectionne |
-| Option B : `localhost` ne repond pas | Chrome ne passe pas `localhost` par le proxy | Utiliser le nom de la VM |
-| Option B : le nom repond mais la page reste vide | Ports ouverts sans `--address 0.0.0.0` | `pkill`, puis relancer la boucle de l'option B |
+| La page ne répond plus après un redémarrage de pod | Port-forward tombé avec l'ancien pod | Relancer les ports, ci-dessus |
+| Option B : `ERR_PROXY_CONNECTION_FAILED` | Le terminal `ssh -D` est fermé | Relancer `ssh -D 1080 -N utils-stagiaireXX` |
+| Option B : "adresse IP introuvable" | Proxy configuré en SOCKS4, ou FoxyProxy désactivé | Type SOCKS5, et **reskilling** sélectionné |
+| Option B : `localhost` ne répond pas | Chrome ne passe pas `localhost` par le proxy | Utiliser le nom de la VM |
+| Option B : le nom répond mais la page reste vide | Ports ouverts sans `--address 0.0.0.0` | `pkill`, puis relancer la boucle de l'option B |
 
-## 9. Recuperer une correction de l'application fil rouge
+## 9. Récupérer une correction de l'application fil rouge
 
-Quand une correction de l'application fil rouge est publiee sur le repo, recuperer le code, puis
-refaire l'etape 4 (construire et pousser les images) avec le meme tag `lab`.
-Redemarrer ensuite les services, qui telechargent la nouvelle version :
+Quand une correction de l'application fil rouge est publiée sur le repo,
+récupérer le code, puis refaire l'étape 4 (construire et pousser les images) avec le même tag `lab`.
+Redémarrer ensuite les services, qui téléchargent la nouvelle version :
 
 ```sh
 git pull
-# ... etape 4 ...
+# ... étape 4 ...
 kubectl rollout restart deployment api-gateway catalog-service cart-service \
     orders-service payment-service users-service lab-controller traffic-generator
 kubectl get pods --watch
 ```
 
-Relancer enfin les ports de l'etape 8 : ils sont tombes avec les anciens pods.
+Relancer enfin les ports de l'étape 8 : ils sont tombés avec les anciens pods.
 
-Pour mettre a jour votre propre module, voir le guide de votre langage dans
+Pour mettre à jour votre propre module, voir le guide de votre langage dans
 [fil-rouge/](../fil-rouge/README.md).
 
 ## 10. Supprimer l'application fil rouge

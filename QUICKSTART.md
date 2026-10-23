@@ -16,8 +16,8 @@ wsl --install -d Ubuntu
 
 Puis, dans la distribution WSL, suivre les instructions Linux ci-dessous.
 
-Avec Docker Desktop : activer l'integration WSL2 dans
-*Settings > Resources > WSL Integration*.
+Avec Docker Desktop : activer l'intégration WSL2 dans
+*Settings > Resources > WSL Intégration*.
 
 **Linux et WSL2 (Ubuntu/Debian)**
 
@@ -38,7 +38,7 @@ colima start
 
 Ou [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
-**Verifier**
+**Vérifier**
 
 ```bash
 docker --version
@@ -70,7 +70,7 @@ Première exécution : ~5 minutes (téléchargement des images)
 | Grafana | http://localhost:3000 | admin / mot de passe affiché par `./start.sh` |
 | Prometheus | http://localhost:9090 | - |
 | Alertmanager | http://localhost:9093 | - |
-| Locust (generateur de trafic) | http://localhost:8089 | - |
+| Locust (générateur de trafic) | http://localhost:8089 | - |
 
 ## 4. Vérifier que tout fonctionne
 
@@ -80,18 +80,18 @@ make test
 
 ## 5. Configuration
 
-Au premier lancement, `./start.sh` cree le fichier `.env` a partir de
-`.env.example`, avec des valeurs aleatoires pour `POSTGRES_PASSWORD`,
+Au premier lancement, `./start.sh` crée le fichier `.env` à partir de
+`.env.example`, avec des valeurs aléatoires pour `POSTGRES_PASSWORD`,
 `JWT_SECRET` et `GRAFANA_ADMIN_PASSWORD`. Ce fichier reste sur le poste et
 n'est jamais commite.
 
-Pour imposer vos propres valeurs, creez-le avant le premier lancement :
+Pour imposer vos propres valeurs, créez-le avant le premier lancement :
 
 ```bash
 cp .env.example .env
 ```
 
-Les mots de passe PostgreSQL et Grafana ne sont lus qu'a l'initialisation des
+Les mots de passe PostgreSQL et Grafana ne sont lus qu'à l'initialisation des
 volumes. Pour les changer ensuite : `make clean`, modifier `.env`, puis
 `make start`.
 
@@ -119,8 +119,8 @@ make incident-resolve
 ## 8. Arrêter l'application fil rouge
 
 ```bash
-make stop          # arrete les conteneurs
-make clean         # arrete et supprime les volumes (base incluse)
+make stop          # arrête les conteneurs
+make clean         # arrête et supprime les volumes (base incluse)
 ```
 
 ## Commandes utiles
@@ -134,7 +134,7 @@ make urls          # Affiche toutes les URLs
 make test-purchase # Simule un achat
 make psql          # Shell PostgreSQL
 make db-stats      # Lignes par table
-make chaos-status  # Etat du chaos sur les 5 services
+make chaos-status  # État du chaos sur les 5 services
 ```
 
 ## Problèmes courants
@@ -154,7 +154,7 @@ make start  # Redémarre
 
 ### Mémoire insuffisante
 
-Conteneurs arretes en `OOMKilled` : augmenter la RAM allouee a Docker.
+Conteneurs arrêtés en `OOMKilled` : augmenter la RAM allouée à Docker.
 
 Sous WSL2, dans `%UserProfile%\.wslconfig` :
 
@@ -171,9 +171,9 @@ Puis `wsl --shutdown`.
 sudo service docker start
 ```
 
-Avec Docker Desktop : verifier que l'application est lancee.
+Avec Docker Desktop : vérifier que l'application est lancée.
 
-### Le build echoue
+### Le build échoue
 
 ```bash
 docker compose down --volumes
@@ -181,13 +181,13 @@ docker system prune --force
 ./start.sh
 ```
 
-### Un service ne se connecte pas a la base
+### Un service ne se connecte pas à la base
 ```bash
 curl http://localhost:8081/ready   # doit renvoyer "database":"up"
 docker compose logs postgres --tail 30
 ```
 
-### Le schema SQL a change
+### Le schéma SQL a changé
 ```bash
 docker compose down
 docker volume rm sre_postgres-data   # le schema est rejoue au demarrage

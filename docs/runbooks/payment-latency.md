@@ -6,7 +6,7 @@
 - **Condition**: P95 du paiement > 300 ms pendant 2 minutes
 
 Voir aussi `HighLatencyP99` (P99 gateway > 500 ms, 2 min) et
-`CircuitBreakerOpen` (declenchement immediat).
+`CircuitBreakerOpen` (déclenchement immédiat).
 
 ## Impact
 - Checkouts extrêmement lents (>5s)
@@ -50,8 +50,8 @@ circuit_breaker_state
 ## Résolution
 
 ### Si chaos engineering actif
-L'injection s'arrete quand l'incident est resolu dans l'Operations Console
-(*Mark Resolved*). Pour verifier l'etat du chaos sur chaque service :
+L'injection s'arrête quand l'incident est résolu dans l'Operations Console
+(*Mark Resolved*). Pour vérifier l'état du chaos sur chaque service :
 
 ```bash
 for svc in catalog-service:8081 cart-service:8082 orders-service:8083 payment-service:8084 users-service:8085; do

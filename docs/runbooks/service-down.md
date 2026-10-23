@@ -20,7 +20,7 @@
 
 ### 1. Identifier le service down
 ```bash
-# Etat de tous les pods
+# État de tous les pods
 kubectl get pods
 
 # Ou via Prometheus : targets injoignables
@@ -35,7 +35,7 @@ kubectl logs deploy/<service-name> --tail 100
 
 ### 3. Vérifier les ressources
 ```bash
-# Etat, redemarrages, limites et derniers evenements du pod
+# État, redémarrages, limites et derniers événements du pod
 kubectl describe pod -l app=<service-name>
 ```
 

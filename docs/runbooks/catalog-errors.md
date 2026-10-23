@@ -5,7 +5,7 @@
 - **Sévérité**: warning
 - **Condition**: taux de 5xx > 1% pendant 2 minutes
 
-`CriticalErrorRate` prend le relais au-dela de 5% pendant 1 minute.
+`CriticalErrorRate` prend le relais au-delà de 5% pendant 1 minute.
 
 ## Impact
 - Produits non affichés
@@ -51,8 +51,8 @@ kubectl exec deploy/catalog-service -- curl --verbose localhost:8081/health
 ## Résolution
 
 ### Si chaos engineering actif
-L'injection s'arrete quand l'incident est resolu dans l'Operations Console
-(*Mark Resolved*). Pour verifier l'etat du chaos sur chaque service :
+L'injection s'arrête quand l'incident est résolu dans l'Operations Console
+(*Mark Resolved*). Pour vérifier l'état du chaos sur chaque service :
 
 ```bash
 for svc in catalog-service:8081 cart-service:8082 orders-service:8083 payment-service:8084 users-service:8085; do
