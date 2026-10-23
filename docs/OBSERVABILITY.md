@@ -153,7 +153,7 @@ Via Grafana uniquement : Explore → Loki
 # Plusieurs services
 {job=~"payment-service|orders-service"}
 
-# Par service (label "service" alimenté par Promtail via Docker labels)
+# Par service (label "service" alimenté par Promtail à partir du chemin des fichiers de logs)
 {service="api-gateway"}
 ```
 
@@ -267,43 +267,84 @@ Chaque **span** contient :
 ### Connexion
 
 - URL : http://localhost:3000
-- Login : admin, mot de passe `GRAFANA_ADMIN_PASSWORD` du fichier `.env`
+- Login : `admin`, mot de passe stocké dans le secret du lab :
+
+```bash
+kubectl get secret lab-secrets --output jsonpath='{.data.GRAFANA_ADMIN_PASSWORD}' | base64 --decode
+```
 
 ### Dashboard "SRE Overview"
 
-Le dashboard principal contient :
+Menu de gauche, **Dashboards**, puis **SRE Overview**. Il contient :
 
-1. **Golden Signals**
-   - Latence (P50, P90, P99)
-   - Traffic (req/s)
-   - Erreurs (%)
-   - Saturation (CPU, mémoire)
+| Panel | Type | Contenu |
+|---|---|---|
+| Availability | Stat | Disponibilité globale vue par la gateway |
+| P99 Latency | Stat | Latence P99 globale |
+| Circuit Breaker | Stat | État du circuit breaker du paiement |
+| Active Incidents | Stat | Incidents en cours dans l'Operations Console |
+| Request Rate by Service | Time series | Requêtes par seconde, par service |
+| Latency by Service (P95) | Time series | Latence P95, par service |
+| Error Budget Remaining | Gauge | Budget d'erreur restant |
+| Requests by Status Code | Time series | Requêtes par code HTTP |
 
-2. **Service Health**
-   - Status par service
-   - Requêtes par seconde
-   - Taux d'erreur
+Il ne montre ni P50 et P90, ni taux d'erreur en pourcentage, ni logs :
+c'est l'objet de l'exercice 2.4.
 
-3. **Alertes actives**
+### Modifier le dashboard
 
-### Créer un nouveau dashboard
+Le dashboard fourni est en lecture seule. Pour travailler sur une copie :
+**Edit**, puis **Save dashboard** → **Save as copy**, avec le nom
+`Reskilling Overview`. Selon la version de Grafana, la copie se trouve
+aussi dans le menu ⋮ ou **Settings** → **Save as**.
 
-1. **+** → **Dashboard** → **Add visualization**
-2. Sélectionner la datasource (Prometheus, Loki, Tempo)
-3. Écrire la requête
-4. Configurer la visualisation
-5. Sauvegarder
+Pour ajouter un panel :
 
-### Exemple : Panel de latence
+1. **Add** → **Visualization**
+2. Choisir la source de données (Prometheus pour les métriques, Loki pour
+   les logs)
+3. Passer l'éditeur en **Code** et coller la requête
+4. Choisir le type de visualisation dans le panneau de droite (Time
+   series, Gauge, Stat, Logs)
+5. Régler le titre, l'unité (**Standard options** → **Unit**) et les seuils
+   (**Thresholds**) dans le même panneau
+6. **Back to dashboard**, puis **Save dashboard**
 
-```yaml
-Type: Time series
-Datasource: Prometheus
-Query: histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[5m])))
-Legend: P99 Latency
-Unit: seconds
-Thresholds: 0.5 (yellow), 1 (red)
+### Requêtes pour l'exercice 2.4
+
+**Latence P50, P90, P99 par service** (Time series, unité *seconds*) : une
+requête par quantile, avec **Add query**. Dans **Options** → **Legend**,
+mettre `{{service}} P99` pour distinguer les courbes.
+
+```promql
+histogram_quantile(0.50, sum by (le, service) (rate(gateway_request_duration_seconds_bucket[5m])))
+histogram_quantile(0.90, sum by (le, service) (rate(gateway_request_duration_seconds_bucket[5m])))
+histogram_quantile(0.99, sum by (le, service) (rate(gateway_request_duration_seconds_bucket[5m])))
 ```
+
+**Taux d'erreur** (Gauge, unité *Percent (0-100)*, seuils : vert de base,
+orange à 1, rouge à 5) :
+
+```promql
+100 * sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests_total[5m]))
+```
+
+**Trafic total** (Stat, unité *requests/sec*) :
+
+```promql
+sum(rate(gateway_requests_total[5m]))
+```
+
+**Logs d'erreur récents** (Logs, source Loki) :
+
+```logql
+{job=~"api-gateway|.+-service"} |~ "(?i)error| 5[0-9]{2} "
+```
+
+### Exporter le dashboard
+
+**Share** (ou **Export**) → **Export** → **Export as JSON** → **Save to
+file**. C'est le livrable de l'exercice 2.4.
 
 ## 5. Alertmanager
 

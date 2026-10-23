@@ -72,7 +72,7 @@ kubectl get deployments,services
 
 ## Exercice 2 : Observabilité - Les 3 piliers
 
-**Durée** : 45 min  
+**Durée** : 1h30  
 **Objectif** : Maîtriser Prometheus, Loki et Tempo
 
 ### 2.1 Métriques avec Prometheus
@@ -111,7 +111,15 @@ sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests
 ### 2.2 Logs avec Loki
 
 1. Ouvrez Grafana : http://localhost:3000
-2. Allez dans Explore → Loki
+2. Dans le menu de gauche, cliquez sur **Explore**
+3. En haut à gauche, choisissez la source de données **Loki**
+4. Dans la zone de requête, passez de **Builder** à **Code** (bouton à droite
+   de la zone), puis collez une requête
+5. Cliquez sur **Run query** en haut à droite. La période affichée se règle à
+   côté (par défaut, la dernière heure)
+
+Les lignes commençant par `#` sont des commentaires : collez une requête à la
+fois.
 
 **Requêtes à exécuter** :
 
@@ -165,13 +173,16 @@ Un dashboard basique "SRE Overview" est déjà provisionné dans Grafana, mais i
 4. **Panel Logs récents** (Logs panel)
    - Derniers logs d'erreur
 
+La marche à suivre (copier le dashboard, ajouter un panel, exporter) est dans
+le [Guide Observabilité](../docs/OBSERVABILITY.md#4-grafana---dashboards).
+
 **Livrable** : Dashboard exporté (JSON)
 
 ---
 
 ## Exercice 3 : Définition des SLOs
 
-**Durée** : 45 min  
+**Durée** : 1h15  
 **Objectif** : Définir des SLOs réalistes basés sur les données
 
 ### 3.1 Analyser les métriques historiques
@@ -282,7 +293,7 @@ remplace la ConfigMap : la regle est alors a ajouter de nouveau.
 
 ## Exercice 4 : Gestion d'incident
 
-**Durée** : 60 min  
+**Durée** : 1h30  
 **Objectif** : Gérer un incident de bout en bout
 
 ### 4.1 Déclencher un incident
@@ -384,7 +395,7 @@ Passez le statut a *Final* quand votre analyse est complete.
 
 ## Exercice 5 : Réduction du Toil
 
-**Durée** : 45 min  
+**Durée** : 1h  
 **Objectif** : Identifier et automatiser le toil
 
 ### 5.1 Identifier le toil
@@ -462,7 +473,7 @@ Après automatisation, calculez :
 
 ## Exercice 6 : Synthèse et présentation
 
-**Durée** : 30 min  
+**Durée** : 45 min  
 **Objectif** : Synthétiser les apprentissages
 
 ### 6.1 Préparer un rapport d'audit
