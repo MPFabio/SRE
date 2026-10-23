@@ -1,0 +1,186 @@
+// Avis produits CapShop : exemple de référence du module fil rouge, en Go.
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+)
+
+type Review struct {
+	Rating  int    `json:"rating"`
+	Comment string `json:"comment"`
+}
+
+var (
+	serviceName = env("SERVICE_NAME", "reviews-service")
+	tracer      = otel.Tracer("reviews-service")
+
+	requests = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "http_requests_total", Help: "Requêtes HTTP"}, []string{"method", "route", "status"})
+	latency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "http_request_duration_seconds", Help: "Durée des requêtes HTTP"}, []string{"method", "route"})
+	created = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "reviews_created_total", Help: "Avis publiés"}, []string{"rating"})
+	rejected = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "reviews_rejected_total", Help: "Avis refusés"}, []string{"reason"})
+	average = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "reviews_average_rating", Help: "Note moyenne par produit"}, []string{"product_id"})
+
+	forbidden = []string{"arnaque", "nul"}
+
+	mu      sync.Mutex
+	reviews = map[int][]Review{}
+)
+
+func env(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func setupTracing(ctx context.Context) func(context.Context) error {
+	exporter, err := otlptracegrpc.New(ctx,
+		otlptracegrpc.WithEndpoint(env("OTEL_EXPORTER_OTLP_ENDPOINT", "otel-collector:4317")),
+		otlptracegrpc.WithInsecure())
+	if err != nil {
+		slog.Error("traces désactivées", "error", err)
+		return func(context.Context) error { return nil }
+	}
+	provider := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(resource.NewWithAttributes(semconv.SchemaURL,
+			semconv.ServiceName(serviceName))))
+	otel.SetTracerProvider(provider)
+	return provider.Shutdown
+}
+
+type recorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *recorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+// measure enregistre le nombre et la durée des requêtes d'une route.
+func measure(route string, next http.HandlerFunc) http.Handler {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &recorder{ResponseWriter: w, status: http.StatusOK}
+		next(rec, r)
+		requests.WithLabelValues(r.Method, route, strconv.Itoa(rec.status)).Inc()
+		latency.WithLabelValues(r.Method, route).Observe(time.Since(start).Seconds())
+	})
+	return otelhttp.NewHandler(handler, route)
+}
+
+func writeJSON(w http.ResponseWriter, status int, body any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(body)
+}
+
+func listReviews(w http.ResponseWriter, req *http.Request) {
+	id, err := strconv.Atoi(req.PathValue("product_id"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"detail": "product_id invalide"})
+		return
+	}
+	mu.Lock()
+	items := append([]Review{}, reviews[id]...)
+	mu.Unlock()
+
+	var avg any
+	if len(items) > 0 {
+		sum := 0
+		for _, it := range items {
+			sum += it.Rating
+		}
+		avg = float64(sum) / float64(len(items))
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"product_id": id, "count": len(items), "average": avg, "reviews": items})
+}
+
+func createReview(w http.ResponseWriter, req *http.Request) {
+	id, err := strconv.Atoi(req.PathValue("product_id"))
+	var review Review
+	if err != nil || json.NewDecoder(req.Body).Decode(&review) != nil ||
+		review.Rating < 1 || review.Rating > 5 || len(review.Comment) > 500 {
+		rejected.WithLabelValues("validation").Inc()
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"detail": "avis invalide"})
+		return
+	}
+
+	_, span := tracer.Start(req.Context(), "moderate_review")
+	span.SetAttributes(attribute.Int("product_id", id))
+	for _, word := range strings.Fields(strings.ToLower(review.Comment)) {
+		for _, f := range forbidden {
+			if word == f {
+				span.End()
+				rejected.WithLabelValues("moderation").Inc()
+				slog.Warn("avis refusé : modération", "product_id", id)
+				writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"detail": "Avis refusé par la modération"})
+				return
+			}
+		}
+	}
+	span.End()
+
+	_, span = tracer.Start(req.Context(), "store_review")
+	mu.Lock()
+	reviews[id] = append(reviews[id], review)
+	sum := 0
+	for _, it := range reviews[id] {
+		sum += it.Rating
+	}
+	average.WithLabelValues(strconv.Itoa(id)).Set(float64(sum) / float64(len(reviews[id])))
+	mu.Unlock()
+	span.End()
+
+	created.WithLabelValues(strconv.Itoa(review.Rating)).Inc()
+	slog.Info("avis publié", "product_id", id, "rating", review.Rating)
+	writeJSON(w, http.StatusCreated, review)
+}
+
+func main() {
+	ctx := context.Background()
+	shutdown := setupTracing(ctx)
+	defer shutdown(ctx)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+	mux.Handle("GET /metrics", promhttp.Handler())
+	mux.Handle("GET /api/reviews/{product_id}", measure("/api/reviews/{product_id}", listReviews))
+	mux.Handle("POST /api/reviews/{product_id}", measure("/api/reviews/{product_id}", createReview))
+
+	addr := ":" + env("PORT", "8086")
+	slog.Info("démarrage", "service", serviceName, "addr", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		slog.Error("arrêt", "error", err)
+		os.Exit(1)
+	}
+}

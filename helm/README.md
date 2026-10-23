@@ -215,6 +215,34 @@ done
 `$HOME/acces-grafana.csv` contient les mots de passe a remettre a chaque
 apprenant : il reste hors du depot.
 
+## Module fil rouge de l'apprenant
+
+Le bloc `learnerService` deploie un module ecrit par l'apprenant, a cote des
+six services : Deployment, Service, job Prometheus et sonde Blackbox. Il est
+desactive par defaut.
+
+```bash
+helm upgrade lab helm/reskilling-lab --namespace stagiaire03 --reuse-values   --set learnerService.enabled=true   --set learnerService.image=<registry>/<chemin>/reviews-service:1.0
+```
+
+| Valeur | Defaut | Role |
+|---|---|---|
+| `name` | `reviews-service` | Nom du Deployment, du Service et du job Prometheus |
+| `image` | obligatoire | Image complete, registry compris |
+| `port` | `8086` | Port HTTP, passe au conteneur dans `PORT` |
+| `healthPath` | `/health` | Sondes readiness, liveness et Blackbox |
+| `metricsPath` | `/metrics` | Chemin scrape par Prometheus |
+| `database` | `false` | Injecte `DATABASE_URL` vers PostgreSQL |
+| `imagePullSecret` | vide | Secret pour un registry prive (GitLab) |
+| `env` | `{}` | Variables supplementaires |
+
+Les valeurs par defaut sont aussi appliquees par les templates : un
+`--reuse-values` sur une release installee avant l'ajout du bloc fonctionne.
+Apres un changement, Prometheus relit sa configuration sur
+`curl --request POST http://localhost:9090/-/reload`.
+
+Conditions cote apprenant et exemple : [fil-rouge/](../fil-rouge/README.md).
+
 ## Acces
 
 Le chart ne cree pas d'Ingress : les interfaces s'ouvrent par

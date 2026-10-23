@@ -72,6 +72,20 @@ traffic:
   users: 10
   spawnRate: 1
 
+# Module fil rouge développé par l'apprenant (Go, Python ou autre).
+# Seules conditions : une image, un port HTTP et une route de santé.
+learnerService:
+  enabled: false
+  name: reviews-service
+  image: ""
+  port: 8086
+  replicas: 1
+  healthPath: /health
+  metricsPath: /metrics
+  database: false
+  imagePullSecret: ""
+  env: {}
+
 resources:
   microservice:
     requests: { memory: 80Mi, cpu: 20m }

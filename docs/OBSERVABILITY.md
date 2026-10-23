@@ -289,7 +289,7 @@ Menu de gauche, **Dashboards**, puis **SRE Overview**. Il contient :
 | Requests by Status Code | Time series | Requêtes par code HTTP |
 
 Il ne montre ni P50 et P90, ni taux d'erreur en pourcentage, ni logs :
-c'est l'objet de l'exercice 2.4.
+c'est l'objet de l'bonus 2.4.
 
 ### Modifier le dashboard
 
@@ -310,7 +310,7 @@ Pour ajouter un panel :
    (**Thresholds**) dans le même panneau
 6. **Back to dashboard**, puis **Save dashboard**
 
-### Requêtes pour l'exercice 2.4
+### Requêtes pour l'bonus 2.4
 
 **Latence P50, P90, P99 par service** (Time series, unité *seconds*) : une
 requête par quantile, avec **Add query**. Dans **Options** → **Legend**,
@@ -344,7 +344,7 @@ sum(rate(gateway_requests_total[5m]))
 ### Exporter le dashboard
 
 **Share** (ou **Export**) → **Export** → **Export as JSON** → **Save to
-file**. C'est le livrable de l'exercice 2.4.
+file**. C'est le livrable de l'bonus 2.4.
 
 ## 5. Alertmanager
 

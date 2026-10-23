@@ -276,7 +276,7 @@ make chaos-stop
 - [Database Saturation](docs/runbooks/database-saturation.md)
 
 ### Exercices
-- [Exercices pratiques](exercises/README.md) (6 exercices, ~4h15)
+- [Exercices pratiques](exercises/README.md) (exercices bonus, avec aides et réponses)
 
 ## Ressources
 
