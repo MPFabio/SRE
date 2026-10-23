@@ -16,7 +16,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: promtail
-          image: grafana/promtail:3.6.11
+          image: {{ include "lab.publicImage" (list $ "grafana/promtail:3.6.11") }}
           args: ["-config.file=/etc/promtail/config.yml"]
           env:
             - name: HOSTNAME

@@ -2,12 +2,7 @@ image:
   registry: ""
   tag: latest
   pullPolicy: IfNotPresent
-
-ingress:
-  enabled: true
-  className: alb
-  host: ""
-  annotations: {}
+  publicRegistry: ""
 
 postgres:
   user: capshop
@@ -39,7 +34,6 @@ retention:
 isolation:
   networkPolicy:
     enabled: true
-    ingressNamespace: ingress-nginx
     extraIngressNamespaces: []
     allowExternalEgress: false
 

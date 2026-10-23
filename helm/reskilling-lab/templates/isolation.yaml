@@ -10,12 +10,6 @@ spec:
   ingress:
     - from:
         - podSelector: {}
-    {{- if .Values.ingress.enabled }}
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.isolation.networkPolicy.ingressNamespace }}
-    {{- end }}
     {{- range .Values.isolation.networkPolicy.extraIngressNamespaces }}
     - from:
         - namespaceSelector:

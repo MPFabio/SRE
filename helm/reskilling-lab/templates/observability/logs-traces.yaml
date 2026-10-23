@@ -62,7 +62,7 @@ spec:
         fsGroup: 10001
       containers:
         - name: loki
-          image: grafana/loki:3.7.8
+          image: {{ include "lab.publicImage" (list $ "grafana/loki:3.7.8") }}
           args: ["-config.file=/etc/loki/local-config.yaml"]
           ports:
             - containerPort: 3100
@@ -115,7 +115,7 @@ spec:
     spec:
       containers:
         - name: tempo
-          image: grafana/tempo:2.3.1
+          image: {{ include "lab.publicImage" (list $ "grafana/tempo:2.3.1") }}
           args: ["-config.file=/etc/tempo/tempo.yml"]
           ports:
             - { containerPort: 3200 }
@@ -169,7 +169,7 @@ spec:
     spec:
       containers:
         - name: otel-collector
-          image: otel/opentelemetry-collector-contrib:0.161.0
+          image: {{ include "lab.publicImage" (list $ "otel/opentelemetry-collector-contrib:0.161.0") }}
           args: ["--config=/etc/otel/config.yml"]
           ports:
             - { containerPort: 4317 }

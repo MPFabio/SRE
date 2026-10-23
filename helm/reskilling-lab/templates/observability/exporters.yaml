@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: postgres-exporter
-          image: prometheuscommunity/postgres-exporter:v0.20.1
+          image: {{ include "lab.publicImage" (list $ "prometheuscommunity/postgres-exporter:v0.20.1") }}
           ports:
             - containerPort: 9187
           env:
@@ -67,7 +67,7 @@ spec:
     spec:
       containers:
         - name: redis-exporter
-          image: oliver006/redis_exporter:v1.91.1
+          image: {{ include "lab.publicImage" (list $ "oliver006/redis_exporter:v1.91.1") }}
           ports:
             - containerPort: 9121
           env:
@@ -104,7 +104,7 @@ spec:
     spec:
       containers:
         - name: blackbox-exporter
-          image: prom/blackbox-exporter:v0.28.0
+          image: {{ include "lab.publicImage" (list $ "prom/blackbox-exporter:v0.28.0") }}
           args: ["--config.file=/etc/blackbox/blackbox.yml"]
           ports:
             - containerPort: 9115
