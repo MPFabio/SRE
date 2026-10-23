@@ -45,21 +45,24 @@ circuit_breaker_state
 | Charge élevée | Haute | Vérifier RPS et CPU |
 | Dépendance lente (DB, externe) | Moyenne | Vérifier traces |
 | Fuite mémoire | Moyenne | Vérifier métriques mémoire |
-| Configuration chaos | Lab | Vérifier `make chaos-status` |
+| Configuration chaos | Lab | Incident en cours dans l'Operations Console |
 
 ## Résolution
 
 ### Si chaos engineering actif
+L'injection s'arrete quand l'incident est resolu dans l'Operations Console
+(*Mark Resolved*). Pour verifier l'etat du chaos sur chaque service :
+
 ```bash
-make chaos-stop
-# ou
-make chaos-stop
+for svc in catalog-service:8081 cart-service:8082 orders-service:8083 payment-service:8084 users-service:8085; do
+  echo "${svc%%:*} : $(kubectl exec deploy/${svc%%:*} -- curl --silent localhost:${svc##*:}/api/chaos)"
+done
 ```
 
 ### Si charge élevée
 ```bash
 # Scale up le service
-docker compose up --detach --scale payment-service=3
+kubectl scale deployment payment-service --replicas=3
 ```
 
 ### Si dépendance externe
@@ -70,7 +73,7 @@ docker compose up --detach --scale payment-service=3
 ### Si fuite mémoire
 ```bash
 # Redémarrer le service
-docker compose restart payment-service
+kubectl rollout restart deployment/payment-service
 ```
 
 ## Vérification post-résolution
@@ -78,11 +81,7 @@ docker compose restart payment-service
 1. Vérifier que la latence P99 < 500ms
 2. Vérifier que le circuit breaker est fermé
 3. Vérifier qu'il n'y a plus d'erreurs dans les logs
-4. Effectuer un test de paiement manuel
-
-```bash
-make test-purchase
-```
+4. Effectuer un achat complet dans la boutique (http://localhost:8080)
 
 ## Escalade
 

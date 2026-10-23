@@ -26,7 +26,7 @@ L'Operations Console (http://localhost:8090) est l'interface centrale pour :
 - Loki : `{job="payment-service"} |~ "(?i)(slow|timeout|error)"`
 - Tempo : Traces avec spans payment > 2s
 
-**Résolution** : Via Operations Console ou `make chaos-stop`
+**Résolution** : Via l'Operations Console (*Mark Resolved*)
 
 ### 2. Catalog Service Errors (P2)
 
@@ -42,7 +42,7 @@ L'Operations Console (http://localhost:8090) est l'interface centrale pour :
 - Loki : `{job="catalog-service"} |~ " 500 |(?i)error"`
 - Grafana : Dashboard avec taux d'erreur > 30%
 
-**Résolution** : Via Operations Console ou `make chaos-stop`
+**Résolution** : Via l'Operations Console (*Mark Resolved*)
 
 ### 3. Database Saturation (P1)
 
@@ -61,7 +61,7 @@ persistants (catalog, orders, users).
 - Loki : erreurs de pool et de timeout
 - Tempo : spans `db.*` qui dominent la durée totale
 
-**Résolution** : Via Operations Console ou `make chaos-stop`
+**Résolution** : Via l'Operations Console (*Mark Resolved*)
 
 **Runbook détaillé** : [database-saturation.md](runbooks/database-saturation.md)
 
@@ -77,9 +77,9 @@ persistants (catalog, orders, users).
 **Signaux à observer** :
 - Prometheus : `up{job="cart-service"} == 0`
 - Loki : `{job="cart-service"} |= "OOMKilled"`
-- Docker : `docker compose ps cart-service`
+- Kubernetes : `kubectl get pods -l app=cart-service`
 
-**Résolution** : `docker compose restart cart-service`
+**Résolution** : `kubectl rollout restart deployment/cart-service`
 
 ### 5. Authentication Failures (P1)
 

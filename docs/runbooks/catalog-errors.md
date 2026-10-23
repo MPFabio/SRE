@@ -36,7 +36,7 @@ up{job="catalog-service"}
 
 ### 3. Vérifier le health endpoint
 ```bash
-curl --verbose http://localhost:8081/health
+kubectl exec deploy/catalog-service -- curl --verbose localhost:8081/health
 ```
 
 ## Causes possibles
@@ -46,15 +46,18 @@ curl --verbose http://localhost:8081/health
 | Bug dans le code | Haute | Vérifier les logs |
 | Données corrompues | Moyenne | Vérifier les requêtes spécifiques |
 | Limite de ressources | Moyenne | Vérifier CPU/mémoire |
-| Configuration chaos | Lab | Vérifier `make chaos-status` |
+| Configuration chaos | Lab | Incident en cours dans l'Operations Console |
 
 ## Résolution
 
 ### Si chaos engineering actif
+L'injection s'arrete quand l'incident est resolu dans l'Operations Console
+(*Mark Resolved*). Pour verifier l'etat du chaos sur chaque service :
+
 ```bash
-make chaos-stop
-# ou
-make chaos-stop
+for svc in catalog-service:8081 cart-service:8082 orders-service:8083 payment-service:8084 users-service:8085; do
+  echo "${svc%%:*} : $(kubectl exec deploy/${svc%%:*} -- curl --silent localhost:${svc##*:}/api/chaos)"
+done
 ```
 
 ### Si erreur de code
@@ -64,11 +67,11 @@ make chaos-stop
 
 ### Si limite de ressources
 ```bash
-# Vérifier les ressources
-docker stats catalog-service
+# Vérifier les ressources et les redémarrages
+kubectl describe pod -l app=catalog-service
 
 # Redémarrer si nécessaire
-docker compose restart catalog-service
+kubectl rollout restart deployment/catalog-service
 ```
 
 ### Si données corrompues
@@ -83,8 +86,8 @@ docker compose restart catalog-service
 3. Tester la navigation sur la boutique
 
 ```bash
-curl http://localhost:8080/api/products | jq 'length'
-# Devrait retourner 15 produits
+curl --silent http://localhost:8080/api/products | grep -o '"id":' | wc -l
+# Devrait retourner 15
 ```
 
 ## Escalade

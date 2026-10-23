@@ -20,79 +20,79 @@
 
 ### 1. Identifier le service down
 ```bash
-# Status de tous les services
-docker compose ps
+# Etat de tous les pods
+kubectl get pods
 
-# Ou via Prometheus
-curl --silent 'http://localhost:9090/api/v1/query?query=up' | jq '.data.result[] | select(.value[1] == "0")'
+# Ou via Prometheus : cibles injoignables
+curl --silent --get http://localhost:9090/api/v1/query --data-urlencode 'query=up == 0'
 ```
 
 ### 2. Vérifier les logs
 ```bash
 # Logs du service problématique
-docker compose logs --tail 100 <service-name>
+kubectl logs deploy/<service-name> --tail 100
 ```
 
 ### 3. Vérifier les ressources
 ```bash
-# Stats du conteneur
-docker stats <container-name> --no-stream
+# Etat, redemarrages, limites et derniers evenements du pod
+kubectl describe pod -l app=<service-name>
 ```
 
 ## Causes possibles
 
 | Cause | Symptômes | Résolution |
 |-------|-----------|------------|
-| OOMKilled | `Exited (137)` | Augmenter mémoire ou restart |
-| Crash loop | Redémarrages répétés | Vérifier logs, fix bug |
-| Dépendance down | Timeout au démarrage | Vérifier Redis, autres services |
-| Port conflit | `Exited (1)` | Libérer le port |
-| Config erreur | `Exited (1)` | Vérifier env vars |
+| OOMKilled | `Last State: OOMKilled` | Augmenter mémoire ou restart |
+| Crash loop | `CrashLoopBackOff` | Vérifier logs, fix bug |
+| Dépendance down | `Readiness probe failed` | Vérifier Redis, autres services |
+| Image introuvable | `ImagePullBackOff` | Vérifier le nom et le tag de l'image |
+| Config erreur | `CreateContainerConfigError` | Vérifier ConfigMap et Secret |
 
 ## Résolution
 
 ### Redémarrage simple
 ```bash
-docker compose restart <service-name>
+kubectl rollout restart deployment/<service-name>
 ```
 
 ### Si OOMKilled
 ```bash
 # Vérifier les events
-docker events --filter container=<container> --since 10m
+kubectl get events --sort-by=.lastTimestamp | grep <service-name>
 
-# Restart avec plus de mémoire (temporaire)
-docker compose up --detach <service-name>
+# Plus de mémoire (temporaire : un helm upgrade remet la valeur du chart)
+kubectl set resources deployment/<service-name> --limits=memory=512Mi
 ```
 
 ### Si dépendance down
 ```bash
 # Redémarrer dans l'ordre
-docker compose restart redis
-sleep 5
-docker compose restart <service-name>
+kubectl rollout restart deployment/redis
+kubectl rollout status deployment/redis
+kubectl rollout restart deployment/<service-name>
 ```
 
 ### Si crash loop
 ```bash
-# Voir les logs au démarrage
-docker compose logs --follow <service-name>
+# Logs du conteneur qui vient de planter
+kubectl logs deploy/<service-name> --previous
 
 # Vérifier la configuration
-docker compose config | grep -A20 <service-name>
+kubectl get deployment <service-name> --output yaml
 ```
 
 ## Vérification post-résolution
 
 ```bash
 # Vérifier le status
-docker compose ps <service-name>
+kubectl get pods -l app=<service-name>
 
 # Vérifier le health
-curl http://localhost:<port>/health
+kubectl exec deploy/<service-name> -- curl --silent localhost:<port>/health
 
-# Test global
-make test
+# Test global : les vingt pods Running
+kubectl get pods
 ```
 
 ## Escalade

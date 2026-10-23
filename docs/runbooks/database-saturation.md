@@ -18,8 +18,8 @@ Dimensionnement du lab :
 
 | Parametre | Valeur | Ou |
 |---|---|---|
-| `DB_POOL_MAX` | 10 | `.env` / `_shared/db.py` |
-| `max_connections` | 50 | `docker-compose.yml` (commande postgres) |
+| `DB_POOL_MAX` | 10 | `db.poolMax` du chart / `_shared/db.py` |
+| `max_connections` | 50 | `postgres.maxConnections` du chart |
 | `command_timeout` | 5s | `_shared/db.py` |
 
 Trois services persistants x 10 connexions = 30 connexions en pointe,
@@ -56,14 +56,14 @@ sum(pg_stat_database_numbackends) / scalar(max(pg_settings_max_connections))
 ### 3. Readiness des services
 ```bash
 # Un service qui ne joint plus la base renvoie 503
-curl http://localhost:8081/ready
-curl http://localhost:8083/ready
-curl http://localhost:8085/ready
+kubectl exec deploy/catalog-service -- curl --silent localhost:8081/ready
+kubectl exec deploy/orders-service -- curl --silent localhost:8083/ready
+kubectl exec deploy/users-service -- curl --silent localhost:8085/ready
 ```
 
 ### 4. Inspecter la base
 ```bash
-make psql
+kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capshop
 ```
 
 ```sql
@@ -92,15 +92,19 @@ SELECT count(*) FROM pg_locks WHERE NOT granted;
 |---|---|---|
 | Pic de trafic | `db_pool_size` au max sur les 3 services | Locust a monte en charge |
 | Requete lente qui retient une connexion | Une `operation` domine la latence P99 | `pg_stat_activity` |
-| Chaos injecte | Latence ajoutee sur les handlers | `make chaos-status` |
+| Chaos injecte | Latence ajoutee sur les handlers | Incident en cours dans l'Operations Console |
 | Verrou non relache | `pg_locks` avec `granted = false` | Requete verrous ci-dessus |
 
 ## Resolution
 
 ### Si le chaos est actif
+L'injection s'arrete quand l'incident est resolu dans l'Operations Console
+(*Mark Resolved*). Pour verifier l'etat du chaos sur chaque service :
+
 ```bash
-make chaos-status
-make chaos-stop
+for svc in catalog-service:8081 cart-service:8082 orders-service:8083 payment-service:8084 users-service:8085; do
+  echo "${svc%%:*} : $(kubectl exec deploy/${svc%%:*} -- curl --silent localhost:${svc##*:}/api/chaos)"
+done
 ```
 
 ### Si une requete est bloquee
@@ -111,11 +115,8 @@ SELECT pg_terminate_backend(<pid>);
 
 ### Si la charge est legitime
 ```bash
-# Augmenter temporairement le pool (necessite un redemarrage)
-# Dans .env :
-DB_POOL_MAX=20
-
-docker compose up --detach catalog-service orders-service users-service
+# Augmenter temporairement le pool : les services redemarrent
+helm upgrade lab helm/reskilling-lab --reuse-values --set db.poolMax=20
 ```
 
 En production, la bonne reponse est rarement d'agrandir le pool : c'est
@@ -125,10 +126,11 @@ rendue.
 ## Verification du retour a la normale
 
 ```bash
-make test                          # 13 composants repondent
-curl http://localhost:8081/ready   # "database":"up"
-make test-purchase                 # parcours d'achat complet
+kubectl get pods                   # les vingt pods Running
+kubectl exec deploy/catalog-service -- curl --silent localhost:8081/ready   # "database":"up"
 ```
+
+Puis effectuer un achat complet dans la boutique (http://localhost:8080).
 
 ```promql
 # Le pool doit se vider
