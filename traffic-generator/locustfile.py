@@ -199,6 +199,9 @@ class AdminUser(HttpUser):
     def on_start(self):
         """S'authentifie: /api/users exige un jeton."""
         self.token = None
+        self.login()
+
+    def login(self):
         user = random.choice(USERS)
         with self.client.post(
             "/api/users/login",
@@ -220,6 +223,8 @@ class AdminUser(HttpUser):
     @task(3)
     def list_users(self):
         """Lister les utilisateurs (endpoint authentifie)."""
+        if not self.token:
+            self.login()
         if not self.token:
             return
         self.client.get("/api/users", name="/api/users",

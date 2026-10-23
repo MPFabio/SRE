@@ -93,9 +93,10 @@ histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_buck
 sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests_total[5m]))
 ```
 
-> Hors incident, cette requete ne renvoie aucune serie: c'est normal, le lab
-> ne produit pas d'erreur en regime nominal. Declenchez un incident depuis
-> l'Operations Console (exercice 4) pour la voir remonter des valeurs.
+> Hors incident, le taux d'erreur reste faible, autour de 0,2 % : le
+> prestataire de paiement simule echoue aleatoirement dans 2 % des cas.
+> Declenchez un incident depuis l'Operations Console (exercice 4) pour le voir
+> monter.
 >
 > La gateway ne compte que le trafic des clients. Les appels entre services
 > (orders vers payment, cart vers catalog...) n'y figurent pas. Le trafic total

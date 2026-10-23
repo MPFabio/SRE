@@ -98,7 +98,14 @@ async def proxy_request(
     
     start_time = time.time()
     ACTIVE_REQUESTS.inc()
-    
+    counted = False
+
+    def record_failure(status: int):
+        UPSTREAM_ERRORS.labels(service=service).inc()
+        if not counted:
+            REQUEST_COUNT.labels(method=method, service=service, status=status).inc()
+            REQUEST_LATENCY.labels(method=method, service=service).observe(time.time() - start_time)
+
     try:
         request_headers = {}
         if headers:
@@ -120,6 +127,7 @@ async def proxy_request(
         duration = time.time() - start_time
         REQUEST_COUNT.labels(method=method, service=service, status=response.status_code).inc()
         REQUEST_LATENCY.labels(method=method, service=service).observe(duration)
+        counted = True
 
         payload = response.json() if response.content else None
 
@@ -140,13 +148,13 @@ async def proxy_request(
 
         raise
     except httpx.TimeoutException:
-        UPSTREAM_ERRORS.labels(service=service).inc()
+        record_failure(504)
         raise HTTPException(status_code=504, detail=f"Service {service} timeout")
     except httpx.ConnectError:
-        UPSTREAM_ERRORS.labels(service=service).inc()
+        record_failure(503)
         raise HTTPException(status_code=503, detail=f"Service {service} unavailable")
     except Exception as e:
-        UPSTREAM_ERRORS.labels(service=service).inc()
+        record_failure(500)
         logger.error(f"Error proxying to {service}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
