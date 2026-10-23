@@ -1,10 +1,18 @@
 .PHONY: start stop restart build logs status clean help incident-% chaos chaos-% test
 
 # Couleurs
-GREEN  := \033[0;32m
-YELLOW := \033[0;33m
-RED    := \033[0;31m
-NC     := \033[0m
+GREEN  := $(shell printf '\033[0;32m')
+YELLOW := $(shell printf '\033[0;33m')
+RED    := $(shell printf '\033[0;31m')
+NC     := $(shell printf '\033[0m')
+
+# Ports des services pilotables par make chaos
+CHAOS_PORT_catalog := 8081
+CHAOS_PORT_cart    := 8082
+CHAOS_PORT_orders  := 8083
+CHAOS_PORT_payment := 8084
+CHAOS_PORT_users   := 8085
+CHAOS_SERVICES     := catalog cart orders payment users
 
 # Commande docker compose (v2 par defaut, fallback v1)
 DC := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
@@ -89,7 +97,7 @@ incident-types: ## Liste les scenarios d'incident disponibles
 
 incident-list: ## Liste les incidents (les plus recents d'abord)
 	@curl --silent http://localhost:8090/api/incidents \
-		| jq --raw-output '.[-10:] | reverse | .[] | "\(.id)  \(.status)  \(.type)"'
+		| jq --raw-output '.[:10] | .[] |"\(.id)  \(.status)  \(.type)"'
 
 incident-resolve: ## Resout tous les incidents actifs
 	@echo "$(GREEN)Resolution des incidents actifs...$(NC)"
@@ -139,6 +147,7 @@ test: ## Verifie que tous les services sont operationnels
 	@printf "Orders:         " && curl --silent --fail http://localhost:8083/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Payment:        " && curl --silent --fail http://localhost:8084/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Users:          " && curl --silent --fail http://localhost:8085/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
+	@printf "Reviews:        " && curl --silent --fail http://localhost:8086/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Operations Console: " && curl --silent --fail http://localhost:8090/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Prometheus:     " && curl --silent --fail http://localhost:9090/-/healthy > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Alertmanager:   " && curl --silent --fail http://localhost:9093/-/healthy > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"

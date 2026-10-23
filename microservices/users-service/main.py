@@ -5,7 +5,6 @@ from prometheus_client import Counter, Histogram, Gauge
 import uvicorn
 from contextlib import asynccontextmanager
 import os
-import time
 import hashlib
 import secrets
 from datetime import datetime, timedelta

@@ -98,6 +98,9 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - ENVIRONMENT=development
       - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:?absent, lancez ./start.sh}@postgres:5432/${POSTGRES_DB:-capshop}
+      - DB_POOL_MIN=${DB_POOL_MIN:-1}
+      - DB_POOL_MAX=${DB_POOL_MAX:-10}
+      - DB_TIMEOUT=${DB_TIMEOUT:-5}
     depends_on:
       postgres:
         condition: service_healthy
@@ -155,6 +158,9 @@ services:
       - CATALOG_SERVICE_URL=http://catalog-service:8081
       - ENVIRONMENT=development
       - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:?absent, lancez ./start.sh}@postgres:5432/${POSTGRES_DB:-capshop}
+      - DB_POOL_MIN=${DB_POOL_MIN:-1}
+      - DB_POOL_MAX=${DB_POOL_MAX:-10}
+      - DB_TIMEOUT=${DB_TIMEOUT:-5}
     depends_on:
       postgres:
         condition: service_healthy
@@ -212,6 +218,9 @@ services:
       - JWT_SECRET=${JWT_SECRET:?absent, lancez ./start.sh}
       - ENVIRONMENT=development
       - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:?absent, lancez ./start.sh}@postgres:5432/${POSTGRES_DB:-capshop}
+      - DB_POOL_MIN=${DB_POOL_MIN:-1}
+      - DB_POOL_MAX=${DB_POOL_MAX:-10}
+      - DB_TIMEOUT=${DB_TIMEOUT:-5}
     depends_on:
       postgres:
         condition: service_healthy

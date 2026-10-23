@@ -5,7 +5,6 @@ from typing import List
 from prometheus_client import Counter, Histogram, Gauge
 import uvicorn
 import os
-import time
 import json
 from datetime import datetime
 import redis.asyncio as redis
@@ -248,7 +247,7 @@ async def remove_cart_item(user_id: str, product_id: int):
                 cart.total = sum(i.price * i.quantity for i in cart.items)
                 await save_cart(cart)
                 
-                logger.info(f"Removed product {product_id} from cart for user {user_id}")
+                logger.info(f"Removed {removed_quantity}x product {product_id} from cart for user {user_id}")
                 CART_OPERATIONS.labels(operation="remove_item").inc()
                 await refresh_cart_gauges()
                 
@@ -269,7 +268,7 @@ async def clear_cart(user_id: str):
         
         await delete_cart(user_id)
         
-        logger.info(f"Cleared cart for user {user_id}")
+        logger.info(f"Cleared cart for user {user_id} ({total_items} items)")
         CART_OPERATIONS.labels(operation="clear").inc()
         await refresh_cart_gauges()
         

@@ -124,13 +124,11 @@ class PostMortem(BaseModel):
 
 
     owner: str = ""
-    shared_with: str = ""
     status: str = "Brouillon"
 
 
     duration: str = ""
     products_affected: str = ""
-    percentage_affected: str = ""
     user_impact: str = ""
     detection: str = ""
     resolution: str = ""
@@ -139,7 +137,6 @@ class PostMortem(BaseModel):
     trigger: str = ""
     system_reaction: str = ""
     missing_protections: str = ""
-    late_detection: str = ""
 
 
     things_that_went_well: List[str] = []
@@ -758,11 +755,11 @@ async def update_postmortem(postmortem_id: str, updates: dict):
 
 
     EDITABLE = (
-        "owner", "shared_with", "status",
-        "user_impact", "percentage_affected",
+        "owner", "status",
+        "user_impact",
         "detection", "resolution",
         "root_cause", "trigger", "system_reaction",
-        "missing_protections", "late_detection",
+        "missing_protections",
         "lessons_learned", "things_that_went_well",
         "things_that_went_poorly", "where_we_got_lucky",
         "action_items",
