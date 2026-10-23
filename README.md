@@ -12,6 +12,7 @@ répare.
 |---|---|
 | Installer le lab dans votre namespace EKS | [AWS_SECURE/Readme.md](AWS_SECURE/Readme.md) |
 | Développer et brancher votre module sur CapShop | [fil-rouge/README.md](fil-rouge/README.md) |
+| Provoquer des pannes, les diagnostiquer et les corriger | [chaos/README.md](chaos/README.md) |
 | Aller plus loin : architecture, observabilité, incidents, SLOs, toil | [Exercices bonus](exercises/README.md) |
 | Préparer le cluster pour une promotion (formateur) | [helm/README.md](helm/README.md) |
 | Faire tourner le lab sur votre poste avec Docker | [QUICKSTART.md](QUICKSTART.md) |
@@ -135,6 +136,7 @@ kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capsho
 
 ```
 ├── AWS_SECURE/                # Installation du lab dans un namespace EKS
+├── chaos/                     # Pannes réelles à diagnostiquer et corriger
 ├── fil-rouge/                 # Conditions d'intégration + module d'exemple
 │   └── reviews-service/       #   avis produits, en Python et en Go
 ├── microservices/

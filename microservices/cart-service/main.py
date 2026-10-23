@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List
 from prometheus_client import Counter, Histogram, Gauge
 import uvicorn
 import os
@@ -33,19 +34,16 @@ async def lifespan(_app):
     global redis_client, http_client
     http_client = httpx.AsyncClient(
         limits=httpx.Limits(max_connections=50, max_keepalive_connections=20))
-    client = redis.from_url(REDIS_URL, decode_responses=True)
+    # Le client se reconnecte seul : Redis peut démarrer après le service.
+    redis_client = redis.from_url(REDIS_URL, decode_responses=True)
     try:
-        await client.ping()
-        redis_client = client
+        await redis_client.ping()
         logger.info("Connected to Redis")
-    except Exception as exc:
-        await client.aclose()
-        redis_client = None
-        logger.warning(f"Redis not available, using in-memory storage: {exc}")
+    except redis.RedisError as exc:
+        logger.warning(f"Redis not available yet, will retry on each request: {exc}")
     yield
     await http_client.aclose()
-    if redis_client:
-        await redis_client.aclose()
+    await redis_client.aclose()
 
 
 app = FastAPI(title="Cart Service", version="1.0.0", lifespan=lifespan)
@@ -53,7 +51,18 @@ app = FastAPI(title="Cart Service", version="1.0.0", lifespan=lifespan)
 setup_app(app)
 
 
-memory_carts: Dict[str, dict] = {}
+@app.exception_handler(redis.RedisError)
+async def redis_unavailable(_request: Request, exc: redis.RedisError):
+    logger.error(f"Redis unavailable: {exc}")
+    return JSONResponse({"detail": "Cart storage unavailable"}, status_code=503)
+
+
+class RedisHealth:
+    async def healthy(self) -> bool:
+        try:
+            return await redis_client.ping()
+        except redis.RedisError:
+            return False
 
 
 CATALOG_SERVICE_URL = os.getenv("CATALOG_SERVICE_URL", "http://catalog-service:8081")
@@ -82,13 +91,9 @@ class AddItemRequest(BaseModel):
 async def get_cart(user_id: str) -> Cart:
     cart_key = f"cart:{user_id}"
     
-    if redis_client:
-        cart_data = await redis_client.get(cart_key)
-        if cart_data:
-            return Cart(**json.loads(cart_data))
-    else:
-        if user_id in memory_carts:
-            return Cart(**memory_carts[user_id])
+    cart_data = await redis_client.get(cart_key)
+    if cart_data:
+        return Cart(**json.loads(cart_data))
     
 
     return Cart(
@@ -104,33 +109,22 @@ async def save_cart(cart: Cart):
     cart.updated_at = datetime.now().isoformat()
     cart_data = cart.model_dump_json()
     
-    if redis_client:
-        await redis_client.setex(cart_key, 86400, cart_data)
-    else:
-        memory_carts[cart.user_id] = json.loads(cart_data)
+    await redis_client.set(cart_key, cart_data, ex=86400)
 
 async def delete_cart(user_id: str):
     cart_key = f"cart:{user_id}"
     
-    if redis_client:
-        await redis_client.delete(cart_key)
-    else:
-        memory_carts.pop(user_id, None)
+    await redis_client.delete(cart_key)
 
 async def refresh_cart_gauges():
     items = value = 0
-    if redis_client:
-        async for key in redis_client.scan_iter(match="cart:*", count=100):
-            raw = await redis_client.get(key)
-            if not raw:
-                continue
-            data = json.loads(raw)
-            items += sum(i["quantity"] for i in data.get("items", []))
-            value += data.get("total", 0.0)
-    else:
-        for data in memory_carts.values():
-            items += sum(i["quantity"] for i in data.get("items", []))
-            value += data.get("total", 0.0)
+    async for key in redis_client.scan_iter(match="cart:*", count=100):
+        raw = await redis_client.get(key)
+        if not raw:
+            continue
+        data = json.loads(raw)
+        items += sum(i["quantity"] for i in data.get("items", []))
+        value += data.get("total", 0.0)
     CART_ITEMS.set(items)
     CART_VALUE.set(value)
 
@@ -148,7 +142,7 @@ async def get_product_from_catalog(product_id: int):
 
 register_metrics_middleware(app, REQUEST_COUNT, REQUEST_LATENCY)
 
-register_ops_endpoints(app, "cart-service", chaos)
+register_ops_endpoints(app, "cart-service", chaos, db=RedisHealth())
 
 @app.get("/api/cart/{user_id}", response_model=Cart)
 async def get_user_cart(user_id: str):
