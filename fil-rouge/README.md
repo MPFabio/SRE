@@ -89,6 +89,23 @@ arrive dans le pod au bout d'une minute environ, puis :
 curl --request POST http://localhost:9090/-/reload
 ```
 
+### Afficher les avis dans la boutique (optionnel)
+
+Avec l'exemple `reviews-service`, ou un module qui expose la même API
+(`GET` et `POST /api/reviews/{product_id}`), la boutique peut afficher les
+avis sous chaque produit et proposer d'en laisser un. Le générateur de
+trafic publie et lit alors des avis en continu.
+
+```bash
+helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values \
+    --set learnerService.shop=true
+```
+
+La gateway route alors `/api/reviews/...` vers votre module. Si le module
+tombe, la boutique continue de fonctionner et affiche « Avis clients
+indisponibles ». Laissez cette option désactivée si votre module a une
+autre API.
+
 ## Vérifier
 
 ```bash

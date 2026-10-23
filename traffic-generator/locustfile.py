@@ -5,6 +5,7 @@ Utilise Locust pour simuler des utilisateurs e-commerce
 """
 
 from locust import HttpUser, task, between, events
+import os
 import random
 import logging
 
@@ -12,6 +13,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("traffic-generator")
 
 PRODUCT_IDS = list(range(1, 16))
+
+# Avis produits : seulement si le module d'exemple est branché sur la boutique.
+REVIEWS_ENABLED = os.getenv("REVIEWS_ENABLED", "false") == "true"
+REVIEW_COMMENTS = ["Très bon produit", "Livraison rapide", "Conforme à la description",
+                   "Correct sans plus", "Un peu cher", "Je recommande"]
 
 CATEGORIES = ["computers", "smartphones", "audio", "watches", "accessories"]
 
@@ -174,6 +180,24 @@ class EcommerceUser(HttpUser):
             else:
                 response.failure(f"Checkout failed: {response.status_code}")
     
+    @task(4)
+    def read_reviews(self):
+        """Lire les avis d'un produit"""
+        if REVIEWS_ENABLED:
+            product_id = random.choice(PRODUCT_IDS)
+            self.client.get(f"/api/reviews/{product_id}", name="/api/reviews/[id]")
+
+    @task(1)
+    def post_review(self):
+        """Publier un avis"""
+        if REVIEWS_ENABLED:
+            self.client.post(
+                f"/api/reviews/{random.choice(PRODUCT_IDS)}",
+                json={"rating": random.choices([1, 2, 3, 4, 5], [1, 1, 2, 4, 5])[0],
+                      "comment": random.choice(REVIEW_COMMENTS)},
+                name="/api/reviews/[id] POST",
+            )
+
     @task(2)
     def view_orders(self):
         """Voir ses commandes"""

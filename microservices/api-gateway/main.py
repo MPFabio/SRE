@@ -83,6 +83,12 @@ SERVICES = {
     "users": os.getenv("USERS_SERVICE_URL", "http://users-service:8085"),
 }
 
+# Module fil rouge, branché seulement si son URL est fournie. Il reste hors de
+# SERVICES : sa panne ne doit pas dégrader le /health de la gateway.
+OPTIONAL_SERVICES = {
+    "reviews": os.getenv("REVIEWS_SERVICE_URL", ""),
+}
+
 async def proxy_request(
     service: str,
     path: str,
@@ -91,10 +97,11 @@ async def proxy_request(
     headers: dict = None,
     params: dict = None
 ):
-    if service not in SERVICES:
+    base_url = SERVICES.get(service) or OPTIONAL_SERVICES.get(service)
+    if not base_url:
         raise HTTPException(status_code=404, detail=f"Unknown service: {service}")
-    
-    url = f"{SERVICES[service]}{path}"
+
+    url = f"{base_url}{path}"
     
     start_time = time.time()
     ACTIVE_REQUESTS.inc()
@@ -207,6 +214,21 @@ async def get_product(product_id: int):
 async def check_stock(product_id: int, quantity: int = 1):
     with tracer.start_as_current_span("gateway_check_stock"):
         return await proxy_request("catalog", f"/api/products/{product_id}/stock", params={"quantity": quantity})
+
+@app.get("/api/features")
+async def get_features():
+    return {"reviews": bool(OPTIONAL_SERVICES["reviews"])}
+
+@app.get("/api/reviews/{product_id}")
+async def get_reviews(product_id: int):
+    with tracer.start_as_current_span("gateway_get_reviews"):
+        return await proxy_request("reviews", f"/api/reviews/{product_id}")
+
+@app.post("/api/reviews/{product_id}")
+async def create_review(product_id: int, request: Request):
+    with tracer.start_as_current_span("gateway_create_review"):
+        body = await request.json()
+        return await proxy_request("reviews", f"/api/reviews/{product_id}", method="POST", body=body)
 
 @app.get("/api/categories")
 async def get_categories():

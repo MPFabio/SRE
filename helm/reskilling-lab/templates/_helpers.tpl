@@ -28,5 +28,6 @@ postgresql://{{ .Values.postgres.user }}:$(POSTGRES_PASSWORD)@postgres:5432/{{ .
   "metricsPath" ($l.metricsPath | default "/metrics")
   "database" ($l.database | default false)
   "imagePullSecret" ($l.imagePullSecret | default "")
-  "env" ($l.env | default dict)) -}}
+  "env" ($l.env | default dict)
+  "shop" ($l.shop | default false)) -}}
 {{- end }}

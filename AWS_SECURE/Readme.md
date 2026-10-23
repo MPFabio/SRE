@@ -106,7 +106,6 @@ Les vingt pods doivent passer `Running` en quelques minutes.
 
 | Message | Cause, solution |
 |---|---|
-| `Pending` et `Too many pods` | plus de place sur les nodes : voir le formateur |
 | `ImagePullBackOff` sur une de vos images | image absente du Nexus : refaire l'etape 4 |
 | `ImagePullBackOff` sur une image publique (postgres, grafana...) | relancer avec `--set image.publicRegistry=docker.reskilling.internal` |
 

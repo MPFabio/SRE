@@ -85,6 +85,9 @@ learnerService:
   database: false
   imagePullSecret: ""
   env: {}
+  # Affiche les avis dans la boutique : seulement pour une API compatible
+  # avec l'exemple reviews-service (GET et POST /api/reviews/{product_id}).
+  shop: false
 
 resources:
   microservice:

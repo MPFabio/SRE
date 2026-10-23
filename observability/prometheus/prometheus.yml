@@ -44,6 +44,10 @@ scrape_configs:
   - job_name: 'users-service'
     static_configs:
       - targets: ['users-service:8085']
+
+  - job_name: 'reviews-service'
+    static_configs:
+      - targets: ['reviews-service:8086']
     metrics_path: '/metrics'
 
   - job_name: 'lab-controller'
@@ -67,6 +71,7 @@ scrape_configs:
         - http://orders-service:8083/health
         - http://payment-service:8084/health
         - http://users-service:8085/health
+        - http://reviews-service:8086/health
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

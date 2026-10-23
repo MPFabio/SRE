@@ -67,6 +67,7 @@ services:
       - ORDERS_SERVICE_URL=http://orders-service:8083
       - PAYMENT_SERVICE_URL=http://payment-service:8084
       - USERS_SERVICE_URL=http://users-service:8085
+      - REVIEWS_SERVICE_URL=http://reviews-service:8086
       - ENVIRONMENT=development
     depends_on:
       - catalog-service
@@ -223,6 +224,25 @@ services:
       retries: 3
     mem_limit: 256m
     cpus: 1.0
+    networks:
+      - sre-network
+
+  # Module fil rouge d'exemple (version Go, étape 3) : avis produits
+  reviews-service:
+    build: ./fil-rouge/reviews-service/go/3-traces
+    container_name: reviews-service
+    ports:
+      - "8086:8086"
+    environment:
+      - PORT=8086
+      - SERVICE_NAME=reviews-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - CATALOG_SERVICE_URL=http://catalog-service:8081
+    depends_on:
+      - otel-collector
+      - catalog-service
+    mem_limit: 128m
+    cpus: 0.5
     networks:
       - sre-network
 
@@ -404,6 +424,7 @@ services:
       - LOCUST_USERS=10
       - LOCUST_SPAWN_RATE=1
       - LOCUST_WEB=true
+      - REVIEWS_ENABLED=true
     ports:
       - "8089:8089"
     depends_on:

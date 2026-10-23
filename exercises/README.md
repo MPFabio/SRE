@@ -312,7 +312,9 @@ d'observabilité, la corriger et mesurer le temps que cela a pris.
    ou sans argument pour l'exemple `reviews-service`. Notez l'heure.
 2. Diagnostiquez **en partant de vos dashboards et de vos traces**, puis
    des alertes et de `kubectl`. Démarche détaillée :
-   [scripts de chaos](../chaos/README.md#diagnostiquer).
+   [scripts de chaos](../chaos/README.md#diagnostiquer). Si les avis sont
+   affichés dans la boutique (`learnerService.shop`), regardez aussi ce
+   que voit un client.
 3. Corrigez avec `kubectl`, vérifiez le retour à la normale, puis lancez
    `bash chaos/reparer.sh` pour nettoyer.
 4. Recommencez avec d'autres scénarios, dont `base` et `cache`, qui
