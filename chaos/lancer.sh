@@ -1,12 +1,14 @@
 #!/bin/bash
 # Provoque une panne réelle dans votre namespace.
 # Usage : chaos/lancer.sh [scenario] [cible]
-#   scenario : arret, memoire, image, port, base, cache, ou rien pour une panne au hasard
+#   scenario : arret, memoire, image, port, base, cache,
+#              ou rien pour une panne au hasard sur la cible
 #   cible    : deployment visé (reviews-service par défaut)
 set -euo pipefail
 
 SCENARIOS=(arret memoire image port base cache)
-SCENARIO=${1:-${SCENARIOS[RANDOM % ${#SCENARIOS[@]}]}}
+SUR_LA_CIBLE=(arret memoire image port)
+SCENARIO=${1:-${SUR_LA_CIBLE[RANDOM % ${#SUR_LA_CIBLE[@]}]}}
 CIBLE=${2:-reviews-service}
 SAUVEGARDE=${CHAOS_DIR:-$HOME/.chaos-lab}
 NS=()

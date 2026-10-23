@@ -9,7 +9,7 @@ injectent des pannes dans le code, et se résolvent d'un clic.
 
 ## Lancer une panne
 
-Sur `utils-stagiaireXX`, depuis la racine du dépôt :
+Sur `utils-stagiaireXX`, depuis la racine du repo :
 
 ```bash
 bash chaos/lancer.sh                 # une panne au hasard sur votre module
@@ -49,7 +49,7 @@ Partez des symptômes, comme en production :
 kubectl get pods
 kubectl describe pod -l app=<service>        # section Events, en bas
 kubectl logs deploy/<service> --tail 50
-kubectl logs deploy/<service> --previous     # logs du conteneur précédent, s'il a redémarré
+kubectl logs deploy/<service> --previous     # logs du container précédent, s'il a redémarré
 kubectl get events --sort-by=.lastTimestamp | tail -20
 kubectl rollout history deployment/<service>
 ```
@@ -105,7 +105,7 @@ de chercher ce qui a planté.
 <details>
 <summary><code>memoire</code> : solution</summary>
 
-La limite mémoire a été abaissée à 2 Mi. Le conteneur est tué avant même
+La limite mémoire a été abaissée à 2 Mi. Le container est tué avant même
 de démarrer : `container init was OOM-killed (memory limit too low?)`.
 Avec une limite un peu plus haute, on verrait `OOMKilled` dans
 `lastState` après chaque démarrage.
@@ -173,7 +173,7 @@ elle qui, en temps normal, évite qu'une mauvaise image coupe le service.
 <summary><code>port</code> : solution</summary>
 
 La variable `PORT` vaut 9999 : le programme écoute sur 9999, mais les
-sondes et le Service visent 8086. Le programme fonctionne, personne ne
+probes et le Service visent 8086. Le programme fonctionne, personne ne
 peut le joindre.
 
 ```bash

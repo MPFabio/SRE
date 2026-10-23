@@ -3,10 +3,12 @@ import logging
 import os
 import time
 
+import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -15,6 +17,7 @@ from pydantic import BaseModel, Field
 
 SERVICE_NAME = os.getenv("SERVICE_NAME", "reviews-service")
 PORT = int(os.getenv("PORT", "8086"))
+CATALOG_SERVICE_URL = os.getenv("CATALOG_SERVICE_URL", "http://catalog-service:8081")
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -24,6 +27,7 @@ trace.set_tracer_provider(TracerProvider(resource=Resource({"service.name": SERV
 trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(OTLPSpanExporter(
     endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "otel-collector:4317"), insecure=True)))
 tracer = trace.get_tracer(SERVICE_NAME)
+HTTPXClientInstrumentor().instrument()
 
 REQUESTS = Counter("http_requests_total", "Requêtes HTTP", ["method", "route", "status"])
 LATENCY = Histogram("http_request_duration_seconds", "Durée des requêtes HTTP", ["method", "route"])
@@ -74,6 +78,19 @@ def list_reviews(product_id: int):
 
 @app.post("/api/reviews/{product_id}", status_code=201)
 def create_review(product_id: int, review: Review):
+    # Le produit doit exister dans le catalogue : appel réseau, tracé de bout en bout.
+    with tracer.start_as_current_span("verify_product"):
+        try:
+            response = httpx.get(f"{CATALOG_SERVICE_URL}/api/products/{product_id}", timeout=5.0)
+        except httpx.HTTPError as exc:
+            logger.error("Catalogue injoignable : %s", exc)
+            raise HTTPException(status_code=503, detail="Catalogue indisponible")
+        if response.status_code == 404:
+            REJECTED.labels("unknown_product").inc()
+            raise HTTPException(status_code=404, detail="Produit inconnu")
+        if response.status_code != 200:
+            raise HTTPException(status_code=503, detail="Catalogue indisponible")
+
     with tracer.start_as_current_span("moderate_review") as span:
         span.set_attribute("product_id", product_id)
         if FORBIDDEN_WORDS & set(review.comment.lower().split()):

@@ -10,8 +10,8 @@ déploie et fonctionne seule :
 | 3 | Envoyer des traces OpenTelemetry | [`reviews-service/python/3-traces`](reviews-service/python/3-traces/) |
 
 L'exemple suivi est un service d'avis produits, `reviews-service`. Vous
-pouvez choisir un autre métier, ou partir du programme FastAPI « hello
-world » des exercices précédents : la démarche reste la même.
+pouvez choisir un autre métier, ou partir d'un programme FastAPI que vous
+avez déjà : la démarche reste la même.
 
 > **Vous êtes en retard ou bloqué ?** Construisez la version prête à
 > l'emploi de l'étape où vous en êtes (section « Construire et déployer »)
@@ -19,7 +19,7 @@ world » des exercices précédents : la démarche reste la même.
 
 ---
 
-## Étape 1 : une API et une route de santé
+## Étape 1 : une API et un endpoint /health
 
 ### Ce qu'il faut écrire
 
@@ -57,7 +57,7 @@ Un dossier avec trois fichiers : `main.py`, `requirements.txt` et
 
    Les avis sont gardés en mémoire, dans un dictionnaire.
 
-3. **Les logs** passent par le module `logging`, sur la sortie standard :
+3. **Les logs** passent par le module `logging`, sur stdout :
    Promtail les envoie dans Loki sans autre réglage.
 
 4. **`Dockerfile`** :
@@ -108,9 +108,9 @@ FastAPI génère aussi une documentation interactive sur
 | Symptôme | Cause probable | Solution |
 |---|---|---|
 | `ModuleNotFoundError` au démarrage | Bibliothèque absente de `requirements.txt` | L'ajouter, puis reconstruire l'image |
-| Le conteneur démarre mais `curl` échoue | uvicorn écoute sur `127.0.0.1` | `uvicorn.run(app, host="0.0.0.0", port=PORT)` |
+| Le container démarre mais `curl` échoue | uvicorn écoute sur `127.0.0.1` | `uvicorn.run(app, host="0.0.0.0", port=PORT)` |
 | 422 sur un avis correct | Corps JSON mal formé, ou `Content-Type` manquant | `--header 'Content-Type: application/json'` |
-| Le conteneur s'arrête aussitôt | Erreur dans `main.py` | `docker run` sans `--rm` puis `docker logs <id>` |
+| Le container s'arrête aussitôt | Erreur dans `main.py` | `docker run` sans `--rm` puis `docker logs <id>` |
 
 </details>
 
@@ -142,8 +142,8 @@ FastAPI génère aussi une documentation interactive sur
    REVIEWS.labels(str(review.rating)).inc()
    ```
 
-4. **Mesurer le trafic** de chaque route dans un middleware : un compteur
-   de requêtes et un histogramme de durée.
+4. **Mesurer le trafic** de chaque route dans un middleware : un counter
+   de requêtes et un histogram de durée.
 
 5. **Exposer `/metrics`** :
 
@@ -169,7 +169,7 @@ Voir [`reviews-service/python/2-metriques/main.py`](reviews-service/python/2-met
 ### Vérifier
 
 En local : `curl localhost:8086/metrics | grep reviews_` après avoir publié
-un avis. Dans le lab, après déploiement, la cible passe `up` dans
+un avis. Dans le lab, après déploiement, la target passe `up` dans
 http://localhost:9090/targets et la requête suivante répond :
 
 ```promql
@@ -184,7 +184,7 @@ sum by (rating) (reviews_created_total)
 | La métrique n'apparaît pas dans `/metrics` | Une métrique à labels n'apparaît qu'après sa première valeur | Publier un avis, puis relire `/metrics` |
 | `Duplicated timeseries in CollectorRegistry` | Deux métriques portent le même nom | Renommer l'une d'elles |
 | `/metrics` répond 307 | Métriques exposées par `app.mount` | Utiliser une route `@app.get("/metrics")` |
-| Cible `down` ou absente dans Prometheus | Image pas à jour, ou configuration pas rechargée | `kubectl logs deploy/<nom>`, puis `curl --request POST http://localhost:9090/-/reload` |
+| Target `down` ou absente dans Prometheus | Image pas à jour, ou configuration pas rechargée | `kubectl logs deploy/<nom>`, puis `curl --request POST http://localhost:9090/-/reload` |
 
 </details>
 
@@ -227,6 +227,20 @@ sum by (rating) (reviews_created_total)
        ...
    ```
 
+5. **Suivre la requête dans les autres services.** L'exemple vérifie que
+   le produit existe en appelant `catalog-service` (variable
+   `CATALOG_SERVICE_URL`) avec `httpx`. Instrumenté, le client ajoute le
+   contexte de trace aux headers, et la trace continue dans le catalogue.
+   Ajoutez `httpx==0.28.1` et `opentelemetry-instrumentation-httpx==0.65b0`
+   à `requirements.txt`, puis :
+
+   ```python
+   HTTPXClientInstrumentor().instrument()
+   ...
+   with tracer.start_as_current_span("verify_product"):
+       response = httpx.get(f"{CATALOG_SERVICE_URL}/api/products/{product_id}", timeout=5.0)
+   ```
+
 <details>
 <summary>Code complet de l'étape 3</summary>
 
@@ -243,8 +257,9 @@ Après déploiement et quelques avis publiés, dans Grafana, Explore, source
 { resource.service.name = "reviews-service" }
 ```
 
-Une trace de `POST` contient le span de la requête et ses deux étapes,
-`moderate_review` et `store_review`.
+Une trace de `POST` contient le span de la requête, ses étapes
+`verify_product`, `moderate_review` et `store_review`, et sous
+`verify_product` les spans de `catalog-service`.
 
 <details>
 <summary>Ça bloque ?</summary>
@@ -252,8 +267,10 @@ Une trace de `POST` contient le span de la requête et ses deux étapes,
 | Symptôme | Cause probable | Solution |
 |---|---|---|
 | Erreurs d'export (`StatusCode.UNAVAILABLE`) en local | Pas de collecteur hors du cluster | Normal en `docker run` ; tester dans le lab |
+| La trace s'arrête à votre service, sans `catalog-service` | Client HTTP non instrumenté | `HTTPXClientInstrumentor().instrument()` avant les appels |
+| Tous les avis sont refusés en 503 en local | Pas de catalogue hors du cluster | Normal en `docker run` ; tester dans le lab |
 | Aucune trace dans Tempo | Mauvais endpoint | Vérifier `OTEL_EXPORTER_OTLP_ENDPOINT` avec `kubectl describe pod -l app=<nom>` |
-| Les traces sont pleines de `/health` | Sondes Kubernetes tracées | `excluded_urls="health,metrics"` |
+| Les traces sont pleines de `/health` | Probes Kubernetes tracées | `excluded_urls="health,metrics"` |
 | Le service s'appelle `unknown_service` | Nom absent de la ressource | `Resource({"service.name": ...})` |
 
 </details>
@@ -262,7 +279,7 @@ Une trace de `POST` contient le span de la requête et ses deux étapes,
 
 ## Construire et déployer
 
-À chaque étape, sur `utils-stagiaireXX`, depuis la racine du dépôt :
+À chaque étape, sur `utils-stagiaireXX`, depuis la racine du repo :
 
 ```bash
 export REGISTRY=docker-push.reskilling.internal/$STAGIAIRE

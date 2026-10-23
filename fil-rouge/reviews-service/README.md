@@ -41,13 +41,16 @@ le trafic et la latence.
 
 ## Traces
 
-Chaque publication d'avis produit une trace avec deux étapes :
-`moderate_review` et `store_review`.
+À l'étape 3, chaque publication d'avis produit une trace en trois étapes :
+`verify_product` (appel à `catalog-service`, qui apparaît dans la même
+trace), `moderate_review` et `store_review`. Un produit inconnu du
+catalogue est refusé (404), et l'avis échoue en 503 si le catalogue est
+injoignable.
 
 ## Construire et tester
 
 ```bash
-docker build --tag reviews-service:1.0 fil-rouge/reviews-service/go/3-traces
+docker build --tag reviews-service:1.0 fil-rouge/reviews-service/go/2-metriques
 docker run --rm --publish 8086:8086 reviews-service:1.0
 ```
 
@@ -62,7 +65,8 @@ curl localhost:8086/api/reviews/3
 curl localhost:8086/metrics
 ```
 
-Hors du cluster, l'envoi des traces échoue (pas d'`otel-collector`) : les
-messages d'erreur correspondants sont normaux.
+L'étape 3 se teste dans le lab : hors du cluster, il n'y a ni
+`otel-collector` pour recevoir les traces, ni `catalog-service` pour
+vérifier les produits, et les avis sont refusés en 503.
 
 Pour le déployer dans le lab, voir [le module fil rouge](../README.md).

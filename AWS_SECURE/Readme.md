@@ -106,7 +106,7 @@ Les vingt pods doivent passer `Running` en quelques minutes.
 
 | Message | Cause, solution |
 |---|---|
-| `Pending` et `Too many pods` | plus de place sur les noeuds : voir le formateur |
+| `Pending` et `Too many pods` | plus de place sur les nodes : voir le formateur |
 | `ImagePullBackOff` sur une de vos images | image absente du Nexus : refaire l'etape 4 |
 | `ImagePullBackOff` sur une image publique (postgres, grafana...) | relancer avec `--set image.publicRegistry=docker.reskilling.internal` |
 
@@ -126,6 +126,22 @@ kubectl get secret lab-secrets \
 L'identifiant est `admin`.
 
 ## 8. Acceder aux interfaces
+
+Les interfaces tournent dans le cluster. Deux facons de les ouvrir depuis le
+navigateur de votre poste, au choix :
+
+| | A. Tunnel SSH | B. Proxy SOCKS avec FoxyProxy |
+|---|---|---|
+| Sur votre poste | un terminal ouvert | un terminal ouvert + l'extension FoxyProxy dans Chrome |
+| Adresses | `http://localhost:8080`... | `http://<nom de la VM>:8080`... |
+| Ports ouverts sur le reseau | aucun | les six ports de la VM, visibles du reseau de la plateforme |
+
+Les exercices ecrivent les adresses en `http://localhost:...`. Avec
+l'option B, remplacez `localhost` par le nom de la VM dans le navigateur. Les
+commandes `curl localhost:...` lancees sur `utils-stagiaireXX` fonctionnent
+dans les deux cas.
+
+### Option A : tunnel SSH
 
 Sur `utils-stagiaireXX`, ouvrir les ports en arriere-plan. Ils restent actifs
 apres la deconnexion :
@@ -149,53 +165,92 @@ terminal ouvert :
 ssh -L 8080:localhost:8080 -L 8090:localhost:8090 -L 3000:localhost:3000 -L 9090:localhost:9090 -L 9093:localhost:9093 -L 8089:localhost:8089 utils-stagiaireXX
 ```
 
-| Interface | Adresse |
-|---|---|
-| Boutique CapShop | http://localhost:8080 |
-| Operations Console | http://localhost:8090 |
-| Grafana | http://localhost:3000 |
-| Prometheus | http://localhost:9090 |
-| Alertmanager | http://localhost:9093 |
-| Locust | http://localhost:8089 |
+Aucun reglage du navigateur n'est necessaire.
 
-Ce sont les adresses utilisees dans les exercices. Aucun reglage du navigateur
-n'est necessaire.
+### Option B : proxy SOCKS avec FoxyProxy (Chrome)
+
+Sur `utils-stagiaireXX`, ouvrir les ports en arriere-plan, sur toutes les
+interfaces de la machine (`--address 0.0.0.0`), puis noter le nom de la
+machine :
+
+```sh
+for svc in api-gateway:8080 lab-controller:8090 grafana:3000 prometheus:9090 alertmanager:9093 traffic-generator:8089; do
+  nohup kubectl port-forward --address 0.0.0.0 svc/${svc%%:*} ${svc##*:}:${svc##*:} > /dev/null 2>&1 &
+done
+ss -ltnp | grep kubectl     # six lignes en 0.0.0.0
+hostname
+```
+
+Depuis votre poste, ouvrir le proxy SOCKS, et laisser ce terminal ouvert
+(il n'affiche rien, c'est normal) :
+
+```sh
+ssh -D 1080 -N utils-stagiaireXX
+```
+
+Dans Chrome, installer l'extension **FoxyProxy Standard**, puis :
+
+1. Icone FoxyProxy, **Options**, onglet **Proxies**, **Add**
+2. Type **SOCKS5**, Hostname `127.0.0.1`, Port `1080`, titre `lab`, **Save**
+3. Icone FoxyProxy : selectionner **lab**
+
+Chrome fait resoudre les noms par la VM a travers le proxy SOCKS5 : les noms
+internes de la plateforme fonctionnent. Ouvrir ensuite
+`http://<nom de la VM>:8080`. Chrome ne fait jamais passer `localhost` par un
+proxy : utilisez bien le nom de la VM.
+
+Apres le lab, repasser FoxyProxy sur **Disable**, sinon la navigation echoue
+des que le tunnel est ferme.
+
+### Adresses
+
+| Interface | Option A | Option B |
+|---|---|---|
+| Boutique CapShop | `http://localhost:8080` | `http://<nom de la VM>:8080` |
+| Operations Console | `http://localhost:8090` | `http://<nom de la VM>:8090` |
+| Grafana | `http://localhost:3000` | `http://<nom de la VM>:3000` |
+| Prometheus | `http://localhost:9090` | `http://<nom de la VM>:9090` |
+| Alertmanager | `http://localhost:9093` | `http://<nom de la VM>:9093` |
+| Locust | `http://localhost:8089` | `http://<nom de la VM>:8089` |
+
+### Relancer les ports
 
 Un port-forward vise un pod precis : si le pod redemarre, l'interface ne repond
-plus. Sur `utils-stagiaireXX`, arreter puis relancer les ports :
+plus. Sur `utils-stagiaireXX`, arreter les ports :
 
 ```sh
 pkill -f "kubectl port-forward"
 ```
 
-puis relancer la boucle ci-dessus.
+puis relancer la boucle de votre option. Le tunnel ou le proxy sur votre poste
+n'a pas besoin d'etre relance.
 
-## 9. Mettre a jour une image
+| Symptome | Cause probable | Solution |
+|---|---|---|
+| La page ne repond plus apres un redemarrage de pod | Port-forward tombe avec l'ancien pod | Relancer les ports, ci-dessus |
+| Option B : `ERR_PROXY_CONNECTION_FAILED` | Le terminal `ssh -D` est ferme | Relancer `ssh -D 1080 -N utils-stagiaireXX` |
+| Option B : "adresse IP introuvable" | Proxy configure en SOCKS4, ou FoxyProxy desactive | Type SOCKS5, et **lab** selectionne |
+| Option B : `localhost` ne repond pas | Chrome ne passe pas `localhost` par le proxy | Utiliser le nom de la VM |
+| Option B : le nom repond mais la page reste vide | Ports ouverts sans `--address 0.0.0.0` | `pkill`, puis relancer la boucle de l'option B |
 
-Apres une modification du code, reconstruire et pousser l'image du service
-avec le meme tag, puis redemarrer son deploiement. Le cluster telecharge
-alors la nouvelle version :
+## 9. Recuperer une correction du lab
+
+Quand une correction du lab est publiee sur le repo, recuperer le code, puis
+refaire l'etape 4 (construire et pousser les images) avec le meme tag `lab`.
+Redemarrer ensuite les services, qui telechargent la nouvelle version :
 
 ```sh
 git pull
-export REGISTRY=docker-push.reskilling.internal/$STAGIAIRE
-docker build --tag $REGISTRY/catalog-service:lab --file microservices/catalog-service/Dockerfile microservices/
-docker push $REGISTRY/catalog-service:lab
-kubectl rollout restart deployment/catalog-service
-kubectl rollout status deployment/catalog-service
+# ... etape 4 ...
+kubectl rollout restart deployment api-gateway catalog-service cart-service \
+    orders-service payment-service users-service lab-controller traffic-generator
+kubectl get pods --watch
 ```
 
-Pour `traffic-generator` et `lab-controller`, le contexte de build est
-`traffic-generator/` et `lab-controller/api/` (voir l'etape 4).
+Relancer enfin les ports de l'etape 8 : ils sont tombes avec les anciens pods.
 
-Si le service a une interface (etape 8), relancer son port-forward.
-
-Pour tester l'image sur `utils-stagiaireXX`, telecharger d'abord la version
-poussee, sinon Docker lance l'ancienne copie locale :
-
-```sh
-docker pull docker.reskilling.internal/$STAGIAIRE/catalog-service:lab
-```
+Pour mettre a jour votre propre module, voir le guide de votre langage dans
+[fil-rouge/](../fil-rouge/README.md).
 
 ## 10. Supprimer le lab
 

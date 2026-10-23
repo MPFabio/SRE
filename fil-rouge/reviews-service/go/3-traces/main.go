@@ -19,6 +19,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
@@ -36,6 +37,10 @@ var (
 	reviews = map[int][]Review{}
 
 	tracer = otel.Tracer("reviews-service")
+
+	catalogURL = env("CATALOG_SERVICE_URL", "http://catalog-service:8081")
+	// Le transport otelhttp propage la trace vers le catalogue.
+	client = &http.Client{Timeout: 5 * time.Second, Transport: otelhttp.NewTransport(http.DefaultTransport)}
 
 	// Trafic et latence de chaque route.
 	requests = promauto.NewCounterVec(prometheus.CounterOpts{
@@ -73,6 +78,8 @@ func setupTracing(ctx context.Context) func(context.Context) error {
 		sdktrace.WithResource(resource.NewWithAttributes(semconv.SchemaURL,
 			semconv.ServiceName(env("SERVICE_NAME", "reviews-service")))))
 	otel.SetTracerProvider(provider)
+	// Sans propagateur, la trace ne suit pas les appels vers les autres services.
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 	return provider.Shutdown
 }
 
@@ -115,6 +122,21 @@ func measure(route string, next http.HandlerFunc) http.Handler {
 	return otelhttp.NewHandler(handler, route)
 }
 
+// productStatus interroge le catalogue CapShop sur l'existence d'un produit.
+func productStatus(ctx context.Context, id int) (int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		catalogURL+"/api/products/"+strconv.Itoa(id), nil)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
 func listReviews(w http.ResponseWriter, req *http.Request) {
 	id, err := strconv.Atoi(req.PathValue("product_id"))
 	if err != nil {
@@ -148,7 +170,22 @@ func createReview(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Chaque étape de traitement devient un span de la trace.
-	_, span := tracer.Start(req.Context(), "moderate_review")
+	// Le produit doit exister dans le catalogue : appel réseau, tracé de bout en bout.
+	ctx, span := tracer.Start(req.Context(), "verify_product")
+	status, err := productStatus(ctx, id)
+	span.End()
+	switch {
+	case err != nil || (status != http.StatusOK && status != http.StatusNotFound):
+		slog.Error("catalogue injoignable", "error", err, "status", status)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"detail": "Catalogue indisponible"})
+		return
+	case status == http.StatusNotFound:
+		rejected.WithLabelValues("unknown_product").Inc()
+		writeJSON(w, http.StatusNotFound, map[string]string{"detail": "Produit inconnu"})
+		return
+	}
+
+	_, span = tracer.Start(req.Context(), "moderate_review")
 	span.SetAttributes(attribute.Int("product_id", id))
 	refused := isForbidden(review.Comment)
 	span.End()

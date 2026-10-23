@@ -23,7 +23,7 @@
 # Etat de tous les pods
 kubectl get pods
 
-# Ou via Prometheus : cibles injoignables
+# Ou via Prometheus : targets injoignables
 curl --silent --get http://localhost:9090/api/v1/query --data-urlencode 'query=up == 0'
 ```
 
@@ -75,7 +75,7 @@ kubectl rollout restart deployment/<service-name>
 
 ### Si crash loop
 ```bash
-# Logs du conteneur qui vient de planter
+# Logs du container qui vient de planter
 kubectl logs deploy/<service-name> --previous
 
 # Vérifier la configuration

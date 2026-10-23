@@ -18,7 +18,7 @@ pouvez choisir un autre métier : la démarche reste la même.
 
 Rien n'est à installer sur `utils-stagiaireXX` en dehors de Docker : le
 code Go est compilé dans l'image. Pour les commandes `go` (gestion des
-dépendances), cet alias les fait tourner dans un conteneur, depuis le
+dépendances), cet alias les fait tourner dans un container, depuis le
 dossier de votre module :
 
 ```bash
@@ -29,7 +29,7 @@ go version
 
 ---
 
-## Étape 1 : une API et une route de santé
+## Étape 1 : une API et un endpoint /health
 
 ### Ce qu'il faut écrire
 
@@ -66,7 +66,7 @@ Un dossier avec trois fichiers : `main.go`, `go.mod` et `Dockerfile`.
    sont gardés en mémoire, dans une `map` protégée par un `sync.Mutex` :
    plusieurs requêtes peuvent arriver en même temps.
 
-3. **Les logs** s'écrivent sur la sortie standard avec `log/slog` :
+3. **Les logs** s'écrivent sur stdout avec `log/slog` :
 
    ```go
    slog.Info("avis publié", "product_id", id, "rating", review.Rating)
@@ -126,7 +126,7 @@ curl localhost:8086/api/reviews/3
 | `go.sum: no such file` au build | `COPY go.mod go.sum` alors qu'il n'y a pas de dépendance | `COPY go.* ./` copie ce qui existe |
 | `missing go.sum entry` | Dépendance ajoutée sans mettre à jour `go.sum` | `go mod tidy` dans le dossier du module |
 | `pattern ... conflicts` ou routes ignorées | Go antérieur à 1.22 : les motifs `GET /...` n'existent pas | Garder `golang:1.26-alpine` dans le Dockerfile |
-| `connection refused` sur `curl` | Le conteneur n'écoute pas sur le port publié | Vérifier `--publish 8086:8086` et que le code lit `PORT` |
+| `connection refused` sur `curl` | Le container n'écoute pas sur le port publié | Vérifier `--publish 8086:8086` et que le code lit `PORT` |
 | 404 sur `/api/reviews/3` | Motif de route mal écrit | `GET /api/reviews/{product_id}`, avec l'espace après la méthode |
 
 </details>
@@ -167,8 +167,8 @@ curl localhost:8086/api/reviews/3
    created.WithLabelValues(strconv.Itoa(review.Rating)).Inc()
    ```
 
-4. **Mesurer le trafic** de chaque route avec un compteur de requêtes et un
-   histogramme de durée, dans une fonction qui enveloppe les handlers
+4. **Mesurer le trafic** de chaque route avec un counter de requêtes et un
+   histogram de durée, dans une fonction qui enveloppe les handlers
    (`measure` dans l'exemple).
 
 5. **Exposer `/metrics`** :
@@ -190,7 +190,7 @@ Voir [`reviews-service/go/2-metriques/main.go`](reviews-service/go/2-metriques/m
 ### Vérifier
 
 En local : `curl localhost:8086/metrics | grep reviews_` après avoir publié
-un avis. Dans le lab, après déploiement, la cible passe `up` dans
+un avis. Dans le lab, après déploiement, la target passe `up` dans
 http://localhost:9090/targets et la requête suivante répond :
 
 ```promql
@@ -204,8 +204,8 @@ sum by (rating) (reviews_created_total)
 |---|---|---|
 | La métrique n'apparaît pas dans `/metrics` | Un `CounterVec` n'apparaît qu'après son premier `Inc()` | Publier un avis, puis relire `/metrics` |
 | `duplicate metrics collector registration` au démarrage | Deux métriques portent le même nom | Renommer l'une d'elles |
-| Cible `down` dans Prometheus | Image pas encore mise à jour, ou mauvais chemin | `kubectl logs deploy/<nom>`, vérifier `learnerService.metricsPath` |
-| Cible absente | Configuration de Prometheus pas rechargée | `curl --request POST http://localhost:9090/-/reload` |
+| Target `down` dans Prometheus | Image pas encore mise à jour, ou mauvais chemin | `kubectl logs deploy/<nom>`, vérifier `learnerService.metricsPath` |
+| Target absente | Configuration de Prometheus pas rechargée | `curl --request POST http://localhost:9090/-/reload` |
 
 </details>
 
@@ -244,6 +244,21 @@ sum by (rating) (reviews_created_total)
    span.End()
    ```
 
+5. **Suivre la requête dans les autres services.** L'exemple vérifie que
+   le produit existe en appelant `catalog-service` (variable
+   `CATALOG_SERVICE_URL`). Pour que la trace continue dans le catalogue,
+   l'appel passe par un client instrumenté, et le contexte de trace est
+   propagé dans les headers HTTP :
+
+   ```go
+   otel.SetTextMapPropagator(propagation.TraceContext{})
+   client := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+   req, _ := http.NewRequestWithContext(ctx, http.MethodGet, catalogURL+"/api/products/3", nil)
+   ```
+
+   Sans le propagateur, chaque service produit sa propre trace, sans lien
+   entre elles.
+
 <details>
 <summary>Code complet de l'étape 3</summary>
 
@@ -260,8 +275,9 @@ Après déploiement et quelques avis publiés, dans Grafana, Explore, source
 { resource.service.name = "reviews-service" }
 ```
 
-Une trace de `POST` contient le span de la requête et ses deux étapes,
-`moderate_review` et `store_review`.
+Une trace de `POST` contient le span de la requête, ses étapes
+`verify_product`, `moderate_review` et `store_review`, et sous
+`verify_product` les spans de `catalog-service`.
 
 <details>
 <summary>Ça bloque ?</summary>
@@ -269,6 +285,8 @@ Une trace de `POST` contient le span de la requête et ses deux étapes,
 | Symptôme | Cause probable | Solution |
 |---|---|---|
 | `traces désactivées` ou erreurs d'export en local | Pas de collecteur hors du cluster | Normal en `docker run` ; tester dans le lab |
+| La trace s'arrête à votre service, sans `catalog-service` | Contexte de trace non propagé | `otel.SetTextMapPropagator(propagation.TraceContext{})`, client `otelhttp.NewTransport`, requête créée avec le contexte du span |
+| Tous les avis sont refusés en 503 en local | Pas de catalogue hors du cluster | Normal en `docker run` ; tester dans le lab |
 | Aucune trace dans Tempo | Mauvais endpoint, ou spans non terminés | Vérifier `OTEL_EXPORTER_OTLP_ENDPOINT` (`kubectl describe pod`), et que chaque `span.End()` est appelé |
 | Les spans d'étape sont des traces séparées | Le contexte de la requête n'est pas transmis | Démarrer les spans avec `req.Context()` |
 | Le service s'appelle `unknown_service` | Nom du service absent de la ressource | `semconv.ServiceName(...)` dans `setupTracing` |
@@ -279,7 +297,7 @@ Une trace de `POST` contient le span de la requête et ses deux étapes,
 
 ## Construire et déployer
 
-À chaque étape, sur `utils-stagiaireXX`, depuis la racine du dépôt :
+À chaque étape, sur `utils-stagiaireXX`, depuis la racine du repo :
 
 ```bash
 export REGISTRY=docker-push.reskilling.internal/$STAGIAIRE

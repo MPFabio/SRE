@@ -1,7 +1,7 @@
-# CapShop - Lab fil rouge DevOps / SRE
+# Lab fil rouge DevOps / SRE
 
-Application fil rouge des parcours DevOps Infra et DevOps SRE. **CapShop**
-est une boutique e-commerce en microservices, livrée avec une stack
+Application fil rouge des parcours DevOps Infra et DevOps SRE : une
+boutique e-commerce en microservices, livrée avec une stack
 d'observabilité complète. Chaque apprenant la déploie dans son namespace du
 cluster EKS, y ajoute son propre module, puis l'observe, la casse et la
 répare.
@@ -11,15 +11,16 @@ répare.
 | Vous voulez... | Document |
 |---|---|
 | Installer le lab dans votre namespace EKS | [AWS_SECURE/Readme.md](AWS_SECURE/Readme.md) |
-| Développer et brancher votre module sur CapShop | [fil-rouge/README.md](fil-rouge/README.md) |
+| Faire les exercices de la formation (fil rouge) | [Exercices du parcours](exercises/README.md) |
+| Développer et brancher votre module fil rouge | [fil-rouge/README.md](fil-rouge/README.md) |
 | Provoquer des pannes, les diagnostiquer et les corriger | [chaos/README.md](chaos/README.md) |
-| Aller plus loin : architecture, observabilité, incidents, SLOs, toil | [Exercices bonus](exercises/README.md) |
-| Préparer le cluster pour une promotion (formateur) | [helm/README.md](helm/README.md) |
+| Aller plus loin : architecture, observabilité, incidents, SLOs, toil | [Exercices bonus](exercises/bonus/README.md) |
 | Faire tourner le lab sur votre poste avec Docker | [QUICKSTART.md](QUICKSTART.md) |
 
 ## Interfaces
 
-Sur EKS, ces adresses s'ouvrent depuis votre poste à travers le tunnel SSH
+Sur EKS, ces adresses s'ouvrent depuis votre poste par un tunnel SSH, ou
+avec le nom de la VM à la place de `localhost` si vous passez par FoxyProxy
 (voir l'installation, étape 8).
 
 | Service | URL | Rôle |
@@ -93,8 +94,8 @@ déploie, le surveille et collecte ses logs et ses traces comme les autres.
 ```
 
 - **Métriques** : Prometheus scrape `/metrics` de chaque service.
-- **Logs** : Promtail lit la sortie standard des pods ; le label `job` porte
-  le nom du conteneur (`{job="payment-service"}`).
+- **Logs** : Promtail lit le stdout des pods ; le label `job` porte
+  le nom du container (`{job="payment-service"}`).
 - **Traces** : les services envoient leurs spans en OTLP au collecteur, qui
   les transmet à Tempo.
 
@@ -152,7 +153,8 @@ kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capsho
 ├── helm/                      # Chart Kubernetes, un namespace par apprenant
 ├── observability/             # Configurations Prometheus, Grafana, Loki...
 ├── docs/                      # Guides et runbooks
-├── exercises/                 # Exercices bonus, avec aides et réponses
+├── exercises/                 # Exercices du parcours, avec aides et réponses
+│   └── bonus/                 #   exercices facultatifs pour aller plus loin
 ├── docker-compose.yml         # Mode local
 └── start.sh + Makefile        # Mode local
 ```
@@ -161,11 +163,11 @@ kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capsho
 
 - [Installation sur EKS](AWS_SECURE/Readme.md)
 - [Module fil rouge](fil-rouge/README.md)
-- [Chart Helm et déploiement d'une promotion](helm/README.md)
 - [Observabilité](docs/OBSERVABILITY.md)
 - [SLOs et alerting](docs/SLOS_ALERTING.md)
 - [Incidents et post-mortems](docs/INCIDENTS.md)
-- [Exercices bonus](exercises/README.md)
+- [Exercices du parcours](exercises/README.md)
+- [Exercices bonus](exercises/bonus/README.md)
 
 ## Mode local (Docker Compose)
 
@@ -179,7 +181,7 @@ make stop
 
 Prérequis, secrets et dépannage : [QUICKSTART.md](QUICKSTART.md).
 `./start.sh` génère un fichier `.env` avec des secrets aléatoires ; aucun
-secret n'est écrit dans le dépôt.
+secret n'est écrit dans le repo.
 
 Commandes utiles (`make help` pour la liste complète) :
 

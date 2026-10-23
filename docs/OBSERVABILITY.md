@@ -33,7 +33,7 @@ sum by (service) (rate(gateway_requests_total[5m]))
 # Requêtes totales d'un service donné (exemple : catalog)
 catalog_requests_total{status="200"}
 
-# Latence (histogramme), exemple sur le service payment
+# Latence (histogram), exemple sur le service payment
 payment_request_duration_seconds_bucket
 payment_request_duration_seconds_sum
 payment_request_duration_seconds_count
@@ -101,7 +101,7 @@ Voir [le runbook](runbooks/database-saturation.md).
 # État du circuit breaker (0=closed, 1=open, 2=half-open)
 circuit_breaker_state
 
-# Latence du provider de paiement externe (histogramme)
+# Latence du provider de paiement externe (histogram)
 histogram_quantile(0.99, rate(external_payment_provider_latency_seconds_bucket[5m]))
 
 # Erreurs du provider externe
@@ -417,7 +417,7 @@ probe_http_status_code
 
 - Utiliser des labels pour filtrer au maximum
 - Limiter les time ranges (éviter `[30d]`)
-- Utiliser `rate()` plutôt que des compteurs bruts
+- Utiliser `rate()` plutôt que des counters bruts
 - Agréger avec `sum by ()` pour réduire la cardinalité
 
 ### Dashboards efficaces
