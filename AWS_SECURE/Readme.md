@@ -170,7 +170,34 @@ pkill -f "kubectl port-forward"
 
 puis relancer la boucle ci-dessus.
 
-## 9. Supprimer le lab
+## 9. Mettre a jour une image
+
+Apres une modification du code, reconstruire et pousser l'image du service
+avec le meme tag, puis redemarrer son deploiement. Le cluster telecharge
+alors la nouvelle version :
+
+```sh
+git pull
+export REGISTRY=docker-push.reskilling.internal/$STAGIAIRE
+docker build --tag $REGISTRY/catalog-service:lab --file microservices/catalog-service/Dockerfile microservices/
+docker push $REGISTRY/catalog-service:lab
+kubectl rollout restart deployment/catalog-service
+kubectl rollout status deployment/catalog-service
+```
+
+Pour `traffic-generator` et `lab-controller`, le contexte de build est
+`traffic-generator/` et `lab-controller/api/` (voir l'etape 4).
+
+Si le service a une interface (etape 8), relancer son port-forward.
+
+Pour tester l'image sur `utils-stagiaireXX`, telecharger d'abord la version
+poussee, sinon Docker lance l'ancienne copie locale :
+
+```sh
+docker pull docker.reskilling.internal/$STAGIAIRE/catalog-service:lab
+```
+
+## 10. Supprimer le lab
 
 ```sh
 helm uninstall lab --namespace $STAGIAIRE
