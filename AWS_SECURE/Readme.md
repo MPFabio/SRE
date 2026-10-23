@@ -1,193 +1,165 @@
-# Installer SRE dans EKS
+# Installer le lab SRE dans EKS
 
-## Préparation
+Toutes les commandes se lancent sur votre machine `utils-stagiaireXX`, une fois
+connecte, ou `kubectl` est deja configure sur votre namespace.
 
-- Se connecter sur utils-stagiaireXX
-- Installer helm
+## 1. Enregistrer votre identifiant
 
-```console
-[stagiairexx@utils-stagiairexx ~]$ curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100 12252 100 12252   0     0 310067     0  --:--:-- --:--:-- --:--:-- 322421
-Downloading https://get.helm.sh/helm-v3.22.1-linux-amd64.tar.gz
-Verifying checksum... Done.
-Preparing to install helm into /usr/local/bin
+Une fois pour toutes : il reste disponible apres une reconnexion et dans chaque
+nouveau terminal.
 
-We trust you have received the usual lecture from the local System
-Administrator. It usually boils down to these three things:
-
-    #1) Respect the privacy of others.
-    #2) Think before you type.
-    #3) With great power comes great responsibility.
-
-For security reasons, the password you type will not be visible.
-
-[sudo] password for stagiairexx: 
-
-Preparing to install helm into /usr/local/bin
-helm installed into /usr/local/bin/helm
-
+```sh
+echo 'export STAGIAIRE=$(whoami)' >> ~/.bashrc
+source ~/.bashrc
+echo $STAGIAIRE
+kubectl auth whoami
 ```
 
-- Récupérer le répertoire Git du projet SRE
+## 2. Installer les outils
 
-```console
-[stagiaire04@utils-stagiaire04 Projets]$ git config --global credential.helper store
-[stagiaire04@utils-stagiaire04 Projets]$ git clone https://github.com/MPFabio/SRE.git
-Cloning into 'SRE'...
-Username for 'https://github.com': javond-cap
-Password for 'https://javond-cap@github.com':
-remote: Enumerating objects: 120, done.
-remote: Counting objects: 100% (120/120), done.
-remote: Compressing objects: 100% (93/93), done.
-remote: Total 120 (delta 11), reused 120 (delta 11), pack-reused 0 (from 0)
-Receiving objects: 100% (120/120), 110.20 KiB | 5.80 MiB/s, done.
-Resolving deltas: 100% (11/11), done.
-[stagiaire04@utils-stagiaire04 Projets]$ git
-git                 git-receive-pack    git-shell           git-upload-archive  git-upload-pack
+Git :
+
+```sh
+sudo dnf install -y git
 ```
 
-- Installez docker
+Helm :
 
-```console
-sudo dnf install docker
-sudo systemctl enable docker.service
-sudo systemctl start docker.service
-sudo usermod -aG docker stagiaire04
+```sh
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+Docker :
+
+```sh
+sudo dnf install -y docker
+sudo systemctl enable --now docker.service
+sudo usermod -aG docker $STAGIAIRE
+```
+
+Le groupe `docker` n'est pris en compte qu'a la connexion suivante : se
+deconnecter (`exit`), se reconnecter, puis verifier :
+
+```sh
 docker version
-    Client:
-     Version:           25.0.14
-     API version:       1.44
-     Go version:        go1.25.12 X:nodwarf5
-     Git commit:        0bab007
-     Built:             Tue Jul 28 00:00:00 2026
-     OS/Arch:           linux/amd64
-     Context:           default
-
-    Server:
-     Engine:
-      Version:          25.0.16
-      API version:      1.44 (minimum version 1.24)
-      Go version:       go1.25.12 X:nodwarf5
-      Git commit:       6fdf0a6
-      Built:            Tue Jul 28 00:00:00 2026
-      OS/Arch:          linux/amd64
-      Experimental:     false
-     containerd:
-      Version:          2.2.5+unknown
-      GitCommit:
-     runc:
-      Version:          1.3.5
-      GitCommit:        488fc13e1f2d3d73ec36d829fdf2c98e47dc5ae8
-     docker-init:
-      Version:          0.19.0
-      GitCommit:        de40ad0
+echo $STAGIAIRE
 ```
 
-- connecter docker au nexus local
+`docker version` doit afficher les parties `Client` et `Server`, sans
+`permission denied`.
 
-```console
-[stagiaire04@utils-stagiaire04 ~]$ docker login docker-push.reskilling.internal
-Username: stagiaire04
-Password:
-WARNING! Your password will be stored unencrypted in /home/stagiaire04/.docker/config.json.
-Configure a credential helper to remove this warning. See
-https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+## 3. Recuperer le projet
 
-Login Succeeded
+```sh
+git clone https://github.com/MPFabio/SRE.git
+cd SRE
 ```
 
-- construire les images
+## 4. Construire et pousser les images
 
-```console
-export REGISTRY=docker-push.reskilling.internal/stagiaire04
+Le push se fait sur `docker-push.reskilling.internal`, dans votre espace :
+
+```sh
+docker login docker-push.reskilling.internal -u $STAGIAIRE
+
+export REGISTRY=docker-push.reskilling.internal/$STAGIAIRE
 
 for SVC in api-gateway catalog-service cart-service orders-service payment-service users-service
 do
-
     docker build --tag $REGISTRY/$SVC:lab --file microservices/$SVC/Dockerfile microservices/
-
 done
 
 docker build --tag $REGISTRY/lab-controller:lab lab-controller/api/
 docker build --tag $REGISTRY/traffic-generator:lab traffic-generator/
-```
 
-- Pousser les images
-
-```console
 for SVC in api-gateway catalog-service cart-service orders-service payment-service users-service lab-controller traffic-generator
 do
-
     docker push $REGISTRY/$SVC:lab
-
 done
 ```
 
+## 5. Installer le lab
 
-- Installer le lab dans son namespace
+Le cluster tire les images depuis `docker.reskilling.internal`. Les trois
+secrets sont obligatoires.
 
-Les images sont poussees sur `docker-push.reskilling.internal` et tirees depuis
-`docker.reskilling.internal`. Les trois secrets sont obligatoires.
-
-```console
-export NAMESPACE=stagiaire04
-export REGISTRY_PULL=docker.reskilling.internal/stagiaire04
-
+```sh
 helm install lab helm/reskilling-lab \
-    --namespace $NAMESPACE \
-    --set image.registry=$REGISTRY_PULL \
+    --namespace $STAGIAIRE \
+    --set image.registry=docker.reskilling.internal/$STAGIAIRE \
     --set image.tag=lab \
-    --set ingress.enabled=false \
     --set postgres.password=$(openssl rand -hex 24) \
     --set jwtSecret=$(openssl rand -hex 32) \
-    --set grafana.adminPassword=$(openssl rand -hex 8) \
-    --wait --timeout 6m
+    --set grafana.adminPassword=$(openssl rand -hex 8)
 ```
 
-Le chart ne cree ni Role ni RoleBinding : il s'installe avec le role `edit`
-du namespace.
+Le chart ne cree ni Role, ni RoleBinding, ni quota : il s'installe avec les
+droits du namespace.
 
-- Verifier
+## 6. Verifier
 
-```console
-kubectl get pods --namespace $NAMESPACE
+```sh
+kubectl get pods --watch
 ```
 
-Les vingt pods doivent etre `Running`.
+Les vingt pods doivent passer `Running` en quelques minutes.
 
-- Recuperer le mot de passe Grafana
+| Message | Cause, solution |
+|---|---|
+| `Pending` et `Too many pods` | plus de place sur les noeuds : voir le formateur |
+| `ImagePullBackOff` sur une de vos images | image absente du Nexus : refaire l'etape 4 |
+| `ImagePullBackOff` sur une image publique (postgres, grafana...) | relancer avec `--set image.publicRegistry=docker.reskilling.internal` |
 
-```console
-kubectl get secret lab-secrets --namespace $NAMESPACE \
+Pour lire la raison exacte :
+
+```sh
+kubectl get events --sort-by=.lastTimestamp | tail -20
+```
+
+## 7. Recuperer le mot de passe Grafana
+
+```sh
+kubectl get secret lab-secrets \
     --output jsonpath='{.data.GRAFANA_ADMIN_PASSWORD}' | base64 --decode
 ```
 
-- Acceder aux interfaces
+L'identifiant est `admin`.
 
-En attendant l'Ingress, depuis `utils-stagiaireXX` :
+## 8. Acceder aux interfaces
 
-```console
-kubectl port-forward --namespace $NAMESPACE svc/api-gateway 8080:8080 &
-kubectl port-forward --namespace $NAMESPACE svc/lab-controller 8090:8090 &
-kubectl port-forward --namespace $NAMESPACE svc/grafana 3000:3000 &
-kubectl port-forward --namespace $NAMESPACE svc/prometheus 9090:9090 &
+Sur `utils-stagiaireXX`, ouvrir les ports, et laisser le terminal ouvert :
+
+```sh
+kubectl port-forward svc/api-gateway 8080:8080 &
+kubectl port-forward svc/lab-controller 8090:8090 &
+kubectl port-forward svc/grafana 3000:3000 &
+kubectl port-forward svc/prometheus 9090:9090 &
+kubectl port-forward svc/alertmanager 9093:9093 &
+kubectl port-forward svc/traffic-generator 8089:8089 &
 ```
 
-Puis depuis le poste de travail, un tunnel SSH vers la VM :
+Depuis votre poste, un tunnel SSH ramene ces ports, et laisser ce terminal
+ouvert aussi :
 
-```console
-ssh -L 8080:localhost:8080 -L 8090:localhost:8090 \
-    -L 3000:localhost:3000 -L 9090:localhost:9090 \
-    stagiaire04@utils-stagiaire04
+```sh
+ssh -L 8080:localhost:8080 -L 8090:localhost:8090 -L 3000:localhost:3000 \
+    -L 9090:localhost:9090 -L 9093:localhost:9093 -L 8089:localhost:8089 \
+    utils-stagiaireXX
 ```
 
-Boutique sur http://localhost:8080, console sur http://localhost:8090,
-Grafana sur http://localhost:3000, Prometheus sur http://localhost:9090.
+| Interface | Adresse |
+|---|---|
+| Boutique CapShop | http://localhost:8080 |
+| Operations Console | http://localhost:8090 |
+| Grafana | http://localhost:3000 |
+| Prometheus | http://localhost:9090 |
+| Alertmanager | http://localhost:9093 |
+| Locust | http://localhost:8089 |
 
-- Supprimer le lab
+Ce sont les adresses utilisees dans les exercices.
 
-```console
-helm uninstall lab --namespace $NAMESPACE
+## 9. Supprimer le lab
+
+```sh
+helm uninstall lab --namespace $STAGIAIRE
 ```

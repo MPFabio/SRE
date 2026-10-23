@@ -46,14 +46,12 @@ kind load docker-image --name sre-lab \
 helm install apprenant1 helm/reskilling-lab \
   --namespace apprenant1 --create-namespace \
   --set image.tag=lab \
-  --set ingress.enabled=false \
   --set postgres.password=$(openssl rand -hex 24) \
   --set jwtSecret=$(openssl rand -hex 32) \
   --set grafana.adminPassword=$(openssl rand -hex 8) \
   --wait --timeout 5m
 ```
 
-`ingress.enabled=false` car kind n'a pas de controleur Ingress par defaut.
 Les trois secrets sont obligatoires, voir [Secrets](#secrets).
 
 ### 5. Verifier
@@ -104,7 +102,7 @@ curl --silent http://localhost:9090/api/v1/targets \
 ```bash
 helm install apprenant2 helm/reskilling-lab \
   --namespace apprenant2 --create-namespace \
-  --set image.tag=lab --set ingress.enabled=false \
+  --set image.tag=lab \
   --set postgres.password=$(openssl rand -hex 24) \
   --set jwtSecret=$(openssl rand -hex 32) \
   --set grafana.adminPassword=$(openssl rand -hex 8) \
@@ -151,6 +149,13 @@ docker push $REGISTRY/lab-controller:$TAG
 docker push $REGISTRY/traffic-generator:$TAG
 ```
 
+Si les noeuds n'ont pas acces a Docker Hub, les images publiques (PostgreSQL,
+Grafana, Prometheus...) passent par un registry miroir :
+
+```bash
+--set image.publicRegistry=docker.reskilling.internal
+```
+
 ## Droits necessaires
 
 Le chart s'installe avec le seul role `edit` dans le namespace : il ne cree
@@ -186,7 +191,6 @@ helm install apprenant1 helm/reskilling-lab \
   --namespace apprenant1 --create-namespace \
   --set image.registry=$REGISTRY \
   --set image.tag=$TAG \
-  --set ingress.host=apprenant1.lab.exemple.fr \
   --set postgres.password=$(openssl rand -hex 24) \
   --set jwtSecret=$(openssl rand -hex 32) \
   --set grafana.adminPassword=$(openssl rand -hex 8)
@@ -201,7 +205,6 @@ for i in $(seq 1 12); do
     --namespace apprenant$i --create-namespace \
     --set image.registry=$REGISTRY \
     --set image.tag=$TAG \
-    --set ingress.host=apprenant$i.lab.exemple.fr \
     --set postgres.password=$(openssl rand -hex 24) \
     --set jwtSecret=$(openssl rand -hex 32) \
     --set grafana.adminPassword=$GRAFANA_PASSWORD
@@ -214,32 +217,48 @@ apprenant : il reste hors du depot.
 
 ## Acces
 
-Une seule entree par apprenant, via l'Ingress :
-
-| Chemin | Service |
-|---|---|
-| `/` | Boutique CapShop |
-| `/ops` | Operations Console |
-| `/grafana` | Grafana |
-| `/prometheus` | Prometheus |
-| `/alertmanager` | Alertmanager |
-| `/locust` | Generateur de trafic |
-
-Sans Ingress (`--set ingress.enabled=false`) :
+Le chart ne cree pas d'Ingress : les interfaces s'ouvrent par
+`kubectl port-forward`, avec les memes ports qu'en local.
 
 ```bash
-kubectl port-forward --namespace apprenant1 svc/api-gateway 8080:8080
+kubectl port-forward --namespace apprenant1 svc/api-gateway 8080:8080 &
+kubectl port-forward --namespace apprenant1 svc/lab-controller 8090:8090 &
+kubectl port-forward --namespace apprenant1 svc/grafana 3000:3000 &
+kubectl port-forward --namespace apprenant1 svc/prometheus 9090:9090 &
+kubectl port-forward --namespace apprenant1 svc/alertmanager 9093:9093 &
+kubectl port-forward --namespace apprenant1 svc/traffic-generator 8089:8089 &
 ```
+
+Si `kubectl` tourne sur une machine distante, un tunnel SSH ramene ces ports
+sur le poste :
+
+```bash
+ssh -L 8080:localhost:8080 -L 8090:localhost:8090 -L 3000:localhost:3000 \
+    -L 9090:localhost:9090 -L 9093:localhost:9093 -L 8089:localhost:8089 \
+    machine-distante
+```
+
+Les adresses `http://localhost:...` des exercices restent alors valables.
 
 ## Dimensionnement
 
-Requests par apprenant : 1,7 Go de memoire, 0,41 vCPU.
+Par apprenant : 19 pods, plus un pod Promtail par noeud. Requests : 1,7 Go
+de memoire et 0,41 vCPU.
 
-| Type de noeud | Apprenants |
-|---|---|
-| t3a.xlarge (16 Go / 4 vCPU) | 7 |
-| t3a.2xlarge (32 Go / 8 vCPU) | 15 |
-| m6a.4xlarge (64 Go / 16 vCPU) | 31 |
+Sur EKS, la limite est souvent le nombre de pods par noeud avant la memoire :
+chaque pod prend une adresse IP du VPC.
+
+| Type de noeud | Pods max | Pods max avec prefix delegation |
+|---|---|---|
+| t3.medium / t3a.medium | 17 | 110 |
+| t3.large / t3a.large | 35 | 110 |
+| t3.xlarge / t3a.xlarge | 58 | 110 |
+| t3.2xlarge / t3a.2xlarge | 58 | 110 |
+
+Une partie de ces pods est prise par le systeme (aws-node, kube-proxy,
+CoreDNS). Sans prefix delegation sur le VPC CNI, un t3a.2xlarge accueille
+deux apprenants, pas davantage. Le message `0/N nodes are available: Too many
+pods` signale cette limite.
 
 ## Isolation entre apprenants
 
@@ -252,14 +271,12 @@ pas le droit de creer de ResourceQuota ni de LimitRange.
 ### NetworkPolicy
 
 Trafic autorise uniquement a l'interieur du namespace, plus le DNS vers
-kube-system et l'entree depuis le controleur d'Ingress. Tout le reste est
-refuse, dans les deux sens.
+kube-system. Tout le reste est refuse, dans les deux sens.
 
 ```yaml
 isolation:
   networkPolicy:
     enabled: true
-    ingressNamespace: ingress-nginx     # namespace du controleur
     extraIngressNamespaces: []          # ex: monitoring central
     allowExternalEgress: false          # sortie Internet
 ```
