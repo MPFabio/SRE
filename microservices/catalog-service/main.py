@@ -86,7 +86,7 @@ register_ops_endpoints(app, "catalog-service", chaos, db=db)
 async def get_products(category: Optional[str] = None, limit: int = 100):
     """Liste tous les produits avec filtrage optionnel par catégorie"""
     with tracer.start_as_current_span("get_products") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("category_filter", category or "all")
         span.set_attribute("limit", limit)
@@ -110,7 +110,7 @@ async def get_products(category: Optional[str] = None, limit: int = 100):
 async def get_product(product_id: int):
     """Récupère un produit par son ID"""
     with tracer.start_as_current_span("get_product") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("product_id", product_id)
 
@@ -130,7 +130,7 @@ async def get_product(product_id: int):
 async def check_stock(product_id: int, quantity: int = 1):
     """Vérifie la disponibilité du stock"""
     with tracer.start_as_current_span("check_stock") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("product_id", product_id)
         span.set_attribute("requested_quantity", quantity)
@@ -157,7 +157,7 @@ async def check_stock(product_id: int, quantity: int = 1):
 async def reserve_stock(product_id: int, quantity: int):
     """Réserve du stock pour une commande"""
     with tracer.start_as_current_span("reserve_stock") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("product_id", product_id)
         span.set_attribute("quantity", quantity)
@@ -185,7 +185,7 @@ async def reserve_stock(product_id: int, quantity: int):
 async def get_categories():
     """Liste toutes les catégories"""
     with tracer.start_as_current_span("get_categories"):
-        chaos.inject()
+        await chaos.inject()
         rows = await db.fetch(
             "SELECT id, name, description FROM catalog.categories ORDER BY id",
             operation="get_categories")
@@ -196,7 +196,7 @@ async def get_categories():
 async def search_products(q: str, limit: int = 20):
     """Recherche de produits"""
     with tracer.start_as_current_span("search_products") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("query", q)
 

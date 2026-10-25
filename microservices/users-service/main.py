@@ -122,7 +122,7 @@ async def init_seed_users():
             user_id, user["email"], hash_password(user["password"]),
             user["first_name"], user["last_name"], operation="seed_users")
         created += 1
-    logger.info(f"Seed users: {created} cree(s), {len(seed_users) - created} deja present(s)")
+    logger.info(f"Seed users : {created} créé(s), {len(seed_users) - created} déjà présent(s)")
 
 def create_jwt_token(user_id: str, email: str) -> str:
     payload = {
@@ -150,7 +150,7 @@ register_ops_endpoints(app, "users-service", chaos, db=db)
 async def register_user(user_data: UserCreate):
     """Enregistre un nouvel utilisateur"""
     with tracer.start_as_current_span("register_user") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("email", user_data.email)
 
@@ -175,7 +175,7 @@ async def register_user(user_data: UserCreate):
 async def login_user(credentials: UserLogin):
     """Authentifie un utilisateur"""
     with tracer.start_as_current_span("login_user") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("email", credentials.email)
 
@@ -209,7 +209,7 @@ async def login_user(credentials: UserLogin):
 async def logout_user(authorization: str = Header(None)):
     """Déconnecte un utilisateur"""
     with tracer.start_as_current_span("logout_user"):
-        chaos.inject()
+        await chaos.inject()
 
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Missing authorization header")
@@ -231,7 +231,7 @@ async def logout_user(authorization: str = Header(None)):
 async def get_current_user(authorization: str = Header(None)):
     """Récupère le profil de l'utilisateur connecté"""
     with tracer.start_as_current_span("get_current_user"):
-        chaos.inject()
+        await chaos.inject()
 
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Missing authorization header")
@@ -249,7 +249,7 @@ async def get_current_user(authorization: str = Header(None)):
 async def get_user(user_id: str, authorization: str = Header(None)):
     """Récupère un profil utilisateur par ID (utilisateur authentifié uniquement)"""
     with tracer.start_as_current_span("get_user") as span:
-        chaos.inject()
+        await chaos.inject()
 
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Missing authorization header")
@@ -270,7 +270,7 @@ async def get_user(user_id: str, authorization: str = Header(None)):
 async def update_current_user(update_data: UserUpdate, authorization: str = Header(None)):
     """Met à jour le profil de l'utilisateur connecté"""
     with tracer.start_as_current_span("update_current_user"):
-        chaos.inject()
+        await chaos.inject()
 
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Missing authorization header")
@@ -297,7 +297,7 @@ async def update_current_user(update_data: UserUpdate, authorization: str = Head
 async def list_users(authorization: str = Header(None)):
     """Liste tous les utilisateurs (utilisateur authentifié uniquement)"""
     with tracer.start_as_current_span("list_users"):
-        chaos.inject()
+        await chaos.inject()
 
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Missing authorization header")

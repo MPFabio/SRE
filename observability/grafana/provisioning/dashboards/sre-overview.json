@@ -8,7 +8,7 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -22,10 +22,10 @@
       "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
       "title": "Availability",
       "type": "stat",
-      "targets": [{ "expr": "(1 - sum(rate(gateway_requests_total{status=~\"5..\"}[5m])) / sum(rate(gateway_requests_total[5m]))) * 100", "refId": "A" }]
+      "targets": [{ "expr": "(1 - (sum(rate(gateway_requests_total{status=~\"5..\"}[5m])) or vector(0)) / sum(rate(gateway_requests_total[5m]))) * 100", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -42,7 +42,7 @@
       "targets": [{ "expr": "histogram_quantile(0.99, sum(rate(gateway_request_duration_seconds_bucket[5m])) by (le))", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -62,7 +62,7 @@
       "targets": [{ "expr": "circuit_breaker_state", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -76,10 +76,10 @@
       "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
       "title": "Active Incidents",
       "type": "stat",
-      "targets": [{ "expr": "sum(lab_incidents_triggered_total) - sum(lab_incidents_resolved_total or vector(0))", "refId": "A" }]
+      "targets": [{ "expr": "(sum(lab_incidents_triggered_total) or vector(0)) - (sum(lab_incidents_resolved_total) or vector(0))", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -97,7 +97,7 @@
       "targets": [{ "expr": "sum(rate(gateway_requests_total[1m])) by (service)", "legendFormat": "{{ service }}", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -115,7 +115,7 @@
       "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(gateway_request_duration_seconds_bucket[5m])) by (le, service))", "legendFormat": "{{ service }}", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -129,10 +129,10 @@
       "options": { "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
       "title": "Error Budget Remaining",
       "type": "gauge",
-      "targets": [{ "expr": "100 - (sum(increase(gateway_requests_total{status=~\"5..\"}[30d])) / sum(increase(gateway_requests_total[30d])) * 100 / 0.1)", "refId": "A" }]
+      "targets": [{ "expr": "100 - ((sum(increase(gateway_requests_total{status=~\"5..\"}[30d])) or vector(0)) / sum(increase(gateway_requests_total[30d])) * 100 / 0.1)", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },

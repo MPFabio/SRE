@@ -59,8 +59,9 @@ spec:
             httpGet: { path: /ready, port: 8080 }
             initialDelaySeconds: 10
             periodSeconds: 10
+          # /health interroge chaque service : trop lent quand l'un d'eux tombe.
           livenessProbe:
-            httpGet: { path: /health, port: 8080 }
+            httpGet: { path: /ready, port: 8080 }
             initialDelaySeconds: 20
             periodSeconds: 20
           resources: {{- toYaml .Values.resources.gateway | nindent 12 }}

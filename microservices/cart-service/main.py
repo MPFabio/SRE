@@ -151,7 +151,7 @@ register_ops_endpoints(app, "cart-service", chaos, db=RedisHealth())
 async def get_user_cart(user_id: str):
     """Récupère le panier d'un utilisateur"""
     with tracer.start_as_current_span("get_cart") as span:
-        chaos.inject()
+        await chaos.inject()
         
         span.set_attribute("user_id", user_id)
         
@@ -165,7 +165,7 @@ async def get_user_cart(user_id: str):
 async def add_item_to_cart(user_id: str, item: AddItemRequest):
     """Ajoute un produit au panier"""
     with tracer.start_as_current_span("add_to_cart") as span:
-        chaos.inject()
+        await chaos.inject()
         
         span.set_attribute("user_id", user_id)
         span.set_attribute("product_id", item.product_id)
@@ -210,7 +210,7 @@ async def add_item_to_cart(user_id: str, item: AddItemRequest):
 async def update_cart_item(user_id: str, product_id: int, quantity: int):
     """Met à jour la quantité d'un produit dans le panier"""
     with tracer.start_as_current_span("update_cart_item") as span:
-        chaos.inject()
+        await chaos.inject()
         
         span.set_attribute("user_id", user_id)
         span.set_attribute("product_id", product_id)
@@ -237,7 +237,7 @@ async def update_cart_item(user_id: str, product_id: int, quantity: int):
 async def remove_cart_item(user_id: str, product_id: int):
     """Supprime un produit du panier"""
     with tracer.start_as_current_span("remove_cart_item") as span:
-        chaos.inject()
+        await chaos.inject()
         
         span.set_attribute("user_id", user_id)
         span.set_attribute("product_id", product_id)
@@ -263,7 +263,7 @@ async def remove_cart_item(user_id: str, product_id: int):
 async def clear_cart(user_id: str):
     """Vide le panier"""
     with tracer.start_as_current_span("clear_cart") as span:
-        chaos.inject()
+        await chaos.inject()
         
         span.set_attribute("user_id", user_id)
         

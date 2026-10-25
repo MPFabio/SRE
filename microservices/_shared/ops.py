@@ -40,12 +40,12 @@ def register_ops_endpoints(app: FastAPI, service_name: str,
     if chaos is not None:
         @app.get("/api/chaos")
         async def get_chaos():
-            """Etat courant de l'injection de chaos (consomme par 'make chaos-status')"""
+            """État courant de l'injection de chaos (consommé par 'make chaos-status')"""
             return chaos.state()
 
         @app.post("/api/chaos")
         async def set_chaos(config: ChaosConfig):
-            """Active/desactive l'injection de chaos a chaud (pilote par l'Operations Console)"""
+            """Active ou désactive l'injection de chaos à chaud (pilotée par l'Operations Console)"""
             return chaos.apply(config)
 
     return app

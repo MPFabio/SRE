@@ -42,7 +42,7 @@ class PersistentStore:
                     "ON CONFLICT (id) DO UPDATE SET content = EXCLUDED.content" % self.table,
                     key, payload)
             except Exception as exc:
-                logger.error("Echec d'ecriture %s/%s: %s", self.table, key, exc)
+                logger.error("Échec d'écriture %s/%s : %s", self.table, key, exc)
 
         task = asyncio.create_task(_write())
         self._writes.add(task)

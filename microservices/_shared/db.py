@@ -10,8 +10,8 @@ DB_TIMEOUT = float(os.getenv("DB_TIMEOUT", "5"))
 
 POOL_SIZE = Gauge("db_pool_size", "Connexions ouvertes dans le pool")
 POOL_IDLE = Gauge("db_pool_idle", "Connexions inactives dans le pool")
-QUERY_LATENCY = Histogram("db_query_duration_seconds", "Latence des requetes", ["operation"])
-QUERY_ERRORS = Counter("db_query_errors_total", "Erreurs de requete", ["operation"])
+QUERY_LATENCY = Histogram("db_query_duration_seconds", "Latence des requêtes", ["operation"])
+QUERY_ERRORS = Counter("db_query_errors_total", "Erreurs de requête", ["operation"])
 
 
 class Database:
@@ -24,7 +24,7 @@ class Database:
     async def connect(self):
         dsn = os.getenv("DATABASE_URL")
         if not dsn:
-            raise RuntimeError("DATABASE_URL absent: le service ne peut pas demarrer")
+            raise RuntimeError("DATABASE_URL absent : le service ne peut pas démarrer")
         self.pool = await asyncpg.create_pool(
             dsn,
             min_size=DB_POOL_MIN,
@@ -41,7 +41,7 @@ class Database:
         if self.pool:
             await self.pool.close()
             if self.logger:
-                self.logger.info("Pool PostgreSQL ferme")
+                self.logger.info("Pool PostgreSQL fermé")
 
     def _refresh_gauges(self):
         if self.pool:

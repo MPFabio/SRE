@@ -24,7 +24,7 @@ logger = logging.getLogger("lab-controller")
 
 
 INCIDENTS_TRIGGERED = Counter('lab_incidents_triggered_total', 'Incidents triggered', ['type'])
-ALERTS_RECEIVED = Counter('lab_alerts_received_total', 'Alertes recues d'"'"'Alertmanager', ['alertname', 'severity', 'status'])
+ALERTS_RECEIVED = Counter('lab_alerts_received_total', "Alertes reçues d'Alertmanager", ['alertname', 'severity', 'status'])
 INCIDENTS_RESOLVED = Counter('lab_incidents_resolved_total', 'Incidents resolved', ['type'])
 INCIDENT_MTTR = Histogram('lab_incident_mttr_seconds', 'Mean Time To Resolve', buckets=[60, 300, 600, 1800, 3600, 7200])
 POSTMORTEMS_CREATED = Counter('lab_postmortems_created_total', 'Post-mortems created')
@@ -40,7 +40,7 @@ async def lifespan(_app):
     postmortems_db = await PersistentStore(db_pool, "lab.postmortems", PostMortem).load()
     toil_tasks_db = await PersistentStore(db_pool, "lab.toil_tasks", ToilTask).load()
     await init_toil_tasks()
-    logger.info("Operations Console connectee a PostgreSQL")
+    logger.info("Operations Console connectée à PostgreSQL")
     yield
     await db_pool.close()
 
@@ -566,7 +566,7 @@ async def trigger_incident(request: TriggerIncidentRequest, background_tasks: Ba
 
 @app.post("/api/webhooks/alertmanager")
 async def receive_alertmanager_webhook(payload: dict):
-    """Recoit les notifications d'Alertmanager et les journalise."""
+    """Reçoit les notifications d'Alertmanager et les journalise."""
     alerts = payload.get("alerts", [])
     for alert in alerts:
         labels = alert.get("labels", {})
@@ -589,7 +589,7 @@ async def receive_alertmanager_webhook(payload: dict):
 
 @app.get("/api/alerts")
 async def list_recent_alerts(limit: int = 50):
-    """Dernieres alertes recues d'Alertmanager."""
+    """Dernières alertes reçues d'Alertmanager."""
     return list(recent_alerts)[-limit:][::-1]
 
 
