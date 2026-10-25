@@ -21,7 +21,7 @@ groups:
           service: orders
         annotations:
           summary: "High P99 latency on orders"
-          description: "P99 latency is {{ $value | humanizeDuration }} (> 1.5s SLO). Le checkout inclut l'appel au prestataire de paiement, dont la latence simulee va de 100 a 500 ms."
+          description: "P99 latency is {{ $value | humanizeDuration }} (> 1.5s SLO). Le checkout inclut l'appel au prestataire de paiement, dont la latence simulée va de 100 à 500 ms."
 
       - alert: CriticalLatencyP99
         expr: histogram_quantile(0.99, sum(rate(gateway_request_duration_seconds_bucket{service!="orders"}[5m])) by (le, service)) > 1.0
@@ -34,7 +34,7 @@ groups:
           description: "P99 latency is {{ $value | humanizeDuration }} (> 1s threshold)"
 
       - alert: PaymentServiceHighLatency
-        expr: histogram_quantile(0.95, sum(rate(payment_request_duration_seconds_bucket[5m])) by (le)) > 0.3
+        expr: histogram_quantile(0.95, sum(rate(payment_request_duration_seconds_bucket{endpoint="/api/payments"}[5m])) by (le)) > 1
         for: 2m
         labels:
           severity: warning
@@ -42,7 +42,7 @@ groups:
           service: payment
         annotations:
           summary: "Payment service P95 latency high"
-          description: "Payment P95 latency is {{ $value | humanizeDuration }} (> 300ms SLO)"
+          description: "Payment P95 latency is {{ $value | humanizeDuration }} (> 1s SLO)"
 
       - alert: HighErrorRate
         expr: sum(rate(gateway_requests_total{status=~"5.."}[5m])) by (service) / sum(rate(gateway_requests_total[5m])) by (service) > 0.01
@@ -147,13 +147,13 @@ groups:
   - name: incident_alerts
     rules:
       - alert: ActiveIncidents
-        expr: lab_incidents_triggered_total - lab_incidents_resolved_total > 0
+        expr: sum(lab_incidents_triggered_total) - (sum(lab_incidents_resolved_total) or vector(0)) > 0
         for: 0m
         labels:
           severity: info
-          category: lab
+          category: incident
         annotations:
-          summary: "Active incidents in lab"
+          summary: "Active simulated incidents"
           description: "There are active incidents being simulated"
 
       - alert: HighMTTR
@@ -175,7 +175,7 @@ groups:
           severity: critical
           priority: P1
         annotations:
-          summary: "Pool de connexions sature sur {{ $labels.job }}"
+          summary: "Pool de connexions saturé sur {{ $labels.job }}"
           description: "Aucune connexion disponible depuis 3 minutes. Voir docs/runbooks/database-saturation.md"
 
       - alert: DatabaseQueryErrors
@@ -185,18 +185,19 @@ groups:
           severity: warning
           priority: P2
         annotations:
-          summary: "Erreurs de requete sur {{ $labels.job }}"
-          description: "{{ $value | humanize }} erreur(s)/s sur l'operation {{ $labels.operation }}."
+          summary: "Erreurs de requête sur {{ $labels.job }}"
+          description: "{{ $value | humanize }} erreur(s)/s sur l'opération {{ $labels.operation }}."
 
       - alert: DatabaseDown
-        expr: pg_up == 0
+        # Base arrêtée, l'exporter ne répond plus à temps : pg_up disparaît au lieu de valoir 0.
+        expr: pg_up == 0 or up{job="postgres"} == 0
         for: 1m
         labels:
           severity: critical
           priority: P1
         annotations:
           summary: "PostgreSQL injoignable"
-          description: "L'exporter ne joint plus la base: les services persistants vont echouer."
+          description: "L'exporter ne joint plus la base : les services persistants vont échouer."
 
       - alert: DatabaseConnectionsHigh
         expr: sum(pg_stat_database_numbackends) / on() pg_settings_max_connections > 0.8
@@ -205,5 +206,5 @@ groups:
           severity: warning
           priority: P2
         annotations:
-          summary: "Connexions PostgreSQL au-dela de 80%"
-          description: "{{ $value | humanizePercentage }} des connexions serveur sont utilisees."
+          summary: "Connexions PostgreSQL au-delà de 80%"
+          description: "{{ $value | humanizePercentage }} des connexions serveur sont utilisées."

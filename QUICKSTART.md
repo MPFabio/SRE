@@ -1,10 +1,10 @@
-# Démarrage rapide - Reskilling SRE Lab
+# Démarrage rapide - Reskilling SRE
 
 ## 1. Prérequis
 
 - Docker Engine 20.10+ et Compose v2
 - 4 Go de RAM disponibles pour Docker
-- Ports libres : 3000, 4317, 8080-8085, 8089, 8090, 8889, 9090, 9093
+- Ports libres : 3000, 4317, 8080-8086, 8089, 8090, 8889, 9090, 9093
 
 ### Installer Docker
 
@@ -16,8 +16,8 @@ wsl --install -d Ubuntu
 
 Puis, dans la distribution WSL, suivre les instructions Linux ci-dessous.
 
-Avec Docker Desktop : activer l'integration WSL2 dans
-*Settings > Resources > WSL Integration*.
+Avec Docker Desktop : activer l'intégration WSL2 dans
+*Settings > Resources > WSL integration*.
 
 **Linux et WSL2 (Ubuntu/Debian)**
 
@@ -38,7 +38,7 @@ colima start
 
 Ou [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
-**Verifier**
+**Vérifier**
 
 ```bash
 docker --version
@@ -53,7 +53,7 @@ docker run --rm hello-world
 git clone https://github.com/MPFabio/SRE.git
 cd SRE
 
-# Démarrer le lab
+# Démarrer l'application fil rouge
 ./start.sh
 # ou
 make start
@@ -67,10 +67,10 @@ Première exécution : ~5 minutes (téléchargement des images)
 |-----------|-----|-------------|
 | Boutique CapShop | http://localhost:8080 | - |
 | Operations Console | http://localhost:8090 | - |
-| Grafana | http://localhost:3000 | admin / admin (modifiable dans .env) |
+| Grafana | http://localhost:3000 | admin / mot de passe affiché par `./start.sh` |
 | Prometheus | http://localhost:9090 | - |
 | Alertmanager | http://localhost:9093 | - |
-| Locust (generateur de trafic) | http://localhost:8089 | - |
+| Locust (générateur de trafic) | http://localhost:8089 | - |
 
 ## 4. Vérifier que tout fonctionne
 
@@ -78,21 +78,31 @@ Première exécution : ~5 minutes (téléchargement des images)
 make test
 ```
 
-## 5. Configuration (facultatif en local)
+Loki et Tempo mettent environ une minute à démarrer : s'ils sont en `FAIL`
+juste après `./start.sh`, relancez `make test` un peu plus tard.
+
+## 5. Configuration
+
+Au premier lancement, `./start.sh` crée le fichier `.env` à partir de
+`.env.example`, avec des valeurs aléatoires pour `POSTGRES_PASSWORD`,
+`JWT_SECRET` et `GRAFANA_ADMIN_PASSWORD`. Ce fichier reste sur le poste et
+n'est jamais commité.
+
+Pour imposer vos propres valeurs, créez-le avant le premier lancement :
 
 ```bash
 cp .env.example .env
 ```
 
-Les valeurs par defaut conviennent a un poste local. Pour un deploiement
-partage, y definir `POSTGRES_PASSWORD`, `JWT_SECRET` et
-`GRAFANA_ADMIN_PASSWORD`.
+Les mots de passe PostgreSQL et Grafana ne sont lus qu'à l'initialisation des
+volumes. Pour les changer ensuite : `make clean`, modifier `.env`, puis
+`make start`.
 
-## 6. Premier exercice : Déclencher un incident
+## 6. Premier exercice : déclencher un incident
 
 ```bash
 # Via l'interface
-# Ouvrez http://localhost:8090 et cliquez sur "Payment Latency"
+# Ouvrez http://localhost:8090 et cliquez sur "Latence élevée du service de paiement"
 
 # Ou via CLI
 make incident-payment
@@ -109,11 +119,11 @@ Observez l'impact dans :
 make incident-resolve
 ```
 
-## 8. Arrêter le lab
+## 8. Arrêter l'application fil rouge
 
 ```bash
-make stop          # arrete les conteneurs
-make clean         # arrete et supprime les volumes (base incluse)
+make stop          # arrête les conteneurs
+make clean         # arrête et supprime les volumes (base incluse)
 ```
 
 ## Commandes utiles
@@ -127,7 +137,7 @@ make urls          # Affiche toutes les URLs
 make test-purchase # Simule un achat
 make psql          # Shell PostgreSQL
 make db-stats      # Lignes par table
-make chaos-status  # Etat du chaos sur les 5 services
+make chaos-status  # État du chaos sur les 5 services
 ```
 
 ## Problèmes courants
@@ -147,7 +157,7 @@ make start  # Redémarre
 
 ### Mémoire insuffisante
 
-Conteneurs arretes en `OOMKilled` : augmenter la RAM allouee a Docker.
+Conteneurs arrêtés en `OOMKilled` : augmenter la RAM allouée à Docker.
 
 Sous WSL2, dans `%UserProfile%\.wslconfig` :
 
@@ -164,9 +174,9 @@ Puis `wsl --shutdown`.
 sudo service docker start
 ```
 
-Avec Docker Desktop : verifier que l'application est lancee.
+Avec Docker Desktop : vérifier que l'application est lancée.
 
-### Le build echoue
+### Le build échoue
 
 ```bash
 docker compose down --volumes
@@ -174,16 +184,16 @@ docker system prune --force
 ./start.sh
 ```
 
-### Un service ne se connecte pas a la base
+### Un service ne se connecte pas à la base
 ```bash
 curl http://localhost:8081/ready   # doit renvoyer "database":"up"
 docker compose logs postgres --tail 30
 ```
 
-### Le schema SQL a change
+### Le schéma SQL a changé
 ```bash
 docker compose down
-docker volume rm sre_postgres-data   # le schema est rejoue au demarrage
+docker volume rm sre_postgres-data   # le schéma est rejoué au démarrage
 make start
 ```
 

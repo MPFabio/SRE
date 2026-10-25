@@ -49,12 +49,19 @@ spec:
               value: http://payment-service:8084
             - name: USERS_SERVICE_URL
               value: http://users-service:8085
+            {{- with include "lab.learner" . | fromYaml }}
+            {{- if and .enabled .shop }}
+            - name: REVIEWS_SERVICE_URL
+              value: http://{{ .name }}:{{ .port }}
+            {{- end }}
+            {{- end }}
           readinessProbe:
             httpGet: { path: /ready, port: 8080 }
             initialDelaySeconds: 10
             periodSeconds: 10
+          # /health interroge chaque service : trop lent quand l'un d'eux tombe.
           livenessProbe:
-            httpGet: { path: /health, port: 8080 }
+            httpGet: { path: /ready, port: 8080 }
             initialDelaySeconds: 20
             periodSeconds: 20
           resources: {{- toYaml .Values.resources.gateway | nindent 12 }}
@@ -161,5 +168,9 @@ spec:
               value: {{ .Values.traffic.users | quote }}
             - name: LOCUST_SPAWN_RATE
               value: {{ .Values.traffic.spawnRate | quote }}
+            {{- with include "lab.learner" . | fromYaml }}
+            - name: REVIEWS_ENABLED
+              value: {{ and .enabled .shop | quote }}
+            {{- end }}
           resources: {{- toYaml .Values.resources.small | nindent 12 }}
 {{- end }}

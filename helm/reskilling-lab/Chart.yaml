@@ -1,6 +1,6 @@
 apiVersion: v2
 name: reskilling-lab
-description: Lab SRE CapShop, un deploiement par apprenant
+description: Application fil rouge SRE CapShop, un déploiement par apprenant
 type: application
 version: 1.0.0
 appVersion: "1.0.0"

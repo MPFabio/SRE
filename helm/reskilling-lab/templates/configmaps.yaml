@@ -6,6 +6,29 @@ metadata:
 data:
   prometheus.yml: |
 {{ .Files.Get "files/prometheus.yml" | indent 4 }}
+    {{- with include "lab.learner" . | fromYaml }}
+    {{- if .enabled }}
+
+      - job_name: {{ .name | quote }}
+        metrics_path: {{ .metricsPath }}
+        static_configs:
+          - targets: ['{{ .name }}:{{ .port }}']
+
+      - job_name: 'blackbox-{{ .name }}'
+        metrics_path: /probe
+        params:
+          module: [http_2xx]
+        static_configs:
+          - targets: ['http://{{ .name }}:{{ .port }}{{ .healthPath }}']
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: blackbox-exporter:9115
+    {{- end }}
+    {{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap

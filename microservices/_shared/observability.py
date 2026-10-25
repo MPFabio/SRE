@@ -12,11 +12,22 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - trace_id=%(trace_id)s - %(message)s"
+
+
+class TraceIdFilter(logging.Filter):
+    """Ajoute l'identifiant de la trace en cours : Grafana relie ainsi les logs aux traces."""
+
+    def filter(self, record):
+        context = trace.get_current_span().get_span_context()
+        record.trace_id = format(context.trace_id, "032x") if context.is_valid else "-"
+        return True
 
 
 def setup_telemetry(service_name: str, version: str = "1.0.0"):
     logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+    for handler in logging.getLogger().handlers:
+        handler.addFilter(TraceIdFilter())
     logger = logging.getLogger(service_name)
 
     resource = Resource(attributes={

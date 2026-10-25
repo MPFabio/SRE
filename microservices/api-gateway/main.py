@@ -23,7 +23,19 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.resources import Resource
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+class TraceIdFilter(logging.Filter):
+    """Ajoute l'identifiant de la trace en cours : Grafana relie ainsi les logs aux traces."""
+
+    def filter(self, record):
+        context = trace.get_current_span().get_span_context()
+        record.trace_id = format(context.trace_id, "032x") if context.is_valid else "-"
+        return True
+
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - trace_id=%(trace_id)s - %(message)s')
+for handler in logging.getLogger().handlers:
+    handler.addFilter(TraceIdFilter())
 logger = logging.getLogger("api-gateway")
 
 
@@ -83,6 +95,12 @@ SERVICES = {
     "users": os.getenv("USERS_SERVICE_URL", "http://users-service:8085"),
 }
 
+# Module fil rouge, branché seulement si son URL est fournie. Il reste hors de
+# SERVICES : sa panne ne doit pas dégrader le /health de la gateway.
+OPTIONAL_SERVICES = {
+    "reviews": os.getenv("REVIEWS_SERVICE_URL", ""),
+}
+
 async def proxy_request(
     service: str,
     path: str,
@@ -91,14 +109,22 @@ async def proxy_request(
     headers: dict = None,
     params: dict = None
 ):
-    if service not in SERVICES:
+    base_url = SERVICES.get(service) or OPTIONAL_SERVICES.get(service)
+    if not base_url:
         raise HTTPException(status_code=404, detail=f"Unknown service: {service}")
-    
-    url = f"{SERVICES[service]}{path}"
+
+    url = f"{base_url}{path}"
     
     start_time = time.time()
     ACTIVE_REQUESTS.inc()
-    
+    counted = False
+
+    def record_failure(status: int):
+        UPSTREAM_ERRORS.labels(service=service).inc()
+        if not counted:
+            REQUEST_COUNT.labels(method=method, service=service, status=status).inc()
+            REQUEST_LATENCY.labels(method=method, service=service).observe(time.time() - start_time)
+
     try:
         request_headers = {}
         if headers:
@@ -120,6 +146,7 @@ async def proxy_request(
         duration = time.time() - start_time
         REQUEST_COUNT.labels(method=method, service=service, status=response.status_code).inc()
         REQUEST_LATENCY.labels(method=method, service=service).observe(duration)
+        counted = True
 
         payload = response.json() if response.content else None
 
@@ -140,13 +167,13 @@ async def proxy_request(
 
         raise
     except httpx.TimeoutException:
-        UPSTREAM_ERRORS.labels(service=service).inc()
+        record_failure(504)
         raise HTTPException(status_code=504, detail=f"Service {service} timeout")
     except httpx.ConnectError:
-        UPSTREAM_ERRORS.labels(service=service).inc()
+        record_failure(503)
         raise HTTPException(status_code=503, detail=f"Service {service} unavailable")
     except Exception as e:
-        UPSTREAM_ERRORS.labels(service=service).inc()
+        record_failure(500)
         logger.error(f"Error proxying to {service}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -199,6 +226,21 @@ async def get_product(product_id: int):
 async def check_stock(product_id: int, quantity: int = 1):
     with tracer.start_as_current_span("gateway_check_stock"):
         return await proxy_request("catalog", f"/api/products/{product_id}/stock", params={"quantity": quantity})
+
+@app.get("/api/features")
+async def get_features():
+    return {"reviews": bool(OPTIONAL_SERVICES["reviews"])}
+
+@app.get("/api/reviews/{product_id}")
+async def get_reviews(product_id: int):
+    with tracer.start_as_current_span("gateway_get_reviews"):
+        return await proxy_request("reviews", f"/api/reviews/{product_id}")
+
+@app.post("/api/reviews/{product_id}")
+async def create_review(product_id: int, request: Request):
+    with tracer.start_as_current_span("gateway_create_review"):
+        body = await request.json()
+        return await proxy_request("reviews", f"/api/reviews/{product_id}", method="POST", body=body)
 
 @app.get("/api/categories")
 async def get_categories():

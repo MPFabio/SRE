@@ -1,30 +1,26 @@
 image:
   registry: ""
   tag: latest
-  pullPolicy: IfNotPresent
-
-ingress:
-  enabled: true
-  className: alb
-  host: ""
-  annotations: {}
+  pullPolicy: Always
+  publicRegistry: ""
 
 postgres:
   user: capshop
   database: capshop
-  password: capshop-lab-local-dev-only
+  password: ""
   maxConnections: 50
+  persistence: false
   storage: 2Gi
   storageClass: ""
 
 redis:
   maxMemory: 100mb
 
-jwtSecret: reskilling-lab-local-dev-only-9f3a7c2e1b
+jwtSecret: ""
 
 grafana:
   adminUser: admin
-  adminPassword: admin
+  adminPassword: ""
 
 db:
   poolMin: 1
@@ -34,6 +30,30 @@ retention:
   prometheus: 15d
   prometheusSize: 4GB
   loki: 168h
+
+isolation:
+  networkPolicy:
+    enabled: true
+    extraIngressNamespaces: []
+    allowExternalEgress: false
+
+  resourceQuota:
+    enabled: false
+    requestsMemory: 3Gi
+    limitsMemory: 8Gi
+    requestsCpu: "1"
+    limitsCpu: "18"
+    pods: 30
+    pvcs: 4
+
+  limitRange:
+    enabled: false
+    defaultRequestMemory: 64Mi
+    defaultRequestCpu: 10m
+    defaultMemory: 256Mi
+    defaultCpu: 500m
+    maxMemory: 1Gi
+    maxCpu: "2"
 
 persistence:
   prometheus:
@@ -51,6 +71,23 @@ traffic:
   enabled: true
   users: 10
   spawnRate: 1
+
+# Module fil rouge développé par l'apprenant (Go, Python ou autre).
+# Seules conditions : une image, un port HTTP et une route de santé.
+learnerService:
+  enabled: false
+  name: reviews-service
+  image: ""
+  port: 8086
+  replicas: 1
+  healthPath: /health
+  metricsPath: /metrics
+  database: false
+  imagePullSecret: ""
+  env: {}
+  # Affiche les avis dans la boutique : seulement pour une API compatible
+  # avec l'exemple reviews-service (GET et POST /api/reviews/{product_id}).
+  shop: false
 
 resources:
   microservice:

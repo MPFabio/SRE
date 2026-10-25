@@ -2,6 +2,7 @@ from .observability import (setup_telemetry, setup_app,
                             register_metrics_middleware)
 from .chaos import ChaosController, ChaosConfig
 from .ops import register_ops_endpoints
+from .db import Database
 
 __all__ = [
     "setup_telemetry",
@@ -10,8 +11,5 @@ __all__ = [
     "ChaosController",
     "ChaosConfig",
     "register_ops_endpoints",
+    "Database",
 ]
-
-from .db import Database
-
-__all__.append("Database")

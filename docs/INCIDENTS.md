@@ -1,4 +1,4 @@
-# Guide Incidents et Post-Mortems - Reskilling Lab
+# Guide Incidents et Post-Mortems - Reskilling SRE
 
 Ce guide détaille le workflow de gestion d'incidents et la rédaction de post-mortems.
 
@@ -12,25 +12,29 @@ L'Operations Console (http://localhost:8090) est l'interface centrale pour :
 
 ## Scénarios d'incidents disponibles
 
-### 1. Payment Service Latency (P1)
+Chaque scénario est livré avec des témoignages fictifs. Ils donnent des
+pistes, pas des faits : confrontez-les aux métriques, certains se trompent.
 
-**Déclencheur** : Ajoute 2-5 secondes de latence artificielle au service de paiement.
+### 1. Latence élevée du service de paiement (P1)
+
+**Déclencheur** : ajoute 3 secondes à l'appel au prestataire de paiement externe.
 
 **Impact utilisateur** :
-- Checkouts extrêmement lents
-- Timeouts possibles
-- Circuit breaker peut s'ouvrir → échecs de paiement
+- Chaque achat prend plus de 3 secondes
+- La navigation et le panier ne sont pas touchés
 
 **Signaux à observer** :
-- Prometheus : `histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[1m])))`
+- Prometheus : `histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket{endpoint="/api/payments"}[1m])))`
+- Alertes : `PaymentServiceHighLatency`, `HighLatencyP99Orders`
 - Loki : `{job="payment-service"} |~ "(?i)(slow|timeout|error)"`
-- Tempo : Traces avec spans payment > 2s
+- Tempo : traces dont le span `process_payment` dépasse 3 s
+- Le circuit breaker reste fermé : il ne s'ouvre que sur des erreurs
 
-**Résolution** : Via Operations Console ou `make chaos-stop`
+**Résolution** : Via l'Operations Console (*Mark Resolved*)
 
-### 2. Catalog Service Errors (P2)
+### 2. Erreurs 500 sur le service Catalogue (P2)
 
-**Déclencheur** : Injecte 30% d'erreurs 500 dans le service catalog.
+**Déclencheur** : 30 % d'erreurs 500 sur catalog-service.
 
 **Impact utilisateur** :
 - Produits qui ne s'affichent pas
@@ -39,63 +43,69 @@ L'Operations Console (http://localhost:8090) est l'interface centrale pour :
 
 **Signaux à observer** :
 - Prometheus : `sum(rate(catalog_requests_total{status="500"}[1m]))`
+- Alertes : `HighErrorRate`, `CriticalErrorRate` sur catalog
 - Loki : `{job="catalog-service"} |~ " 500 |(?i)error"`
-- Grafana : Dashboard avec taux d'erreur > 30%
+- Grafana : disponibilité en baisse sur *SRE Overview*
 
-**Résolution** : Via Operations Console ou `make chaos-stop`
+**Résolution** : Via l'Operations Console (*Mark Resolved*)
 
-### 3. Database Saturation (P1)
+### 3. Saturation de la base de données (P1)
 
-**Déclencheur** : Sature le pool de connexions PostgreSQL des services
-persistants (catalog, orders, users).
-
-**Impact utilisateur** :
-- Latence en hausse sur la navigation produits et le parcours de commande
-- Erreurs 500 quand le pool ne rend plus de connexion
-- La boutique reste affichée : le panier est sur Redis, donc la panne est
-  **partielle**, ce qui la rend plus difficile à diagnostiquer
-
-**Signaux à observer** :
-- Prometheus : `db_pool_idle` à zéro, `db_query_duration_seconds` en hausse
-- `/ready` renvoie 503 sur les services concernés (`/health` reste à 200)
-- Loki : erreurs de pool et de timeout
-- Tempo : spans `db.*` qui dominent la durée totale
-
-**Résolution** : Via Operations Console ou `make chaos-stop`
-
-**Runbook détaillé** : [database-saturation.md](runbooks/database-saturation.md)
-
-### 4. Cart Service OOMKilled (P2)
-
-**Déclencheur** : Simule un crash du service cart par manque de mémoire.
+**Déclencheur** : simule une base surchargée, vue depuis catalog-service :
++2 s sur chaque requête et 20 % d'erreurs 500.
 
 **Impact utilisateur** :
-- Impossible d'ajouter au panier
-- Panier perdu
-- Conversion bloquée
+- Navigation produits lente, erreurs intermittentes
+- Ajout au panier et commande ralentis : cart et orders interrogent catalog
+- La boutique reste affichée : la panne est **partielle**, ce qui la rend
+  plus difficile à diagnostiquer
 
 **Signaux à observer** :
-- Prometheus : `up{job="cart-service"} == 0`
-- Loki : `{job="cart-service"} |= "OOMKilled"`
-- Docker : `docker compose ps cart-service`
+- Alertes : `CriticalLatencyP99`, `HighErrorRate` et `CriticalErrorRate` sur catalog
+- Prometheus : `histogram_quantile(0.99, sum by (le) (rate(catalog_request_duration_seconds_bucket[5m])))`
+- Tempo : les spans de catalog-service durent plus de 2 s
+- Côté base, `db_pool_idle`, `db_query_duration_seconds` et
+  `pg_stat_database_numbackends` restent normaux : les témoignages (CPU à
+  98 %, I/O saturées) ne sont pas confirmés par les métriques
 
-**Résolution** : `docker compose restart cart-service`
+**Résolution** : Via l'Operations Console (*Mark Resolved*)
 
-### 5. Authentication Failures (P1)
+**Runbook** : [database-saturation.md](runbooks/database-saturation.md), pour
+vérifier l'état réel du pool et de la base.
 
-**Déclencheur** : Fait échouer 90% des authentifications.
+### 4. Service Panier indisponible (P2)
+
+**Déclencheur** : 80 % d'erreurs 500 sur cart-service.
 
 **Impact utilisateur** :
-- Impossible de se connecter
-- Impossible de passer commande
-- Site inutilisable pour les utilisateurs authentifiés
+- Ajouts au panier et consultation du panier en échec la plupart du temps
+- Commandes refusées : orders ne parvient pas à lire le panier et répond
+  « panier vide » (400)
 
 **Signaux à observer** :
-- Prometheus : `rate(users_login_attempts_total{result="wrong_password"}[1m])`
-- Loki : `{job="users-service"} |~ " 401 "`
-- Tempo : Traces avec erreurs 401
+- Prometheus : `sum by (status) (rate(cart_requests_total[1m]))`
+- Alertes : `HighErrorRate`, `CriticalErrorRate` sur cart
+- Loki : `{job="cart-service"} |= "Unhandled exception"`
+- Kubernetes : le pod reste `Running` et prêt. Le témoignage qui parle
+  d'OOMKilled ne résiste pas à `kubectl get pods -l app=cart-service`
 
-**Résolution** : Via Operations Console
+**Résolution** : Via l'Operations Console (*Mark Resolved*)
+
+### 5. Échecs d'authentification utilisateurs (P1)
+
+**Déclencheur** : 90 % d'erreurs 500 sur users-service.
+
+**Impact utilisateur** :
+- Connexion et pages de compte en échec
+- La boutique n'a pas de compte client : navigation, panier et commandes
+  ne sont pas touchés
+
+**Signaux à observer** :
+- Prometheus : `sum by (status) (rate(users_requests_total[1m]))`
+- Alertes : `HighErrorRate`, `CriticalErrorRate` sur users
+- Loki : `{job="users-service"} |~ " 500 "`
+
+**Résolution** : Via l'Operations Console (*Mark Resolved*)
 
 ## Workflow d'incident
 
@@ -211,7 +221,9 @@ persistants (catalog, orders, users).
 
 ### Structure du Post-Mortem
 
-L'Operations Console génère automatiquement un template avec :
+L'Operations Console génère un squelette : impact, durée, services
+touchés, timeline, participants et pistes des témoins. Le reste est à
+rédiger (voir le bonus 3.5). Un post-mortem complet suit cette structure :
 
 #### 1. Résumé exécutif
 - Date et durée de l'incident
@@ -268,13 +280,15 @@ Description technique de ce qui s'est passé :
 
 ### Rapports de témoins
 
-L'Operations Console génère automatiquement des "rapports de témoins" simulés lors du déclenchement d'un incident. Ces rapports contiennent :
+L'Operations Console génère des "rapports de témoins" simulés lors du déclenchement d'un incident. Chaque rapport contient :
 
-- Observations de différents rôles (Dev, Ops, Support)
-- Timestamps des actions
-- Captures des métriques/logs
+- L'observation d'un rôle (développeur, SRE, DBA, DevOps)
+- Une chronologie de ce qu'il a vu et fait
+- La cause qu'il soupçonne et les actions qu'il a menées
 
-Ces rapports servent de base pour reconstruire la timeline du post-mortem.
+Ces rapports aident à reconstruire la timeline du post-mortem, mais ils ne
+disent pas toujours vrai : vérifiez chaque affirmation dans les métriques,
+les logs et les traces.
 
 ## Identification du Toil
 
@@ -287,32 +301,32 @@ Le toil est un travail :
 - **Tactique** : Sans valeur durable
 - **Scalant** : Augmente avec la charge
 
-### Toil identifié dans le lab
+### Toil identifié dans l'application fil rouge
 
-L'Operations Console (onglet "Automation") identifie automatiquement :
+L'Operations Console (onglet "Automation") liste cinq tâches, toutes
+répétées à chaque incident :
 
 | Tâche | Fréquence | Temps/occurrence |
 |-------|-----------|------------------|
-| Restart pods crashés | 5x/jour | 5 min |
-| Vérification logs | 10x/jour | 2 min |
-| Reset circuit breaker | 3x/jour | 3 min |
-| Collecte métriques manuelles | 2x/jour | 10 min |
-| Notification stakeholders | Par incident | 15 min |
+| Restart manuel des pods en CrashLoopBackOff | Par incident | 15 min |
+| Vérification manuelle des logs après incident | Par incident | 30 min |
+| Reset manuel du circuit breaker | Par incident | 5 min |
+| Collecte des métriques pour le post-mortem | Par incident | 20 min |
+| Notification des stakeholders | Par incident | 10 min |
 
 ### Priorisation
 
 **Score de priorité** = Fréquence × Temps × Facilité d'automatisation
 
-Exemple :
-- Restart pods : 5 × 5 × 0.9 = 22.5 → Haute priorité
-- Notification : 0.5 × 15 × 0.7 = 5.25 → Moyenne priorité
+Exemple avec 3 incidents par semaine :
+- Collecte des métriques : 3 × 20 × 0.9 = 54 → Haute priorité
+- Reset du circuit breaker : 3 × 5 × 1 = 15 → Basse priorité
 
 ### Automatisation
 
-Pour chaque toil identifié, l'Operations Console suggère :
-- Script d'automatisation
-- Estimation du temps gagné
-- Complexité d'implémentation
+Pour chaque tâche, l'Operations Console propose une piste
+d'automatisation. Le bouton **Automate** la marque comme automatisée et
+calcule le temps gagné sur les incidents passés.
 
 ## Métriques SRE
 

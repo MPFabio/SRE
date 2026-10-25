@@ -20,7 +20,7 @@ services:
     container_name: postgres
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-capshop}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-capshop-lab-local-dev-only}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?absent, lancez ./start.sh}
       - POSTGRES_DB=${POSTGRES_DB:-capshop}
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -42,7 +42,7 @@ services:
     image: prometheuscommunity/postgres-exporter:v0.20.1
     container_name: postgres-exporter
     environment:
-      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:-capshop-lab-local-dev-only}@postgres:5432/${POSTGRES_DB:-capshop}?sslmode=disable
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:?absent, lancez ./start.sh}@postgres:5432/${POSTGRES_DB:-capshop}?sslmode=disable
     depends_on:
       - postgres
     mem_limit: 128m
@@ -67,6 +67,7 @@ services:
       - ORDERS_SERVICE_URL=http://orders-service:8083
       - PAYMENT_SERVICE_URL=http://payment-service:8084
       - USERS_SERVICE_URL=http://users-service:8085
+      - REVIEWS_SERVICE_URL=http://reviews-service:8086
       - ENVIRONMENT=development
     depends_on:
       - catalog-service
@@ -96,7 +97,10 @@ services:
       - PORT=8081
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:-capshop-lab-local-dev-only}@postgres:5432/${POSTGRES_DB:-capshop}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:?absent, lancez ./start.sh}@postgres:5432/${POSTGRES_DB:-capshop}
+      - DB_POOL_MIN=${DB_POOL_MIN:-1}
+      - DB_POOL_MAX=${DB_POOL_MAX:-10}
+      - DB_TIMEOUT=${DB_TIMEOUT:-5}
     depends_on:
       postgres:
         condition: service_healthy
@@ -153,7 +157,10 @@ services:
       - PAYMENT_SERVICE_URL=http://payment-service:8084
       - CATALOG_SERVICE_URL=http://catalog-service:8081
       - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:-capshop-lab-local-dev-only}@postgres:5432/${POSTGRES_DB:-capshop}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:?absent, lancez ./start.sh}@postgres:5432/${POSTGRES_DB:-capshop}
+      - DB_POOL_MIN=${DB_POOL_MIN:-1}
+      - DB_POOL_MAX=${DB_POOL_MAX:-10}
+      - DB_TIMEOUT=${DB_TIMEOUT:-5}
     depends_on:
       postgres:
         condition: service_healthy
@@ -208,9 +215,12 @@ services:
     environment:
       - PORT=8085
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
-      - JWT_SECRET=${JWT_SECRET:-reskilling-lab-local-dev-only-9f3a7c2e1b}
+      - JWT_SECRET=${JWT_SECRET:?absent, lancez ./start.sh}
       - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:-capshop-lab-local-dev-only}@postgres:5432/${POSTGRES_DB:-capshop}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:?absent, lancez ./start.sh}@postgres:5432/${POSTGRES_DB:-capshop}
+      - DB_POOL_MIN=${DB_POOL_MIN:-1}
+      - DB_POOL_MAX=${DB_POOL_MAX:-10}
+      - DB_TIMEOUT=${DB_TIMEOUT:-5}
     depends_on:
       postgres:
         condition: service_healthy
@@ -223,6 +233,25 @@ services:
       retries: 3
     mem_limit: 256m
     cpus: 1.0
+    networks:
+      - sre-network
+
+  # Module fil rouge d'exemple (version Go, étape 3) : avis produits
+  reviews-service:
+    build: ./fil-rouge/reviews-service/go/3-traces
+    container_name: reviews-service
+    ports:
+      - "8086:8086"
+    environment:
+      - PORT=8086
+      - SERVICE_NAME=reviews-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - CATALOG_SERVICE_URL=http://catalog-service:8081
+    depends_on:
+      - otel-collector
+      - catalog-service
+    mem_limit: 128m
+    cpus: 0.5
     networks:
       - sre-network
 
@@ -240,7 +269,7 @@ services:
       - CART_SERVICE_URL=http://cart-service:8082
       - ORDERS_SERVICE_URL=http://orders-service:8083
       - USERS_SERVICE_URL=http://users-service:8085
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:-capshop-lab-local-dev-only}@postgres:5432/${POSTGRES_DB:-capshop}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-capshop}:${POSTGRES_PASSWORD:?absent, lancez ./start.sh}@postgres:5432/${POSTGRES_DB:-capshop}
     depends_on:
       postgres:
         condition: service_healthy
@@ -356,7 +385,7 @@ services:
     container_name: grafana
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?absent, lancez ./start.sh}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -404,6 +433,7 @@ services:
       - LOCUST_USERS=10
       - LOCUST_SPAWN_RATE=1
       - LOCUST_WEB=true
+      - REVIEWS_ENABLED=true
     ports:
       - "8089:8089"
     depends_on:

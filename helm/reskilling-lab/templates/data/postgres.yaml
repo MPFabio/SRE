@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          image: {{ include "lab.publicImage" (list $ "postgres:16-alpine") }}
           args:
             - postgres
             - -c
@@ -67,6 +67,11 @@ spec:
         - name: init
           configMap:
             name: postgres-init
+        {{- if not .Values.postgres.persistence }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  {{- if .Values.postgres.persistence }}
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -78,3 +83,4 @@ spec:
         resources:
           requests:
             storage: {{ .Values.postgres.storage }}
+  {{- end }}

@@ -1,10 +1,10 @@
-# Guide Observabilité - Reskilling Lab
+# Guide Observabilité - Reskilling SRE
 
-Ce guide détaille l'utilisation des outils d'observabilité du lab.
+Ce guide détaille l'utilisation des outils d'observabilité de l'application fil rouge.
 
 ## Vue d'ensemble
 
-Le lab utilise la stack **Grafana** pour l'observabilité :
+L'application fil rouge utilise la stack **Grafana** pour l'observabilité :
 
 | Outil | Port | Rôle |
 |-------|------|------|
@@ -33,13 +33,13 @@ sum by (service) (rate(gateway_requests_total[5m]))
 # Requêtes totales d'un service donné (exemple : catalog)
 catalog_requests_total{status="200"}
 
-# Latence (histogramme), exemple sur le service payment
+# Latence (histogram), exemple sur le service payment
 payment_request_duration_seconds_bucket
 payment_request_duration_seconds_sum
 payment_request_duration_seconds_count
 ```
 
-Chaque service possède son propre préfixe : `gateway_*`, `catalog_*`, `cart_*`, `orders_*`, `payment_*`, `users_*`. Il n'existe pas de métrique générique `http_requests_total`.
+Chaque service possède son propre préfixe : `gateway_*`, `catalog_*`, `cart_*`, `orders_*`, `payment_*`, `users_*`. Les services de CapShop n'ont pas de métrique générique `http_requests_total` ; votre module peut en avoir une, comme l'exemple `reviews-service`.
 
 #### Métriques métier
 
@@ -67,13 +67,13 @@ pool partagé `_shared/db.py` :
 db_pool_size
 db_pool_idle
 
-# Connexions reellement occupees
+# Connexions réellement occupées
 db_pool_size - db_pool_idle
 
-# Latence des requetes, par operation
+# Latence des requêtes, par opération
 histogram_quantile(0.99, sum by (le, operation) (rate(db_query_duration_seconds_bucket[5m])))
 
-# Erreurs de requete
+# Erreurs de requête
 rate(db_query_errors_total[5m])
 ```
 
@@ -101,7 +101,7 @@ Voir [le runbook](runbooks/database-saturation.md).
 # État du circuit breaker (0=closed, 1=open, 2=half-open)
 circuit_breaker_state
 
-# Latence du provider de paiement externe (histogramme)
+# Latence du provider de paiement externe (histogram)
 histogram_quantile(0.99, rate(external_payment_provider_latency_seconds_bucket[5m]))
 
 # Erreurs du provider externe
@@ -115,10 +115,11 @@ rate(external_payment_provider_errors_total[5m])
 100 * sum(rate(gateway_requests_total{status=~"5.."}[5m])) 
     / sum(rate(gateway_requests_total[5m]))
 
-# Latence P50, P90, P99 (exemple : service payment)
-histogram_quantile(0.50, sum by (le) (rate(payment_request_duration_seconds_bucket[5m])))
-histogram_quantile(0.90, sum by (le) (rate(payment_request_duration_seconds_bucket[5m])))
-histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[5m])))
+# Latence P50, P90, P99 des paiements (sans les health checks ni /metrics,
+# bien plus nombreux que les paiements)
+histogram_quantile(0.50, sum by (le) (rate(payment_request_duration_seconds_bucket{endpoint="/api/payments"}[5m])))
+histogram_quantile(0.90, sum by (le) (rate(payment_request_duration_seconds_bucket{endpoint="/api/payments"}[5m])))
+histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket{endpoint="/api/payments"}[5m])))
 
 # Requêtes par service
 sum by (service) (rate(gateway_requests_total[5m]))
@@ -129,12 +130,11 @@ topk(5, sum by (service) (rate(gateway_requests_total{status=~"5.."}[5m])))
 
 ### Règles d'alertes
 
-Les alertes sont définies dans `observability/prometheus/rules/sre_rules.yml` :
-
-- `HighErrorRate` : Taux d'erreur > 5%
-- `HighLatency` : P99 > 1s
-- `ServiceDown` : Service ne répond plus
-- `CircuitBreakerOpen` : Circuit breaker ouvert
+Les règles sont dans la ConfigMap `prometheus-rules`, générée depuis
+`helm/reskilling-lab/files/sre_rules.yml` (copie pour le mode local :
+`observability/prometheus/rules/sre_rules.yml`). Les principales sont
+décrites dans la section [Alertmanager](#5-alertmanager) ; la liste
+complète est sur http://localhost:9090/alerts.
 
 ## 2. Loki - Logs
 
@@ -153,7 +153,7 @@ Via Grafana uniquement : Explore → Loki
 # Plusieurs services
 {job=~"payment-service|orders-service"}
 
-# Par service (label "service" alimenté par Promtail via Docker labels)
+# Par service (label "service" alimenté par Promtail à partir du chemin des fichiers de logs)
 {service="api-gateway"}
 ```
 
@@ -172,9 +172,12 @@ Via Grafana uniquement : Explore → Loki
 
 #### Format des logs
 
-Les logs sont des access logs uvicorn en texte brut (pas de JSON), par exemple :
+Les logs sont en texte brut (pas de JSON). Deux formats coexistent : les
+access logs d'uvicorn, une ligne par requête, et les logs applicatifs, qui
+portent l'identifiant de leur trace :
 ```
 INFO:     172.23.0.15:36068 - "GET /api/products HTTP/1.1" 200 OK
+2026-10-24 21:35:39,110 - catalog-service - INFO - trace_id=be8a71449096822671177d4574f05da7 - Returned product 15: Thunderbolt 3 Dock
 ```
 
 ```logql
@@ -229,18 +232,15 @@ Si vous avez un TraceID (depuis les logs ou une erreur), collez-le directement d
 
 ### Anatomie d'une trace
 
-Une trace représente une requête de bout en bout :
+Une trace représente une requête de bout en bout. Celle d'un achat :
 
 ```
-[api-gateway] ─── 150ms ───┐
-                           │
-    [catalog-service] ─ 45ms
-    [cart-service] ─── 30ms ───┐
-                               │
-        [redis] ─ 5ms
-    [orders-service] ── 60ms ──┐
-                               │
-        [payment-service] ─ 40ms
+[api-gateway]      POST /api/orders                       258 ms
+  [orders-service]   create_order                         250 ms
+    [cart-service]     GET /api/cart/{user_id}              2 ms
+    [payment-service]  POST /api/payments                 179 ms
+    [catalog-service]  POST /api/products/{id}/reserve      4 ms
+    [cart-service]     DELETE /api/cart/{user_id}           3 ms
 ```
 
 Chaque **span** contient :
@@ -252,57 +252,100 @@ Chaque **span** contient :
 
 ### Corrélation logs ↔ traces
 
-1. Dans Loki, trouvez un log intéressant
-2. Si le log contient un `trace_id`, cliquez dessus
-3. Grafana ouvre automatiquement Tempo avec cette trace
+Les logs applicatifs des services portent l'identifiant de leur trace
+(`trace_id=...`). Les access logs d'uvicorn (`"GET /api/products HTTP/1.1"
+200`) n'en ont pas.
 
-### Corrélation traces ↔ métriques
+1. Dans Loki, dépliez une ligne de log qui contient `trace_id=`
+2. Le champ **TraceID** propose un lien vers Tempo
+3. Grafana ouvre la trace correspondante
 
-1. Dans Tempo, identifiez un service problématique
-2. Cliquez sur "Metrics" pour voir les métriques associées
-3. Analysez la corrélation latence/erreurs
+Dans l'autre sens, depuis une trace dans Tempo, le bouton **Logs for this
+span** affiche les logs du service qui portent cet identifiant.
+
+### Carte des services
+
+Explore → Tempo, onglet **Service Graph** : Tempo calcule les appels entre
+services à partir des traces (métriques `traces_service_graph_*` dans
+Prometheus), avec leur débit et leurs erreurs.
 
 ## 4. Grafana - Dashboards
 
 ### Connexion
 
 - URL : http://localhost:3000
-- Login : admin / admin
+- Login : `admin`, mot de passe stocké dans le secret de l'application fil rouge :
+
+```bash
+kubectl get secret lab-secrets --output jsonpath='{.data.GRAFANA_ADMIN_PASSWORD}' | base64 --decode
+```
 
 ### Dashboard "SRE Overview"
 
-Le dashboard principal contient :
+Menu de gauche, **Dashboards**, puis **SRE Overview**. Il contient :
 
-1. **Golden Signals**
-   - Latence (P50, P90, P99)
-   - Traffic (req/s)
-   - Erreurs (%)
-   - Saturation (CPU, mémoire)
+| Panel | Type | Contenu |
+|---|---|---|
+| Availability | Stat | Disponibilité globale vue par la gateway |
+| P99 Latency | Stat | Latence P99 globale |
+| Circuit Breaker | Stat | État du circuit breaker du paiement |
+| Active Incidents | Stat | Incidents en cours dans l'Operations Console |
+| Request Rate by Service | Time series | Requêtes par seconde, par service |
+| Latency by Service (P95) | Time series | Latence P95, par service |
+| Error Budget Remaining | Gauge | Budget d'erreur restant |
+| Requests by Status Code | Time series | Requêtes par code HTTP |
 
-2. **Service Health**
-   - Status par service
-   - Requêtes par seconde
-   - Taux d'erreur
+Il ne montre ni P50 et P90, ni taux d'erreur en pourcentage, ni logs :
+c'est l'objet du bonus 2.4.
 
-3. **Alertes actives**
+### Modifier le dashboard
 
-### Créer un nouveau dashboard
+Vous pouvez modifier le dashboard fourni, ou travailler sur une copie :
+**Save dashboard** → **Save as copy**, avec le nom `Reskilling Overview`.
+Selon la version de Grafana, la copie se trouve aussi dans le menu ⋮ ou
+**Settings** → **Save as**.
 
-1. **+** → **Dashboard** → **Add visualization**
-2. Sélectionner la datasource (Prometheus, Loki, Tempo)
-3. Écrire la requête
-4. Configurer la visualisation
-5. Sauvegarder
+Pour ajouter un panel :
 
-### Exemple : Panel de latence
+1. **Add** → **Visualization**
+2. Choisir la source de données (Prometheus pour les métriques, Loki pour
+   les logs)
+3. Passer l'éditeur en **Code** et coller la requête
+4. Choisir le type de visualisation dans le panneau de droite (Time
+   series, Gauge, Stat, Logs)
+5. Régler le titre, l'unité (**Standard options** → **Unit**) et les seuils
+   (**Thresholds**) dans le même panneau
+6. **Back to dashboard**, puis **Save dashboard**
 
-```yaml
-Type: Time series
-Datasource: Prometheus
-Query: histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[5m])))
-Legend: P99 Latency
-Unit: seconds
-Thresholds: 0.5 (yellow), 1 (red)
+### Requêtes pour le bonus 2.4
+
+**Latence P50, P90, P99 par service** (Time series, unité *seconds*) : une
+requête par quantile, avec **Add query**. Dans **Options** → **Legend**,
+mettre `{{service}} P99` pour distinguer les courbes.
+
+```promql
+histogram_quantile(0.50, sum by (le, service) (rate(gateway_request_duration_seconds_bucket[5m])))
+histogram_quantile(0.90, sum by (le, service) (rate(gateway_request_duration_seconds_bucket[5m])))
+histogram_quantile(0.99, sum by (le, service) (rate(gateway_request_duration_seconds_bucket[5m])))
+```
+
+**Taux d'erreur** (Gauge, unité *Percent (0-100)*, seuils : vert de base,
+orange à 1, rouge à 5) :
+
+```promql
+100 * sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests_total[5m]))
+```
+
+**Trafic total** (Stat, unité *requests/sec*) :
+
+```promql
+sum(rate(gateway_requests_total[5m]))
+```
+
+**Logs d'erreur récents** (Logs, source Loki) :
+
+```logql
+{job=~"api-gateway|.+-service"} |~ "(?i)error| 5[0-9]{2} "
 ```
 
 ## 5. Alertmanager
@@ -315,10 +358,18 @@ http://localhost:9093
 
 | Alerte | Condition | Sévérité |
 |--------|-----------|----------|
-| HighErrorRate | Erreurs > 5% pendant 5min | warning |
-| HighLatency | P99 > 1s pendant 5min | warning |
-| ServiceDown | 0 requêtes pendant 2min | critical |
-| CircuitBreakerOpen | Circuit ouvert | critical |
+| HighErrorRate | 5xx > 1 % d'un service, vu de la gateway, pendant 2 min | warning |
+| CriticalErrorRate | 5xx > 5 % pendant 1 min | critical |
+| HighLatencyP99 | P99 > 500 ms pendant 2 min (hors orders) | warning |
+| HighLatencyP99Orders | P99 des commandes > 1,5 s pendant 2 min | warning |
+| CriticalLatencyP99 | P99 > 1 s pendant 1 min (hors orders) | critical |
+| PaymentServiceHighLatency | P95 des paiements > 1 s pendant 2 min | warning |
+| CircuitBreakerOpen | Circuit breaker du paiement ouvert | critical |
+| ServiceDown | Target Prometheus injoignable (`up == 0`) pendant 1 min | critical |
+| EndpointDown | Probe Blackbox en échec pendant 1 min | critical |
+| ErrorBudgetFastBurn | Budget d'erreur consommé 14,4 fois trop vite (1 h) | critical |
+| DatabaseDown | PostgreSQL injoignable pendant 1 min | critical |
+| DatabasePoolExhausted | Pool de connexions saturé pendant 3 min | critical |
 
 ### Silencer une alerte
 
@@ -376,7 +427,7 @@ probe_http_status_code
 
 - Utiliser des labels pour filtrer au maximum
 - Limiter les time ranges (éviter `[30d]`)
-- Utiliser `rate()` plutôt que des compteurs bruts
+- Utiliser `rate()` plutôt que des counters bruts
 - Agréger avec `sum by ()` pour réduire la cardinalité
 
 ### Dashboards efficaces

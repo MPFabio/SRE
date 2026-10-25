@@ -46,9 +46,9 @@ spec:
         fsGroup: 65534
       containers:
         - name: prometheus
-          image: prom/prometheus:v2.48.0
+          image: {{ include "lab.publicImage" (list $ "prom/prometheus:v2.48.0") }}
           args:
-            - --config.file=/etc/prometheus/prometheus.yml
+            - --config.file=/etc/prometheus/config/prometheus.yml
             - --storage.tsdb.path=/prometheus
             - --storage.tsdb.retention.time={{ .Values.retention.prometheus }}
             - --storage.tsdb.retention.size={{ .Values.retention.prometheusSize }}
@@ -57,7 +57,7 @@ spec:
           ports:
             - containerPort: 9090
           volumeMounts:
-            - { name: config, mountPath: /etc/prometheus/prometheus.yml, subPath: prometheus.yml }
+            - { name: config, mountPath: /etc/prometheus/config }
             - { name: rules,  mountPath: /etc/prometheus/rules }
             - { name: data,   mountPath: /prometheus }
           readinessProbe:
@@ -106,7 +106,7 @@ spec:
     spec:
       containers:
         - name: alertmanager
-          image: prom/alertmanager:v0.34.1
+          image: {{ include "lab.publicImage" (list $ "prom/alertmanager:v0.34.1") }}
           args:
             - --config.file=/etc/alertmanager/alertmanager.yml
             - --storage.path=/alertmanager
@@ -152,7 +152,7 @@ spec:
         fsGroup: 472
       containers:
         - name: grafana
-          image: grafana/grafana:10.2.2
+          image: {{ include "lab.publicImage" (list $ "grafana/grafana:10.2.2") }}
           ports:
             - containerPort: 3000
           env:

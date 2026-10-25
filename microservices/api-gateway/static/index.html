@@ -178,15 +178,6 @@
             text-align: center;
         }
         
-        .hero-eyebrow {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin-bottom: 16px;
-        }
-        
         .hero h1 {
             font-family: 'Instrument Sans', -apple-system, sans-serif;
             font-size: clamp(32px, 5vw, 52px);
@@ -287,11 +278,10 @@
         }
         
         .product-image img {
-            width: 65%;
-            height: 65%;
-            object-fit: contain;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
             transition: transform 0.4s ease;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
         }
         
         .product-card:hover .product-image img {
@@ -376,6 +366,57 @@
         .product-rating .stars {
             color: #f5a623;
             letter-spacing: 1px;
+        }
+
+        .product-reviews {
+            margin: -6px 0 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .product-reviews button {
+            background: none;
+            border: none;
+            padding: 0;
+            font: inherit;
+            color: var(--text);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .review-list {
+            max-height: 260px;
+            overflow-y: auto;
+            padding: 0 32px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .review-item {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .review-item:last-child { border-bottom: none; }
+
+        .review-item .stars {
+            color: #f5a623;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .review-empty {
+            padding: 14px 0;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .form-group select,
+        .form-group textarea {
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            font-family: inherit;
+            font-size: 15px;
         }
 
         .product-badge.promo {
@@ -790,7 +831,6 @@
     </header>
     
     <section class="hero">
-        <p class="hero-eyebrow">Sélection Tech 2026</p>
         <h1>Le meilleur de la tech</h1>
         <p>Des produits soigneusement sélectionnés pour les passionnés de technologie.</p>
         <button class="hero-btn" onclick="document.getElementById('products-grid').scrollIntoView({behavior:'smooth'})">
@@ -845,7 +885,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <span>© 2026 CapShop. Tous droits réservés.</span>
+            <span>© CapShop. Tous droits réservés. <a href="/static/images/credits.html">Crédits photos</a></span>
             <span>Paiement sécurisé · Satisfait ou remboursé</span>
         </div>
     </footer>
@@ -886,6 +926,20 @@
                     <input type="email" required placeholder="vous@exemple.com">
                 </div>
                 <div class="form-group">
+                    <label>Adresse</label>
+                    <input type="text" id="checkout-street" required placeholder="1 rue de Rivoli">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Code postal</label>
+                        <input type="text" id="checkout-postal" required placeholder="75001" maxlength="10">
+                    </div>
+                    <div class="form-group">
+                        <label>Ville</label>
+                        <input type="text" id="checkout-city" required placeholder="Paris">
+                    </div>
+                </div>
+                <div class="form-group">
                     <label>Numéro de carte</label>
                     <input type="text" required placeholder="4242 4242 4242 4242" maxlength="19">
                 </div>
@@ -908,6 +962,33 @@
         </div>
     </div>
     
+    <div class="modal-overlay" id="review-modal" onclick="if(event.target===this)closeReview()">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2 id="review-title">Donner mon avis</h2>
+                <button class="modal-close" onclick="closeReview()">×</button>
+            </div>
+            <div class="review-list" id="review-list"></div>
+            <form class="modal-body checkout-form" onsubmit="submitReview(event)">
+                <div class="form-group">
+                    <label>Note</label>
+                    <select id="review-rating">
+                        <option value="5">★★★★★ Excellent</option>
+                        <option value="4">★★★★☆ Très bien</option>
+                        <option value="3">★★★☆☆ Correct</option>
+                        <option value="2">★★☆☆☆ Décevant</option>
+                        <option value="1">★☆☆☆☆ Mauvais</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Commentaire</label>
+                    <textarea id="review-comment" rows="4" maxlength="500" placeholder="Votre avis sur ce produit"></textarea>
+                </div>
+                <button type="submit" class="checkout-btn" id="review-btn">Publier</button>
+            </form>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="confirm-modal" onclick="if(event.target===this)closeConfirm()">
         <div class="modal-panel confirm-panel">
             <div class="confirm-icon">✓</div>
@@ -918,23 +999,10 @@
     </div>
     
     <script>
-        const PRODUCT_IMAGES = {
-            macbook: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=500&fit=crop',
-            thinkpad: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&h=500&fit=crop',
-            monitor: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400&h=500&fit=crop',
-            iphone: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=400&h=500&fit=crop',
-            pixel: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&h=500&fit=crop',
-            samsung: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400&h=500&fit=crop',
-            airpods: 'https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=400&h=500&fit=crop',
-            sony: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400&h=500&fit=crop',
-            sonos: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?w=400&h=500&fit=crop',
-            applewatch: 'https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=400&h=500&fit=crop',
-            garmin: 'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=400&h=500&fit=crop',
-            magsafe: 'https://images.unsplash.com/photo-1586816879360-004f5b0c51e5?w=400&h=500&fit=crop',
-            mxmaster: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=500&fit=crop',
-            keychron: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=400&h=500&fit=crop',
-            caldigit: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&h=500&fit=crop'
-        };
+        const PRODUCT_IMAGES = Object.fromEntries(
+            ['macbook', 'laptop13', 'monitor', 'iphone', 'pixel', 'samsung', 'airpods', 'sony', 'sonos', 'applewatch', 'garmin', 'magsafe', 'mxmaster', 'keychron', 'dock']
+                .map(key => [key, `/static/images/${key}.jpg`])
+        );
         
         const CATEGORY_NAMES = {
             computers: 'Ordinateurs',
@@ -948,6 +1016,8 @@
         let allProducts = [];
         let currentCategory = '';
         const wishlist = new Set();
+        let reviewsEnabled = false;
+        let reviewProductId = null;
         const USER_ID = 'user-' + Math.random().toString(36).substr(2, 9);
         
         document.getElementById('main-nav').addEventListener('click', (e) => {
@@ -1029,9 +1099,8 @@
         }
         
         function renderStars(rating) {
-            const full = Math.floor(rating);
-            const half = rating - full >= 0.5;
-            return '★'.repeat(full) + (half ? '⯨' : '') + '☆'.repeat(5 - full - (half ? 1 : 0));
+            const full = Math.round(rating);
+            return '★'.repeat(full) + '☆'.repeat(5 - full);
         }
 
         function renderProducts(products) {
@@ -1066,6 +1135,7 @@
                                 <span>${p.rating.toFixed(1)}</span>
                                 <span>(${p.rating_count.toLocaleString('fr-FR')})</span>
                             </div>` : ''}
+                            ${reviewsEnabled ? `<div class="product-reviews" id="reviews-${p.id}">Avis clients…</div>` : ''}
                             <div class="product-footer">
                                 <div class="product-price">
                                     ${p.price.toFixed(2)} €
@@ -1080,6 +1150,93 @@
                     </article>
                 `;
             }).join('');
+            if (reviewsEnabled) products.forEach(p => loadReviews(p.id));
+        }
+
+        async function loadReviews(productId) {
+            const el = document.getElementById('reviews-' + productId);
+            if (!el) return;
+            try {
+                const res = await fetch('/api/reviews/' + productId);
+                if (!res.ok) throw new Error(res.status);
+                const data = await res.json();
+                const summary = data.count
+                    ? `${data.average.toFixed(1)} ★ · ${data.count} avis client${data.count > 1 ? 's' : ''}`
+                    : 'Aucun avis client';
+                el.innerHTML = data.count
+                    ? `<button onclick="openReview(${productId})">${summary}</button> · <button onclick="openReview(${productId})">Donner mon avis</button>`
+                    : `${summary} · <button onclick="openReview(${productId})">Donner mon avis</button>`;
+            } catch (e) {
+                el.textContent = 'Avis clients indisponibles';
+            }
+        }
+
+        function openReview(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            reviewProductId = productId;
+            document.getElementById('review-title').textContent = 'Avis : ' + (product ? product.name : '');
+            document.getElementById('review-comment').value = '';
+            document.getElementById('review-modal').classList.add('open');
+            renderReviewList(productId);
+        }
+
+        async function renderReviewList(productId) {
+            const list = document.getElementById('review-list');
+            list.replaceChildren();
+            const message = text => {
+                const p = document.createElement('p');
+                p.className = 'review-empty';
+                p.textContent = text;
+                list.replaceChildren(p);
+            };
+            try {
+                const res = await fetch('/api/reviews/' + productId);
+                if (!res.ok) throw new Error(res.status);
+                const data = await res.json();
+                if (!data.reviews.length) return message('Aucun avis pour le moment. Soyez le premier !');
+                // Les commentaires viennent des clients : insérés en texte, jamais en HTML.
+                list.replaceChildren(...data.reviews.slice().reverse().map(r => {
+                    const item = document.createElement('div');
+                    item.className = 'review-item';
+                    const stars = document.createElement('div');
+                    stars.className = 'stars';
+                    stars.textContent = renderStars(r.rating);
+                    const comment = document.createElement('div');
+                    comment.textContent = r.comment || '(sans commentaire)';
+                    item.append(stars, comment);
+                    return item;
+                }));
+            } catch (e) {
+                message('Avis clients indisponibles');
+            }
+        }
+
+        function closeReview() { document.getElementById('review-modal').classList.remove('open'); }
+
+        async function submitReview(e) {
+            e.preventDefault();
+            const btn = document.getElementById('review-btn');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/reviews/' + reviewProductId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rating: Number(document.getElementById('review-rating').value),
+                        comment: document.getElementById('review-comment').value
+                    })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Avis non publié');
+                document.getElementById('review-comment').value = '';
+                showToast('Merci pour votre avis');
+                renderReviewList(reviewProductId);
+                loadReviews(reviewProductId);
+            } catch (err) {
+                showToast(err.message);
+            } finally {
+                btn.disabled = false;
+            }
         }
         
         function toggleWishlist(productId) {
@@ -1179,32 +1336,27 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         user_id: USER_ID,
-                        items: cart.map(i => ({ product_id: i.id, quantity: i.qty, price: i.price }))
+                        shipping_address: {
+                            street: document.getElementById('checkout-street').value,
+                            postal_code: document.getElementById('checkout-postal').value,
+                            city: document.getElementById('checkout-city').value,
+                            country: 'FR'
+                        }
                     })
                 });
                 const order = await orderRes.json();
-                
-                const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-                const payRes = await fetch('/api/payments', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        order_id: order.id || order.order_id,
-                        user_id: USER_ID,
-                        amount: total,
-                        method: 'card'
-                    })
-                });
-                const payment = await payRes.json();
-                
-                if (payment.status === 'completed' || payment.status === 'success') {
-                    closeCheckout();
-                    cart = [];
-                    updateCartBadge();
-                    showConfirmation(order.id || order.order_id);
-                } else {
-                    throw new Error('Paiement refusé');
+
+                if (!orderRes.ok) {
+                    const reason = typeof order.detail === 'string' ? order.detail : 'commande refusée';
+                    throw new Error(orderRes.status === 502 ? 'Paiement refusé' : reason);
                 }
+
+                closeCheckout();
+                cart = [];
+                updateCartBadge();
+                showConfirmation(order.id);
+                btn.disabled = false;
+                btn.textContent = 'Payer';
             } catch (err) {
                 showToast('Erreur: ' + err.message);
                 btn.disabled = false;
@@ -1229,8 +1381,12 @@
         }
         
         document.getElementById('cart-btn').addEventListener('click', openCart);
-        
-        fetchProducts();
+
+        fetch('/api/features')
+            .then(res => res.ok ? res.json() : {})
+            .then(features => { reviewsEnabled = Boolean(features.reviews); })
+            .catch(() => {})
+            .finally(fetchProducts);
     </script>
 </body>
 </html>

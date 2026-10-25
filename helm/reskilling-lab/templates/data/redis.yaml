@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:7-alpine
+          image: {{ include "lab.publicImage" (list $ "redis:7-alpine") }}
           args: ["redis-server", "--maxmemory", "{{ .Values.redis.maxMemory }}", "--maxmemory-policy", "allkeys-lru"]
           ports:
             - containerPort: 6379

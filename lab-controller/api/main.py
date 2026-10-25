@@ -24,7 +24,7 @@ logger = logging.getLogger("lab-controller")
 
 
 INCIDENTS_TRIGGERED = Counter('lab_incidents_triggered_total', 'Incidents triggered', ['type'])
-ALERTS_RECEIVED = Counter('lab_alerts_received_total', 'Alertes recues d'"'"'Alertmanager', ['alertname', 'severity', 'status'])
+ALERTS_RECEIVED = Counter('lab_alerts_received_total', "Alertes reçues d'Alertmanager", ['alertname', 'severity', 'status'])
 INCIDENTS_RESOLVED = Counter('lab_incidents_resolved_total', 'Incidents resolved', ['type'])
 INCIDENT_MTTR = Histogram('lab_incident_mttr_seconds', 'Mean Time To Resolve', buckets=[60, 300, 600, 1800, 3600, 7200])
 POSTMORTEMS_CREATED = Counter('lab_postmortems_created_total', 'Post-mortems created')
@@ -40,14 +40,14 @@ async def lifespan(_app):
     postmortems_db = await PersistentStore(db_pool, "lab.postmortems", PostMortem).load()
     toil_tasks_db = await PersistentStore(db_pool, "lab.toil_tasks", ToilTask).load()
     await init_toil_tasks()
-    logger.info("Lab Controller connecte a PostgreSQL")
+    logger.info("Operations Console connectée à PostgreSQL")
     yield
     await db_pool.close()
 
 db_pool = None
 recent_alerts = deque(maxlen=200)
 
-app = FastAPI(title="Lab Controller", version="1.0.0", docs_url="/api/docs", lifespan=lifespan)
+app = FastAPI(title="Operations Console", version="1.0.0", docs_url="/api/docs", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -124,13 +124,11 @@ class PostMortem(BaseModel):
 
 
     owner: str = ""
-    shared_with: str = ""
     status: str = "Brouillon"
 
 
     duration: str = ""
     products_affected: str = ""
-    percentage_affected: str = ""
     user_impact: str = ""
     detection: str = ""
     resolution: str = ""
@@ -139,7 +137,6 @@ class PostMortem(BaseModel):
     trigger: str = ""
     system_reaction: str = ""
     missing_protections: str = ""
-    late_detection: str = ""
 
 
     things_that_went_well: List[str] = []
@@ -530,7 +527,7 @@ async def trigger_incident(request: TriggerIncidentRequest, background_tasks: Ba
         timeline=[{
             "timestamp": datetime.now().isoformat(),
             "event": "Incident triggered",
-            "actor": "Lab Controller"
+            "actor": "Operations Console"
         }],
         triggered_at=datetime.now().isoformat(),
         chaos_config=scenario["chaos_config"]
@@ -569,7 +566,7 @@ async def trigger_incident(request: TriggerIncidentRequest, background_tasks: Ba
 
 @app.post("/api/webhooks/alertmanager")
 async def receive_alertmanager_webhook(payload: dict):
-    """Recoit les notifications d'Alertmanager et les journalise."""
+    """Reçoit les notifications d'Alertmanager et les journalise."""
     alerts = payload.get("alerts", [])
     for alert in alerts:
         labels = alert.get("labels", {})
@@ -592,7 +589,7 @@ async def receive_alertmanager_webhook(payload: dict):
 
 @app.get("/api/alerts")
 async def list_recent_alerts(limit: int = 50):
-    """Dernieres alertes recues d'Alertmanager."""
+    """Dernières alertes reçues d'Alertmanager."""
     return list(recent_alerts)[-limit:][::-1]
 
 
@@ -758,11 +755,11 @@ async def update_postmortem(postmortem_id: str, updates: dict):
 
 
     EDITABLE = (
-        "owner", "shared_with", "status",
-        "user_impact", "percentage_affected",
+        "owner", "status",
+        "user_impact",
         "detection", "resolution",
         "root_cause", "trigger", "system_reaction",
-        "missing_protections", "late_detection",
+        "missing_protections",
         "lessons_learned", "things_that_went_well",
         "things_that_went_poorly", "where_we_got_lucky",
         "action_items",
@@ -850,5 +847,5 @@ async def home():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8090"))
-    logger.info(f"Starting Lab Controller on port {port}")
+    logger.info(f"Starting Operations Console on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)

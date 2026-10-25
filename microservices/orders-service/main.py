@@ -6,7 +6,6 @@ import uvicorn
 from contextlib import asynccontextmanager
 import json
 import os
-import time
 from datetime import datetime
 from enum import Enum
 import httpx
@@ -88,7 +87,7 @@ async def generate_order_id() -> str:
     return f"ORD-{datetime.now().strftime('%Y%m%d')}-{seq['n']:05d}"
 
 async def refresh_order_gauges():
-    """Recompte les commandes par statut: la jauge etait declaree sans etre alimentee."""
+    """Recompte les commandes par statut pour alimenter la jauge."""
     try:
         rows = await db.fetch(
             "SELECT status, count(*) AS n FROM orders.orders GROUP BY status",
@@ -213,7 +212,7 @@ async def reserve_stock(items: List[dict]):
 async def create_order(request: CreateOrderRequest):
     """Crée une nouvelle commande depuis le panier"""
     with tracer.start_as_current_span("create_order") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("user_id", request.user_id)
 
@@ -280,7 +279,7 @@ async def create_order(request: CreateOrderRequest):
 async def get_order(order_id: str):
     """Récupère une commande par son ID"""
     with tracer.start_as_current_span("get_order") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("order_id", order_id)
 
@@ -294,7 +293,7 @@ async def get_order(order_id: str):
 async def get_user_orders(user_id: str, limit: int = 50, offset: int = 0):
     """Récupère toutes les commandes d'un utilisateur"""
     with tracer.start_as_current_span("get_user_orders") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("user_id", user_id)
 
@@ -323,7 +322,7 @@ async def get_user_orders(user_id: str, limit: int = 50, offset: int = 0):
 async def update_order_status(order_id: str, status: OrderStatus):
     """Met à jour le statut d'une commande"""
     with tracer.start_as_current_span("update_order_status") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("order_id", order_id)
         span.set_attribute("new_status", status.value)
@@ -345,7 +344,7 @@ async def update_order_status(order_id: str, status: OrderStatus):
 async def cancel_order(order_id: str):
     """Annule une commande"""
     with tracer.start_as_current_span("cancel_order") as span:
-        chaos.inject()
+        await chaos.inject()
 
         span.set_attribute("order_id", order_id)
 

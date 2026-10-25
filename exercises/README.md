@@ -1,471 +1,406 @@
-# Exercices pratiques - Reskilling SRE Lab
+# Exercices du parcours - fil rouge
 
-## Contexte du lab
+Ces exercices sont ceux de la formation, aux transitions entre modules. Ils
+portent tous sur **votre module** : un service que vous ajoutez à CapShop,
+dans le langage et sur le métier de votre choix. Un exemple guidé est
+fourni à chaque étape ; suivez-le, adaptez-le ou faites autrement.
 
-Vous êtes consultant SRE engagé pour auditer **CapShop**, une boutique e-commerce tech premium. Le site rencontre des problèmes de fiabilité et vous devez :
+Chaque exercice se termine par un bloc « Ça bloque ? » et par des critères
+de réussite à comparer avec votre résultat. Personne ne doit rester
+bloqué : chaque étape du module existe en version prête à l'emploi.
 
-1. Mettre en place une observabilité efficace
-2. Définir des SLOs pertinents
-3. Gérer des incidents en conditions réelles
-4. Proposer des automatisations
+Les exercices facultatifs, pour aller plus loin sur les pratiques SRE,
+sont dans le dossier [bonus](bonus/README.md).
 
-## Prérequis
+## Correspondance avec la formation
 
-Lab demarre et operationnel : voir [QUICKSTART.md](../QUICKSTART.md).
+### Parcours DevOps SRE (sprint 2)
 
-```bash
-make start
-make test
-```
+| Transition | Exercice de la formation | Exercice associé |
+|---|---|---|
+| Prometheus et Grafana > OpenTelemetry | Métriques business | [P1](#p1--installer-lapplication-fil-rouge), [P2](#p2--écrire-votre-module), [P3](#p3--déployer-votre-module), [P4](#p4--métriques-business) |
+| | Dashboard | [P5](#p5--dashboard-de-votre-module) |
+| OpenTelemetry > Platform Engineering | Instrumenter avec OpenTelemetry | [P6](#p6--traces-et-étape-la-plus-lente) |
+| | Trace et étape la plus lente | [P6](#p6--traces-et-étape-la-plus-lente) |
+| Intégration continue > Kubernetes | Pipeline : construire et pousser l'image | [P7](#p7--pipeline--construire-et-pousser-limage) |
+| Kubernetes | Déployer le service (stack complète) | [P3](#p3--déployer-votre-module) |
+| | Lancer les scripts de chaos | [P8](#p8--chaos--diagnostiquer-et-corriger) |
+| | Diagnostiquer et corriger | [P8](#p8--chaos--diagnostiquer-et-corriger) |
 
-**Documentation de référence** :
-- [Guide Observabilité](../docs/OBSERVABILITY.md)
-- [Guide SLOs et Alerting](../docs/SLOS_ALERTING.md)
-- [Guide Incidents](../docs/INCIDENTS.md)
+Votre service FastAPI devient ici un module de CapShop. L'application fil rouge est
+nécessaire dès les métriques, pour les voir dans Prometheus et Grafana : le
+déploiement (P1 et P3) arrive donc avant le module Kubernetes, qui le
+reprend ensuite.
 
----
+### Parcours DevOps Infra (sprint 2)
 
-## Exercice 1 : Découverte de l'architecture
-
-**Durée** : 30 min  
-**Objectif** : Comprendre l'architecture et les flux de données
-
-### 1.1 Explorer la boutique CapShop
-
-1. Ouvrez http://localhost:8080
-2. Parcourez les catégories de produits
-3. Ajoutez des produits au panier
-4. Effectuez un achat complet (paiement test)
-
-**Questions** :
-- Combien de microservices sont impliqués dans un achat ?
-- Quel service gère le panier ?
-- Où sont stockées les données du panier ?
-
-### 1.2 Identifier les microservices
-
-Listez les 6 microservices et leur rôle, à partir de `docker-compose.yml` et de votre parcours d'achat :
-
-| Service | Port | Rôle |
-|---------|------|------|
-| api-gateway | 8080 | ? |
-| catalog-service | 8081 | ? |
-| cart-service | 8082 | ? |
-| orders-service | 8083 | ? |
-| payment-service | 8084 | ? |
-| users-service | 8085 | ? |
-
-**Livrable** : Tableau des microservices complété (1.2)
+| Transition | Exercice de la formation | Exercice associé |
+|---|---|---|
+| Golang + Kubernetes > Platform Engineering | Développer un module en Go | [P2](#p2--écrire-votre-module) |
+| | Le déployer dans Kubernetes (stack complète) | [P1](#p1--installer-lapplication-fil-rouge), [P3](#p3--déployer-votre-module) |
+| Fin du module Prometheus et Grafana | Métriques business | [P4](#p4--métriques-business) |
+| | Dashboard | [P5](#p5--dashboard-de-votre-module) |
+| Fin du sprint 2 | Lancer les scripts de chaos | [P8](#p8--chaos--diagnostiquer-et-corriger) |
+| | Corriger les problèmes provoqués | [P8](#p8--chaos--diagnostiquer-et-corriger) |
 
 ---
 
-## Exercice 2 : Observabilité - Les 3 piliers
+## P1 : Installer l'application fil rouge
 
-**Durée** : 45 min  
-**Objectif** : Maîtriser Prometheus, Loki et Tempo
+**Objectif** : CapShop et sa stack d'observabilité tournent dans votre
+namespace.
 
-### 2.1 Métriques avec Prometheus
+Suivez [Installer l'application fil rouge dans EKS](../AWS_SECURE/README.md), étapes 1 à 8 :
+construction des images, `helm install`, accès aux interfaces.
 
-1. Ouvrez Prometheus : http://localhost:9090
-2. Explorez les métriques disponibles
+<details>
+<summary>Critères de réussite</summary>
 
-**Requêtes à exécuter** :
+- `kubectl get pods` : tous les pods sont `Running` et prêts.
+- La boutique s'ouvre sur http://localhost:8080 et un achat aboutit.
+- Grafana (http://localhost:3000) affiche le dashboard *SRE Overview*.
 
-```promql
-# Requêtes par seconde par service (vues depuis l'API Gateway)
-sum by (service) (rate(gateway_requests_total[5m]))
+</details>
 
-# Latence P99 du service payment
-histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[5m])))
-
-# Taux d'erreur global
-sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests_total[5m]))
-```
-
-> Hors incident, cette requete ne renvoie aucune serie: c'est normal, le lab
-> ne produit pas d'erreur en regime nominal. Declenchez un incident depuis
-> l'Operations Console (exercice 4) pour la voir remonter des valeurs.
->
-> Rappel: la gateway ne compte que le trafic qui la traverse. Le trafic
-> interne entre services n'y figure pas, ce qui fait apparaitre le catalogue
-> comme le service le plus sollicite.
-
-**Questions** :
-- Quel service reçoit le plus de requêtes ?
-- Quelle est la latence moyenne du catalog ? (`rate(catalog_request_duration_seconds_sum[5m]) / rate(catalog_request_duration_seconds_count[5m])`)
-
-### 2.2 Logs avec Loki
-
-1. Ouvrez Grafana : http://localhost:3000
-2. Allez dans Explore → Loki
-
-**Requêtes à exécuter** :
-
-```logql
-# Tous les logs du payment service
-{job="payment-service"}
-
-# Erreurs uniquement (codes 4xx/5xx)
-{job="payment-service"} |~ " [45][0-9]{2} "
-
-# Requêtes lentes ou en timeout sur l'api-gateway
-{job="api-gateway"} |~ "(?i)(slow|timeout|error)"
-```
-
-**Questions** :
-- Combien de logs d'erreur dans les 15 dernières minutes ?
-- Quel type d'erreur est le plus fréquent ?
-
-### 2.3 Traces avec Tempo
-
-1. Dans Grafana, allez dans Explore → Tempo
-2. Cherchez des traces du service `api-gateway`
-
-**Exercice** :
-- Trouvez une trace d'un checkout complet
-- Identifiez tous les services traversés
-- Mesurez le temps passé dans chaque service
-
-**Livrable** : Screenshot d'une trace annotée
-
-### 2.4 Améliorer le dashboard
-
-Un dashboard basique "SRE Overview" est déjà provisionné dans Grafana, mais il est insuffisant pour un suivi opérationnel. Complétez-le (ou dupliquez-le sous le nom "Reskilling Overview") pour qu'il contienne :
-
-1. **Panel Latence** (Time series)
-   - P50, P90, P99 par service
-   
-2. **Panel Taux d'erreur** (Gauge)
-   - Couleur verte < 1%, orange < 5%, rouge >= 5%
-
-3. **Panel Traffic** (Stat)
-   - Requêtes/seconde total
-
-4. **Panel Logs récents** (Logs panel)
-   - Derniers logs d'erreur
-
-**Livrable** : Dashboard exporté (JSON)
+Dépannage : tableau de l'étape 6 de l'installation.
 
 ---
 
-## Exercice 3 : Définition des SLOs
+## P2 : Écrire votre module
 
-**Durée** : 45 min  
-**Objectif** : Définir des SLOs réalistes basés sur les données
+**Objectif** : un service HTTP qui rend un service métier à CapShop, avec
+un endpoint `/health`, construit en image Docker.
 
-### 3.1 Analyser les métriques historiques
+1. Choisissez un métier : avis produits (l'exemple), estimation de
+   livraison, programme de fidélité, recommandations, liste d'envies...
+2. Suivez l'étape 1 du guide de votre langage :
+   [Go](../fil-rouge/module-go.md#étape-1--une-api-et-un-endpoint-health)
+   ou [Python](../fil-rouge/module-python.md#étape-1--une-api-et-un-endpoint-health).
+3. Testez-le sur `utils-stagiaireXX` avec `docker run` et `curl`.
 
-Utilisez Prometheus pour analyser l'historique disponible. Elargissez la
-fenetre a `[24h:5m]` si le lab tourne depuis plus d'une journee.
+Le module doit respecter quatre conditions pour s'intégrer à l'application fil rouge : image
+Docker, port lu dans `PORT`, endpoint de health check, logs sur stdout.
+Voir [les conditions](../fil-rouge/README.md#conditions-pour-sintégrer-à-lapplication-fil-rouge).
 
-```promql
-# Disponibilité par service
-avg_over_time(
-  (sum by (service) (rate(gateway_requests_total{status!~"5.."}[5m])) 
-   / sum by (service) (rate(gateway_requests_total[5m])))[1h:5m]
-)
+<details>
+<summary>Ça bloque ?</summary>
 
-# Latence P99 moyenne (gateway, tous services confondus)
-avg_over_time(
-  histogram_quantile(0.99, sum by (le) (rate(gateway_request_duration_seconds_bucket[5m])))[1h:5m]
-)
-```
+Chaque guide a son tableau de dépannage à la fin de l'étape 1. Si vous
+manquez de temps, construisez la version prête à l'emploi
+([Go](../fil-rouge/reviews-service/go/1-base/) ou [Python](../fil-rouge/reviews-service/python/1-base/)) et passez à P3 :
+vous reprendrez votre propre code plus tard.
 
-> Pour que ces mesures aient du sens, faites tourner au moins un incident
-> (exercice 4) avant de figer vos SLOs: sans erreur observee, la disponibilite
-> mesuree vaut 100% et l'error budget de l'exercice 3.3 est ininterpretable.
+</details>
 
-### 3.2 Définir les SLOs
+<details>
+<summary>Critères de réussite</summary>
 
-Pour chaque service, définissez :
+- `curl localhost:8086/health` répond 200.
+- Votre route métier répond, et refuse proprement une entrée invalide
+  (4xx, pas 500).
+- `docker logs` montre une ligne de log par action métier.
 
-| Service | SLI | SLO | Justification business |
-|---------|-----|-----|------------------------|
-| catalog | Disponibilité | ?% | Navigation produits |
-| catalog | Latence P99 | ?ms | UX fluide |
-| cart | Disponibilité | ?% | Conversion critique |
-| payment | Disponibilité | ?% | Revenus |
-| payment | Latence P99 | ?ms | Checkout rapide |
-
-**Règles** :
-- Basez-vous sur les données réelles
-- Ajoutez une marge de sécurité (5-10%)
-- Justifiez chaque choix
-
-### 3.3 Calculer l'Error Budget
-
-Pour votre SLO principal (ex: payment 99.5%) :
-
-```
-Error Budget = (100% - SLO%) × Période
-```
-
-**Calculez** :
-- Budget mensuel (en minutes)
-- Budget consommé actuellement
-- Budget restant
-
-### 3.4 Configurer une alerte SLO
-
-Créez une règle d'alerte pour votre SLO :
-
-Creez un fichier dans `observability/prometheus/rules/`, en adaptant le seuil
-au SLO que vous avez defini :
-
-```yaml
-groups:
-  - name: my_slo_alerts
-    rules:
-      - alert: PaymentSLOBreach
-        expr: histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[5m]))) > 0.3
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Latence P99 du paiement au-dela du SLO"
-          description: "P99 a {{ $value | humanizeDuration }}, seuil 300ms."
-```
-
-Validez avant de recharger Prometheus :
-
-```bash
-docker compose exec prometheus promtool check rules /etc/prometheus/rules/votre-fichier.yml
-docker compose restart prometheus
-```
-
-**Livrable** : Tableau des SLOs + fichier de règles
+</details>
 
 ---
 
-## Exercice 4 : Gestion d'incident
+## P3 : Déployer votre module
 
-**Durée** : 60 min  
-**Objectif** : Gérer un incident de bout en bout
+**Objectif** : votre module tourne dans l'application fil rouge, à côté des six services, et
+la stack le voit.
 
-### 4.1 Déclencher un incident
+1. Poussez l'image sur le registry GitLab de votre projet, autorisez le
+   cluster à le lire, puis activez le module dans le chart :
+   [Déployer votre module](../fil-rouge/README.md#déployer-votre-module).
+2. Rechargez Prometheus pour qu'il prenne en compte la nouvelle target.
+3. Vérifiez avec la section [Vérifier](../fil-rouge/README.md#vérifier).
 
-1. Ouvrez l'Operations Console : http://localhost:8090
-2. Notez l'heure de début
-3. Cliquez sur la carte **Latence élevée du service de paiement**
+<details>
+<summary>Ça bloque ?</summary>
 
-### 4.2 Détecter et trier
+Tableau « Ça bloque ? » du [module fil rouge](../fil-rouge/README.md#vérifier) :
+image introuvable, pod qui redémarre, pod jamais prêt, target absente de
+Prometheus.
 
-**Checklist** :
-- [ ] Vérifier les alertes dans Alertmanager
-- [ ] Identifier le service impacté
-- [ ] Évaluer la sévérité (P1-P4)
-- [ ] Quantifier l'impact utilisateur
+</details>
 
-### 4.3 Investiguer
+<details>
+<summary>Critères de réussite</summary>
 
-Utilisez les 3 piliers :
+- `kubectl get pods -l app=<votre module>` : `1/1 Running`.
+- `kubectl exec deploy/api-gateway -- curl --silent <module>:8086/health`
+  répond, depuis l'intérieur du cluster.
+- Grafana, Explore, Loki : `{job="<votre module>"}` affiche vos logs.
+- Prometheus, *Targets* : la probe `blackbox-<module>` est `up`. La target
+  `<module>` est `down` tant que `/metrics` n'existe pas : c'est P4.
 
-**Métriques** (Prometheus) :
-```promql
-# Latence du service impacté
-histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[1m])))
-```
-
-**Logs** (Loki) :
-```logql
-{job="payment-service"} |~ "(?i)(slow|timeout|error)"
-```
-
-**Traces** (Tempo) :
-- Trouvez une trace lente
-- Identifiez le span problématique
-
-### 4.4 Résoudre
-
-1. Dans l'Operations Console, ouvrez l'incident et cliquez **Mark Resolved**
-2. Vérifiez le retour à la normale dans Grafana
-3. Notez l'heure de résolution
-
-### 4.5 Documenter le post-mortem
-
-Dans l'onglet **Post-Mortems**, cliquez sur *Generate Post-Mortem* depuis
-l'incident resolu. La console ne produit qu'un **squelette**: elle calcule ce
-qu'elle sait (impact, duree, services, timeline) et laisse vide tout ce qui
-releve de l'analyse. C'est vous qui redigez le post-mortem.
-
-Le compteur `n/12 sections` en haut de chaque fiche indique ce qu'il reste a
-completer. Cliquez sur **Éditer**.
-
-| Section | Origine | A votre charge |
-|---------|---------|----------------|
-| Impact, duree, services | calcules depuis l'incident | non |
-| Timeline | calculee depuis l'incident | non |
-| Participants | issus des temoignages | non |
-| Cause racine | vide (pistes des temoins fournies) | **oui** |
-| Element declencheur | vide | **oui** |
-| Reaction du systeme | vide | **oui** |
-| Protections manquantes | vide | **oui** |
-| Impact utilisateur | vide | **oui** |
-| Detection / Resolution | vide | **oui** |
-| Ce qui a bien fonctionne | vide | **oui** |
-| Ce qui a mal fonctionne | vide | **oui** |
-| Ou nous avons eu de la chance | vide | **oui** |
-| Enseignements | vide | **oui** |
-| Actions correctives | vide | **oui** (3 minimum) |
-
-Les actions se saisissent une par ligne, au format
-`tache | type | priorite | responsable | echeance`, ou *type* vaut
-`prevent` (empecher la recurrence), `mitigate` (limiter l'impact) ou
-`detect` (raccourcir la detection).
-
-> **Cause racine.** Elle decrit un mecanisme, pas un symptome. « Le service
-> etait lent » est un symptome; « le pool de connexions etait dimensionne a 10
-> alors que le pic demande 30 » est une cause racine.
-
-> **Ou nous avons eu de la chance.** Section souvent oubliee, et pourtant la
-> plus revelatrice: qu'est-ce qui aurait pu aggraver l'incident et ne s'est pas
-> produit ? Un incident survenu en heures ouvrees, un cache encore chaud, une
-> dependance qui n'a pas cede. Chaque reponse designe une fragilite non traitee.
-
-> **Post-mortem sans blame.** Decrivez les decisions avec l'information
-> disponible au moment des faits, pas avec le recul. On ne cherche pas un
-> responsable, mais un systeme qui a permis l'erreur.
-
-Passez le statut a *Final* quand votre analyse est complete.
-
-**Livrable** : Post-mortem complété + MTTR calculé
+</details>
 
 ---
 
-## Exercice 5 : Réduction du Toil
+## P4 : Métriques business
 
-**Durée** : 45 min  
-**Objectif** : Identifier et automatiser le toil
+**Objectif** : votre module expose des métriques qui répondent à des
+questions du métier, et Prometheus les collecte.
 
-### 5.1 Identifier le toil
+1. Listez trois ou quatre questions qu'un responsable métier se poserait
+   sur votre service.
+2. Pour chaque question, choisissez une métrique et son type (Counter,
+   Gauge, Histogram) et ses labels.
+3. Implémentez-les et exposez `/metrics` : étape 2 du guide
+   ([Go](../fil-rouge/module-go.md#étape-2--des-métriques-business),
+   [Python](../fil-rouge/module-python.md#étape-2--des-métriques-business)).
+4. Redéployez (P3, avec un nouveau tag) et vérifiez dans Prometheus.
 
-Dans l'Operations Console, onglet "Automation" :
+<details>
+<summary>Ça bloque ?</summary>
 
-1. Listez les tâches répétitives identifiées
-2. Pour chaque tâche, notez :
-   - Fréquence (par jour/semaine)
-   - Temps manuel estimé
-   - Est-ce automatisable ? (oui/partiellement/non)
+- Tableau de dépannage de l'étape 2 du guide.
+- La métrique existe mais reste à zéro : votre module ne reçoit pas de
+  trafic. Appelez-le vous-même, ou lancez `bash fil-rouge/trafic.sh`
+  (prévu pour l'exemple d'avis ; adaptez-le à vos routes).
+- Version prête à l'emploi : [Go](../fil-rouge/reviews-service/go/2-metriques/) ou [Python](../fil-rouge/reviews-service/python/2-metriques/).
 
-### 5.2 Prioriser
+</details>
 
-Calculez le score de priorité :
+<details>
+<summary>Exemple (module d'avis)</summary>
 
-```
-Score = Fréquence × Temps × Automatisabilité
-```
+| Question métier | Métrique | Type |
+|---|---|---|
+| Combien d'avis publie-t-on ? | `reviews_created_total{rating}` | Counter |
+| Combien en refuse-t-on, et pourquoi ? | `reviews_rejected_total{reason}` | Counter |
+| Les clients sont-ils satisfaits ? | `reviews_average_rating{product_id}` | Gauge |
 
-Les taches de l'onglet Automation sont declenchees par incident. Convertissez
-leur frequence en occurrences par semaine a partir du nombre d'incidents
-observes, puis remplissez :
+</details>
 
-| Tâche | Fréquence | Temps | Auto (0-1) | Score |
-|-------|-----------|-------|------------|-------|
-| Notification des stakeholders | ? /semaine | 10 min | ? | ? |
-| Vérification des logs après incident | ? /semaine | ? min | ? | ? |
-| ... | ... | ... | ... | ... |
+<details>
+<summary>Critères de réussite</summary>
 
-### 5.3 Automatiser
+- La target de votre module est `up` dans http://localhost:9090/targets.
+- Chaque métrique business répond dans Prometheus, par exemple
+  `sum by (rating) (reviews_created_total)`.
+- Chaque métrique a un nom explicite, une unité claire (`_total`,
+  `_seconds`) et des labels à faible cardinalité : pas d'identifiant
+  d'utilisateur ni de commentaire en label.
+- Vous savez dire à quelle question métier répond chaque métrique.
 
-Choisissez la tâche avec le score le plus élevé et écrivez un script :
-
-**Exemple : Health check automatique**
-
-```bash
-#!/bin/bash
-# health_monitor.sh
-
-declare -A PORTS=(
-    [catalog]=8081
-    [cart]=8082
-    [orders]=8083
-    [payment]=8084
-    [users]=8085
-)
-
-for service in "${!PORTS[@]}"; do
-    url="http://localhost:${PORTS[$service]}/health"
-
-    if ! curl --silent --fail "$url" > /dev/null; then
-        echo "$(date) - $service unhealthy, restarting..."
-        docker compose restart "${service}-service"
-    fi
-done
-```
-
-### 5.4 Mesurer l'impact
-
-Après automatisation, calculez :
-- Temps gagné par semaine
-- Réduction du toil (%)
-
-**Livrable** : Script d'automatisation + estimation temps gagné
+</details>
 
 ---
 
-## Exercice 6 : Synthèse et présentation
+## P5 : Dashboard de votre module
 
-**Durée** : 30 min  
-**Objectif** : Synthétiser les apprentissages
+**Objectif** : un dashboard Grafana qui raconte l'état de votre service à
+quelqu'un qui ne connaît pas son code.
 
-### 6.1 Préparer un rapport d'audit
+1. Générez du trafic (`bash fil-rouge/trafic.sh` pour l'exemple, ou vos
+   propres appels) et laissez-le tourner.
+2. Créez un dashboard : Grafana, **Dashboards**, **New**, **New dashboard**,
+   puis **Add visualization**. La marche à suivre détaillée (source,
+   éditeur Code, unités, seuils) est dans le
+   [guide Grafana](../docs/OBSERVABILITY.md#modifier-le-dashboard).
+3. Prévoyez au moins :
+   - un panel par question métier de P4 ;
+   - le trafic et le taux d'erreur de votre service ;
+   - la latence (P95 ou P99) ;
+   - les logs récents de votre module (source Loki).
 
-Créez un document contenant :
+<details>
+<summary>Ça bloque ?</summary>
 
-1. **État des lieux**
-   - Architecture actuelle
-   - Points forts
-   - Points faibles
+- **« No data »** : vérifiez la période en haut à droite, et que la requête
+  répond dans Prometheus d'abord.
+- **Courbe plate à zéro** : pas de trafic récent, relancez
+  `fil-rouge/trafic.sh`.
+- **Un Counter affiché tel quel** monte sans fin : affichez son rythme avec
+  `rate(...[5m])`.
+- **Trop de courbes** : regroupez avec `sum by (label)`.
 
-2. **SLOs proposés**
-   - Tableau des SLOs par service
-   - Justifications business
+</details>
 
-3. **Observabilité**
-   - Dashboards créés
-   - Alertes configurées
+<details>
+<summary>Exemple de requêtes (module d'avis)</summary>
 
-4. **Gestion d'incidents**
-   - Workflow documenté
-   - Template de post-mortem
+| Panel | Visualisation | Requête |
+|---|---|---|
+| Avis publiés par minute, par note | Time series | `sum by (rating) (rate(reviews_created_total[5m])) * 60` |
+| Part des avis refusés | Stat ou Gauge, unité *Percent (0.0-1.0)* | `sum(rate(reviews_rejected_total[5m])) / (sum(rate(reviews_created_total[5m])) + sum(rate(reviews_rejected_total[5m])))` |
+| Motifs de refus | Pie chart ou Bar chart | `sum by (reason) (rate(reviews_rejected_total[5m])) * 60` |
+| Produits les mieux notés | Bar gauge | `topk(5, reviews_average_rating)` |
+| Requêtes par code HTTP | Time series | `sum by (status) (rate(http_requests_total{job="reviews-service"}[5m]))` |
+| Latence P95 | Time series, unité *seconds* | `histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{job="reviews-service"}[5m])))` |
+| Logs | Logs, source Loki | `{job="reviews-service"} != "/health"` |
 
-5. **Automatisation**
-   - Toil identifié
-   - Scripts développés
-   - ROI estimé
+Avec le trafic de `trafic.sh`, une part importante des avis est refusée :
+le script envoie volontairement des mots interdits (environ 30 % de refus
+à l'étape 2), puis des produits inconnus, refusés à partir de l'étape 3
+qui vérifie chaque produit auprès du catalogue (environ 40 % au total).
 
-### 6.2 Recommandations
+</details>
 
-Proposez 5 améliorations prioritaires :
+<details>
+<summary>Critères de réussite</summary>
 
-| # | Amélioration | Impact | Effort | Priorité |
-|---|--------------|--------|--------|----------|
-| 1 | ? | Haut/Moyen/Bas | H/M/B | P1-P4 |
-| 2 | ? | ? | ? | ? |
-| ... | ... | ... | ... | ... |
+- Le dashboard se lit sans connaître le code : titres en langage métier,
+  unités renseignées.
+- Le haut du dashboard répond à « le service va-t-il bien ? » (trafic,
+  erreurs, latence) ; le bas détaille le métier.
+- Pendant une panne (P8), le dashboard le montre.
 
-**Livrable** : Rapport d'audit complet
+</details>
 
 ---
 
-## Livrables attendus
+## P6 : Traces et étape la plus lente
 
-| Exercice | Livrable |
-|----------|----------|
-| 1. Architecture | Tableau des microservices complété |
-| 2. Observabilité | Dashboard "Reskilling Overview" complété et fonctionnel |
-| 3. SLOs | Tableau de SLOs justifiés + fichier de règles d'alerte |
-| 4. Incident | Post-mortem complet avec MTTR calculé |
-| 5. Toil | Script d'automatisation fonctionnel |
-| 6. Synthèse | Rapport d'audit avec recommandations priorisées |
+**Objectif** : votre module envoie des traces à Tempo, et vous savez lire
+où passe le temps d'une requête.
+
+1. Instrumentez votre module : étape 3 du guide
+   ([Go](../fil-rouge/module-go.md#étape-3--des-traces-opentelemetry),
+   [Python](../fil-rouge/module-python.md#étape-3--des-traces-opentelemetry)).
+   Découpez le traitement en spans, un par étape métier.
+2. Redéployez, générez du trafic.
+3. Grafana, Explore, source **Tempo**, onglet TraceQL :
+
+   ```traceql
+   { resource.service.name = "reviews-service" }
+   ```
+
+4. Ouvrez une trace de création et identifiez l'étape la plus lente.
+   Comparez plusieurs traces : est-ce toujours la même ?
+
+<details>
+<summary>Ça bloque ?</summary>
+
+- Tableau de dépannage de l'étape 3 du guide.
+- Pour comparer les traces, triez les résultats sur la colonne **Duration**.
+  Une création d'avis prend quelques millisecondes : pour ne garder que les
+  plus lentes, ajustez le seuil à ce que vous observez, par exemple
+  `{ resource.service.name = "reviews-service" && duration > 5ms }`.
+- Version prête à l'emploi : [Go](../fil-rouge/reviews-service/go/3-traces/) ou [Python](../fil-rouge/reviews-service/python/3-traces/).
+
+</details>
+
+<details>
+<summary>Réponse (module d'avis)</summary>
+
+Une trace de `POST /api/reviews/{product_id}` contient :
+
+| Span | Service | Durée typique |
+|---|---|---|
+| `POST /api/reviews/{product_id}` | reviews-service | quelques ms |
+| `verify_product` | reviews-service | presque toute la durée |
+| `GET /api/products/{product_id}` | catalog-service | dans `verify_product` |
+| `moderate_review`, `store_review` | reviews-service | quelques µs |
+
+L'étape la plus lente est `verify_product` : c'est le seul appel réseau, et
+il attend la réponse du catalogue, qui lui-même interroge PostgreSQL. Le
+traitement local (modération, stockage en mémoire) est négligeable.
+
+C'est le cas général : dans un service, le temps part presque toujours dans
+les appels aux dépendances (réseau, base, autres services). Si
+`catalog-service` n'apparaît pas dans la trace, le contexte n'est pas
+propagé : voir le tableau de dépannage.
+
+</details>
 
 ---
 
-## Ressources
+## P7 : Pipeline : construire et pousser l'image
 
-- [Google SRE Book](https://sre.google/sre-book/table-of-contents/)
-- [SRE Workbook](https://sre.google/workbook/table-of-contents/)
-- [Prometheus Docs](https://prometheus.io/docs/)
-- [Grafana Docs](https://grafana.com/docs/)
-- [Loki Docs](https://grafana.com/docs/loki/)
-- [Tempo Docs](https://grafana.com/docs/tempo/)
+**Objectif** : le pipeline GitLab de votre projet construit l'image de votre
+module et la pousse sur le registry du GitLab commun, à chaque push. Vous
+déployez ensuite l'application fil rouge à partir de cette image.
+
+1. Ajoutez à votre projet le pipeline d'exemple, ou complétez le vôtre :
+   [pipeline de construction d'image](../fil-rouge/ci/README.md).
+2. Poussez un commit et suivez le job dans **Build** → **Pipelines**.
+3. Vérifiez la nouvelle image dans **Deploy** → **Container Registry** : un
+   tag par commit, plus `latest`.
+4. Déployez cette image :
+
+   ```bash
+   helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values \
+       --set learnerService.image=$IMAGE:<tag du commit>
+   ```
+
+<details>
+<summary>Ça bloque ?</summary>
+
+Tableau « Ça bloque ? » du [pipeline de construction d'image](../fil-rouge/ci/README.md).
+
+</details>
+
+<details>
+<summary>Critères de réussite</summary>
+
+- Un push sur la branche par défaut déclenche le pipeline, qui passe au vert.
+- Le registry contient une image par commit : vous savez quel code tourne.
+- Le module déployé avec ce tag répond (`/health`), sans `docker build` sur
+  votre VM.
+- Vous savez expliquer pourquoi déployer un tag de commit plutôt que
+  `latest`.
+
+</details>
+
+<details>
+<summary>Réponse : pourquoi un tag de commit ?</summary>
+
+`latest` change de contenu à chaque push : le même nom désigne des images
+différentes d'un jour à l'autre, et Kubernetes peut garder une ancienne
+version en cache. Un tag par commit est immuable : on sait exactement quel
+code tourne, et revenir en arrière consiste à redéployer le tag précédent.
+
+</details>
+
+---
+
+## P8 : Chaos : diagnostiquer et corriger
+
+**Objectif** : face à une vraie panne, trouver la cause avec vos outils
+d'observabilité, la corriger et mesurer le temps que cela a pris.
+
+1. Lancez une panne au hasard sur votre module :
+
+   ```bash
+   bash chaos/inject.sh "" <votre module>
+   ```
+
+   ou sans argument pour l'exemple `reviews-service`. Notez l'heure.
+2. Diagnostiquez **en partant de vos dashboards et de vos traces**, puis
+   des alertes et de `kubectl`. Démarche détaillée :
+   [scripts de chaos](../chaos/README.md#diagnostiquer). Si les avis sont
+   affichés dans la boutique (`learnerService.shop`), regardez aussi ce
+   que voit un client.
+3. Corrigez avec `kubectl`, vérifiez le retour à la normale, puis lancez
+   `bash chaos/rollback.sh` pour nettoyer.
+4. Recommencez avec d'autres scénarios, dont `base` et `cache`, qui
+   touchent CapShop plutôt que votre module.
+
+Pour chaque panne, notez l'heure de la panne, de la première alerte, du
+diagnostic et du retour à la normale.
+
+<details>
+<summary>Ça bloque ?</summary>
+
+- Pistes par scénario dans [chaos/README.md](../chaos/README.md#pistes-et-solutions),
+  séparées des solutions.
+- `bash chaos/rollback.sh` remet le service en l'état d'avant la panne.
+
+</details>
+
+<details>
+<summary>Critères de réussite</summary>
+
+- Pour chaque panne, vous savez dire **ce que vous avez vu en premier**
+  (alerte, dashboard, trace) et **ce qui vous a donné la cause** (souvent
+  `kubectl describe pod` ou les logs).
+- Votre correction rétablit le service sans `rollback.sh`.
+- Délai de détection et MTTR calculés pour chaque panne.
+- Une idée par panne pour la détecter plus vite ou l'éviter : alerte sur le
+  nombre de redémarrages, vérification de l'image dans le pipeline, limites
+  mémoire mesurées plutôt que devinées...
+
+</details>

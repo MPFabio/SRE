@@ -1,7 +1,7 @@
+import asyncio
 import logging
 import os
 import random
-import time
 
 from fastapi import HTTPException
 from pydantic import BaseModel
@@ -23,20 +23,21 @@ class ChaosController:
         self.latency_ms = int(os.getenv("CHAOS_LATENCY_MS", "0"))
         self.error_rate = float(os.getenv("CHAOS_ERROR_RATE", "0"))
 
-    def inject(self):
+    async def inject(self):
         if not self.enabled:
             return
+        # asyncio.sleep ralentit la requête sans bloquer les autres (probes, /metrics).
         if self.latency_ms > 0:
-            time.sleep(self.latency_ms / 1000)
+            await asyncio.sleep(self.latency_ms / 1000)
         if self.error_rate > 0 and random.random() < self.error_rate:
-            self.logger.error("Chaos: Simulated error triggered")
-            raise HTTPException(status_code=500, detail="Internal server error (chaos)")
+            self.logger.error("Unhandled exception while processing request")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
     def apply(self, config: ChaosConfig) -> dict:
         self.enabled = config.enabled
         self.latency_ms = config.latency_ms
         self.error_rate = config.error_rate
-        self.logger.info(
+        self.logger.debug(
             "Chaos config updated: enabled=%s, latency_ms=%s, error_rate=%s",
             self.enabled, self.latency_ms, self.error_rate,
         )

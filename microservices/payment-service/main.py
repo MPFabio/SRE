@@ -31,6 +31,8 @@ setup_app(app)
 
 chaos = ChaosController("payment-service", logger)
 
+PROVIDER_SLOW_THRESHOLD = float(os.getenv("PROVIDER_SLOW_THRESHOLD", "1.0"))
+
 
 class CircuitBreakerState(Enum):
     CLOSED = 0
@@ -163,7 +165,7 @@ async def call_external_payment_provider(amount: float, currency: str) -> dict:
             if chaos.error_rate > 0 and random.random() < chaos.error_rate:
                 await asyncio.sleep(base_latency)
                 EXTERNAL_PROVIDER_ERRORS.inc()
-                raise Exception("External payment provider error (chaos)")
+                raise Exception("External payment provider error: upstream returned 503")
         
         await asyncio.sleep(base_latency)
         
@@ -172,8 +174,13 @@ async def call_external_payment_provider(amount: float, currency: str) -> dict:
             EXTERNAL_PROVIDER_ERRORS.inc()
             raise Exception("External payment provider temporarily unavailable")
         
-        EXTERNAL_PROVIDER_LATENCY.observe(time.time() - start_time)
-        
+        elapsed = time.time() - start_time
+        EXTERNAL_PROVIDER_LATENCY.observe(elapsed)
+        if elapsed > PROVIDER_SLOW_THRESHOLD:
+            logger.warning(
+                f"External payment provider slow response: {elapsed:.2f}s "
+                f"(threshold {PROVIDER_SLOW_THRESHOLD:.1f}s)")
+
         return {
             "success": True,
             "provider_reference": f"EXT-{random.randint(100000, 999999)}",
