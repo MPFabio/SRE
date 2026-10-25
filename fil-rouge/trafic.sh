@@ -29,9 +29,9 @@ while time.time() < fin:
         else:
             httpx.get(f'{url}/{produit}', timeout=5)
         envoyes += 1
+        if envoyes % 50 == 0:
+            print(envoyes, 'requêtes envoyées', flush=True)
     except httpx.HTTPError as exc:
         print('erreur :', exc, flush=True)
-    if envoyes % 50 == 0:
-        print(envoyes, 'requêtes envoyées', flush=True)
     time.sleep(random.uniform(0.2, 0.8))
 "

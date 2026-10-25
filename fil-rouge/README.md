@@ -51,33 +51,67 @@ Vous pouvez ajouter les vôtres avec `--set learnerService.env.MA_VARIABLE=valeu
 
 ## Déployer votre module
 
-Sur `utils-stagiaireXX`, avec l'application fil rouge déjà installé :
+L'image de votre module est publiée sur le registry de conteneurs du GitLab
+commun, dans votre projet. Le cluster la télécharge depuis ce registry.
+
+### 1. Pousser l'image sur le registry GitLab
+
+Dans votre projet sur https://gitlab.reskilling.internal, la page
+**Deploy** → **Container Registry** affiche l'adresse du registry et le
+chemin de votre image. Créez un jeton d'accès personnel (avatar →
+**Preferences** → **Access tokens**) avec les droits `read_registry` et
+`write_registry`, puis sur `utils-stagiaireXX`, depuis la racine du repo,
+en remplaçant chaque `<...>` par sa valeur :
+
+```bash
+echo 'export IMAGE=<adresse du registry>/<groupe>/<projet>' >> ~/.bashrc   # affiché dans Container Registry
+source ~/.bashrc
+docker login <adresse du registry> -u <votre identifiant>   # mot de passe : le jeton
+docker build --tag $IMAGE:etape1 mon-module/
+docker push $IMAGE:etape1
+```
+
+Comme `STAGIAIRE`, la variable `IMAGE` reste définie dans chaque nouveau
+terminal. `mon-module/` est le dossier de votre module ; pour la version
+prête à l'emploi, `fil-rouge/reviews-service/go/1-base/` ou
+`fil-rouge/reviews-service/python/1-base/`.
+
+À partir de l'exercice CI, c'est le pipeline de votre projet qui construit
+et pousse l'image : voir [l'exemple de pipeline](ci/README.md).
+
+### 2. Autoriser le cluster à lire le registry
+
+Une seule fois. Dans votre projet GitLab, **Settings** → **Repository** →
+**Deploy tokens**, créez un token avec le droit `read_registry`, puis :
+
+```bash
+kubectl create secret docker-registry gitlab-registry \
+    --docker-server=<adresse du registry> \
+    --docker-username=<nom du token> \
+    --docker-password=<valeur du token>
+```
+
+### 3. Activer le module
+
+Avec l'application fil rouge déjà installée :
 
 ```bash
 helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values \
     --set learnerService.enabled=true \
     --set learnerService.name=reviews-service \
-    --set learnerService.image=<registry>/<chemin>/reviews-service:1.0
+    --set learnerService.image=$IMAGE:etape1 \
+    --set learnerService.imagePullSecret=gitlab-registry
 ```
 
-Adaptez le nom, l'image, et au besoin le port (`learnerService.port`) ou la
-endpoint de health check (`learnerService.healthPath`). Le nom devient celui du
+Adaptez le nom, et au besoin le port (`learnerService.port`) ou l'endpoint
+de health check (`learnerService.healthPath`). Le nom devient celui du
 Deployment, du Service et du job Prometheus.
 
-### Image sur le registry du GitLab commun
-
-Le cluster a besoin d'un identifiant pour lire le registry GitLab. Dans
-votre projet GitLab, **Settings** → **Repository** → **Deploy tokens**, créez
-un token avec le droit `read_registry`, puis :
+Pour une nouvelle version, poussez l'image sous un nouveau tag, puis :
 
 ```bash
-kubectl create secret docker-registry gitlab-registry \
-    --docker-server=<adresse du registry GitLab> \
-    --docker-username=<nom du token> \
-    --docker-password=<valeur du token>
-
 helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values \
-    --set learnerService.imagePullSecret=gitlab-registry
+    --set learnerService.image=$IMAGE:etape2
 ```
 
 ### Prendre en compte la nouvelle target dans Prometheus

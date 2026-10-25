@@ -137,14 +137,16 @@ curl localhost:8086/api/reviews/3
 
 ### Ce qu'il faut ajouter
 
-1. La bibliothèque Prometheus :
+1. La bibliothèque Prometheus : importez-la en tête de `main.go` (voir
+   l'exemple), puis, une fois le code écrit, dans le dossier du module :
 
    ```bash
-   go get github.com/prometheus/client_golang/prometheus@latest
    go mod tidy
    ```
 
-   `go mod tidy` remplit `go.sum`, la liste vérifiée des dépendances.
+   `go mod tidy` ajoute à `go.mod` les bibliothèques importées par le code
+   et remplit `go.sum`, la liste vérifiée des dépendances. Lancé avant
+   d'écrire les imports, il retirerait au contraire la bibliothèque.
 
 2. **Choisir ses métriques.** Une métrique business répond à une question
    du métier, pas de l'infrastructure. Pour des avis produits :
@@ -202,6 +204,7 @@ sum by (rating) (reviews_created_total)
 
 | Symptôme | Cause probable | Solution |
 |---|---|---|
+| `no required module provides package` au build | `go mod tidy` lancé avant d'écrire les imports, ou pas lancé | `go mod tidy` une fois le code écrit |
 | La métrique n'apparaît pas dans `/metrics` | Un `CounterVec` n'apparaît qu'après son premier `Inc()` | Publier un avis, puis relire `/metrics` |
 | `duplicate metrics collector registration` au démarrage | Deux métriques portent le même nom | Renommer l'une d'elles |
 | Target `down` dans Prometheus | Image pas encore mise à jour, ou mauvais chemin | `kubectl logs deploy/<nom>`, vérifier `learnerService.metricsPath` |
@@ -215,14 +218,10 @@ sum by (rating) (reviews_created_total)
 
 ### Ce qu'il faut ajouter
 
-1. Les bibliothèques OpenTelemetry :
-
-   ```bash
-   go get go.opentelemetry.io/otel go.opentelemetry.io/otel/sdk \
-       go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc \
-       go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
-   go mod tidy
-   ```
+1. Les bibliothèques OpenTelemetry (`go.opentelemetry.io/otel`, son SDK,
+   l'exporteur `otlptracegrpc` et `otelhttp`) : importez-les dans
+   `main.go`, puis, une fois le code écrit, lancez `go mod tidy` comme à
+   l'étape 2.
 
 2. **Configurer l'envoi des traces** au démarrage, vers le collecteur du
    fil rouge (variable `OTEL_EXPORTER_OTLP_ENDPOINT`, en gRPC sans TLS), avec le
@@ -297,22 +296,24 @@ Une trace de `POST` contient le span de la requête, ses étapes
 
 ## Construire et déployer
 
-À chaque étape, sur `utils-stagiaireXX`, depuis la racine du repo :
+L'image se publie sur le registry GitLab de votre projet. La première fois,
+suivez [Déployer votre module](README.md#déployer-votre-module) : jeton,
+secret de lecture pour le cluster, activation du module.
+
+Ensuite, à chaque étape, sur `utils-stagiaireXX`, depuis la racine du
+repo (`$IMAGE` a été enregistrée à la première fois) :
 
 ```bash
-export REGISTRY=docker-push.reskilling.internal/$STAGIAIRE
-docker build --tag $REGISTRY/reviews-service:etape1 mon-module/
-docker push $REGISTRY/reviews-service:etape1
+docker build --tag $IMAGE:etape2 mon-module/
+docker push $IMAGE:etape2
 
 helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values \
-    --set learnerService.enabled=true \
-    --set learnerService.name=reviews-service \
-    --set learnerService.image=docker.reskilling.internal/$STAGIAIRE/reviews-service:etape1
+    --set learnerService.image=$IMAGE:etape2
 ```
 
 Remplacez `mon-module/` par votre dossier, ou par la version prête à
-l'emploi (`fil-rouge/reviews-service/go/1-base/`), et changez le tag à
-chaque étape (`etape2`, `etape3`). Quand le pipeline GitLab construira
-l'image (exercice CI), seule la valeur de `learnerService.image` changera.
+l'emploi (`fil-rouge/reviews-service/go/2-metriques/` par exemple), et
+changez le tag à chaque étape. Après l'exercice CI, c'est le pipeline qui
+construit et pousse l'image : il ne reste que le `helm upgrade`.
 
 Vérifications et dépannage du déploiement : [le module fil rouge](README.md#vérifier).

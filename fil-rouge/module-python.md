@@ -279,22 +279,24 @@ Une trace de `POST` contient le span de la requête, ses étapes
 
 ## Construire et déployer
 
-À chaque étape, sur `utils-stagiaireXX`, depuis la racine du repo :
+L'image se publie sur le registry GitLab de votre projet. La première fois,
+suivez [Déployer votre module](README.md#déployer-votre-module) : jeton,
+secret de lecture pour le cluster, activation du module.
+
+Ensuite, à chaque étape, sur `utils-stagiaireXX`, depuis la racine du
+repo (`$IMAGE` a été enregistrée à la première fois) :
 
 ```bash
-export REGISTRY=docker-push.reskilling.internal/$STAGIAIRE
-docker build --tag $REGISTRY/reviews-service:etape1 mon-module/
-docker push $REGISTRY/reviews-service:etape1
+docker build --tag $IMAGE:etape2 mon-module/
+docker push $IMAGE:etape2
 
 helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values \
-    --set learnerService.enabled=true \
-    --set learnerService.name=reviews-service \
-    --set learnerService.image=docker.reskilling.internal/$STAGIAIRE/reviews-service:etape1
+    --set learnerService.image=$IMAGE:etape2
 ```
 
 Remplacez `mon-module/` par votre dossier, ou par la version prête à
-l'emploi (`fil-rouge/reviews-service/python/1-base/`), et changez le tag à
-chaque étape (`etape2`, `etape3`). Quand le pipeline GitLab construira
-l'image (exercice CI), seule la valeur de `learnerService.image` changera.
+l'emploi (`fil-rouge/reviews-service/python/2-metriques/` par exemple), et
+changez le tag à chaque étape. Après l'exercice CI, c'est le pipeline qui
+construit et pousse l'image : il ne reste que le `helm upgrade`.
 
 Vérifications et dépannage du déploiement : [le module fil rouge](README.md#vérifier).

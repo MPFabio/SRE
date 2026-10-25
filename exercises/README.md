@@ -22,10 +22,10 @@ sont dans le dossier [bonus](bonus/README.md).
 | | Dashboard | [P5](#p5--dashboard-de-votre-module) |
 | OpenTelemetry > Platform Engineering | Instrumenter avec OpenTelemetry | [P6](#p6--traces-et-étape-la-plus-lente) |
 | | Trace et étape la plus lente | [P6](#p6--traces-et-étape-la-plus-lente) |
-| Intégration continue > Kubernetes | Pipeline : construire et pousser l'image | à venir |
+| Intégration continue > Kubernetes | Pipeline : construire et pousser l'image | [P7](#p7--pipeline--construire-et-pousser-limage) |
 | Kubernetes | Déployer le service (stack complète) | [P3](#p3--déployer-votre-module) |
-| | Lancer les scripts de chaos | [P7](#p7--chaos--diagnostiquer-et-corriger) |
-| | Diagnostiquer et corriger | [P7](#p7--chaos--diagnostiquer-et-corriger) |
+| | Lancer les scripts de chaos | [P8](#p8--chaos--diagnostiquer-et-corriger) |
+| | Diagnostiquer et corriger | [P8](#p8--chaos--diagnostiquer-et-corriger) |
 
 Votre service FastAPI devient ici un module de CapShop. L'application fil rouge est
 nécessaire dès les métriques, pour les voir dans Prometheus et Grafana : le
@@ -40,8 +40,8 @@ reprend ensuite.
 | | Le déployer dans Kubernetes (stack complète) | [P1](#p1--installer-lapplication-fil-rouge), [P3](#p3--déployer-votre-module) |
 | Fin du module Prometheus et Grafana | Métriques business | [P4](#p4--métriques-business) |
 | | Dashboard | [P5](#p5--dashboard-de-votre-module) |
-| Fin du sprint 2 | Lancer les scripts de chaos | [P7](#p7--chaos--diagnostiquer-et-corriger) |
-| | Corriger les problèmes provoqués | [P7](#p7--chaos--diagnostiquer-et-corriger) |
+| Fin du sprint 2 | Lancer les scripts de chaos | [P8](#p8--chaos--diagnostiquer-et-corriger) |
+| | Corriger les problèmes provoqués | [P8](#p8--chaos--diagnostiquer-et-corriger) |
 
 ---
 
@@ -109,10 +109,9 @@ vous reprendrez votre propre code plus tard.
 **Objectif** : votre module tourne dans l'application fil rouge, à côté des six services, et
 la stack le voit.
 
-1. Construisez et poussez l'image sur Nexus, puis activez le module dans le
-   chart : section « Construire et déployer » du guide
-   ([Go](../fil-rouge/module-go.md#construire-et-déployer),
-   [Python](../fil-rouge/module-python.md#construire-et-déployer)).
+1. Poussez l'image sur le registry GitLab de votre projet, autorisez le
+   cluster à le lire, puis activez le module dans le chart :
+   [Déployer votre module](../fil-rouge/README.md#déployer-votre-module).
 2. Rechargez Prometheus pour qu'il prenne en compte la nouvelle target.
 3. Vérifiez avec la section [Vérifier](../fil-rouge/README.md#vérifier).
 
@@ -233,9 +232,10 @@ quelqu'un qui ne connaît pas son code.
 | Latence P95 | Time series, unité *seconds* | `histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{job="reviews-service"}[5m])))` |
 | Logs | Logs, source Loki | `{job="reviews-service"} != "/health"` |
 
-Avec le trafic de `trafic.sh`, une part importante des avis est refusée
-(environ 40 %) : le script envoie volontairement des mots interdits et des
-produits inconnus.
+Avec le trafic de `trafic.sh`, une part importante des avis est refusée :
+le script envoie volontairement des mots interdits (environ 30 % de refus
+à l'étape 2), puis des produits inconnus, refusés à partir de l'étape 3
+qui vérifie chaque produit auprès du catalogue (environ 40 % au total).
 
 </details>
 
@@ -246,7 +246,7 @@ produits inconnus.
   unités renseignées.
 - Le haut du dashboard répond à « le service va-t-il bien ? » (trafic,
   erreurs, latence) ; le bas détaille le métier.
-- Pendant une panne (P7), le dashboard le montre.
+- Pendant une panne (P8), le dashboard le montre.
 
 </details>
 
@@ -308,7 +308,56 @@ propagé : voir le tableau de dépannage.
 
 ---
 
-## P7 : Chaos : diagnostiquer et corriger
+## P7 : Pipeline : construire et pousser l'image
+
+**Objectif** : le pipeline GitLab de votre projet construit l'image de votre
+module et la pousse sur le registry du GitLab commun, à chaque push. Vous
+déployez ensuite l'application fil rouge à partir de cette image.
+
+1. Ajoutez à votre projet le pipeline d'exemple, ou complétez le vôtre :
+   [pipeline de construction d'image](../fil-rouge/ci/README.md).
+2. Poussez un commit et suivez le job dans **Build** → **Pipelines**.
+3. Vérifiez la nouvelle image dans **Deploy** → **Container Registry** : un
+   tag par commit, plus `latest`.
+4. Déployez cette image :
+
+   ```bash
+   helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values \
+       --set learnerService.image=$IMAGE:<tag du commit>
+   ```
+
+<details>
+<summary>Ça bloque ?</summary>
+
+Tableau « Ça bloque ? » du [pipeline de construction d'image](../fil-rouge/ci/README.md).
+
+</details>
+
+<details>
+<summary>Critères de réussite</summary>
+
+- Un push sur la branche par défaut déclenche le pipeline, qui passe au vert.
+- Le registry contient une image par commit : vous savez quel code tourne.
+- Le module déployé avec ce tag répond (`/health`), sans `docker build` sur
+  votre VM.
+- Vous savez expliquer pourquoi déployer un tag de commit plutôt que
+  `latest`.
+
+</details>
+
+<details>
+<summary>Réponse : pourquoi un tag de commit ?</summary>
+
+`latest` change de contenu à chaque push : le même nom désigne des images
+différentes d'un jour à l'autre, et Kubernetes peut garder une ancienne
+version en cache. Un tag par commit est immuable : on sait exactement quel
+code tourne, et revenir en arrière consiste à redéployer le tag précédent.
+
+</details>
+
+---
+
+## P8 : Chaos : diagnostiquer et corriger
 
 **Objectif** : face à une vraie panne, trouver la cause avec vos outils
 d'observabilité, la corriger et mesurer le temps que cela a pris.
