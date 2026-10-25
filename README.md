@@ -10,7 +10,7 @@ répare.
 
 | Vous voulez... | Document |
 |---|---|
-| Installer l'application fil rouge dans votre namespace EKS | [AWS_SECURE/Readme.md](AWS_SECURE/Readme.md) |
+| Installer l'application fil rouge dans votre namespace EKS | [AWS_SECURE/README.md](AWS_SECURE/README.md) |
 | Faire les exercices de la formation (fil rouge) | [Exercices du parcours](exercises/README.md) |
 | Développer et brancher votre module fil rouge | [fil-rouge/README.md](fil-rouge/README.md) |
 | Provoquer des pannes, les diagnostiquer et les corriger | [chaos/README.md](chaos/README.md) |
@@ -138,7 +138,7 @@ kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capsho
 ```
 ├── AWS_SECURE/                # Installation de l'application fil rouge dans un namespace EKS
 ├── chaos/                     # Pannes réelles à diagnostiquer et corriger
-├── fil-rouge/                 # Conditions d'intégration + module d'exemple
+├── fil-rouge/                 # Conditions d'intégration, guides Go et Python, module d'exemple
 │   ├── ci/                    #   pipeline GitLab d'exemple
 │   └── reviews-service/       #   avis produits, en Python et en Go
 ├── microservices/
@@ -152,7 +152,7 @@ kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capsho
 ├── lab-controller/api/        # Operations Console
 ├── traffic-generator/         # Locust
 ├── helm/                      # Chart Kubernetes, un namespace par apprenant
-├── observability/             # Configurations Prometheus, Grafana, Loki...
+├── observability/             # Configurations Prometheus, Grafana, Loki... du mode local
 ├── docs/                      # Guides et runbooks
 ├── exercises/                 # Exercices du parcours, avec aides et réponses
 │   └── bonus/                 #   exercices facultatifs pour aller plus loin
@@ -162,7 +162,7 @@ kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capsho
 
 ## Documentation
 
-- [Installation sur EKS](AWS_SECURE/Readme.md)
+- [Installation sur EKS](AWS_SECURE/README.md)
 - [Module fil rouge](fil-rouge/README.md)
 - [Observabilité](docs/OBSERVABILITY.md)
 - [SLOs et alerting](docs/SLOS_ALERTING.md)

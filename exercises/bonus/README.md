@@ -26,7 +26,7 @@ boutique e-commerce tech premium qui rencontre des problèmes de fiabilité.
 ## Prérequis
 
 L'application fil rouge est installée dans votre namespace et les interfaces sont ouvertes :
-voir [Installer l'application fil rouge dans EKS](../../AWS_SECURE/Readme.md), étapes 5 à 8.
+voir [Installer l'application fil rouge dans EKS](../../AWS_SECURE/README.md), étapes 5 à 8.
 
 Toutes les commandes `kubectl` se lancent sur votre machine
 `utils-stagiaireXX`. Les adresses `http://localhost:...` s'ouvrent dans le

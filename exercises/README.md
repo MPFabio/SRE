@@ -50,7 +50,7 @@ reprend ensuite.
 **Objectif** : CapShop et sa stack d'observabilité tournent dans votre
 namespace.
 
-Suivez [Installer l'application fil rouge dans EKS](../AWS_SECURE/Readme.md), étapes 1 à 8 :
+Suivez [Installer l'application fil rouge dans EKS](../AWS_SECURE/README.md), étapes 1 à 8 :
 construction des images, `helm install`, accès aux interfaces.
 
 <details>
