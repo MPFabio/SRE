@@ -20,12 +20,12 @@ NC='\033[0m'
 
 # Vérification de Docker
 if ! command -v docker &> /dev/null; then
-    printf "${RED}Erreur: Docker n'est pas installe${NC}\n"
+    printf "${RED}Erreur : Docker n'est pas installé${NC}\n"
     exit 1
 fi
 
 if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-    printf "${RED}Erreur: Docker Compose n'est pas installe${NC}\n"
+    printf "${RED}Erreur : Docker Compose n'est pas installé${NC}\n"
     exit 1
 fi
 
@@ -45,7 +45,7 @@ if [ ! -f .env ]; then
         -e "s/^JWT_SECRET=.*/JWT_SECRET=$(secret_aleatoire 32)/" \
         -e "s/^GRAFANA_ADMIN_PASSWORD=.*/GRAFANA_ADMIN_PASSWORD=$(secret_aleatoire 8)/" \
         .env.example > .env
-    printf "${GREEN}Fichier .env genere avec des secrets aleatoires${NC}\n"
+    printf "${GREEN}Fichier .env généré avec des secrets aléatoires${NC}\n"
 fi
 
 GRAFANA_PASSWORD="$(grep '^GRAFANA_ADMIN_PASSWORD=' .env | cut -d= -f2-)"
@@ -53,33 +53,34 @@ GRAFANA_PASSWORD="$(grep '^GRAFANA_ADMIN_PASSWORD=' .env | cut -d= -f2-)"
 printf "${BLUE}Construction des images...${NC}\n"
 $DOCKER_COMPOSE build
 
-printf "${BLUE}Demarrage des services...${NC}\n"
+printf "${BLUE}Démarrage des services...${NC}\n"
 $DOCKER_COMPOSE up --detach
 
 echo ""
-printf "${GREEN}Application fil rouge demarree avec succes${NC}\n"
+printf "${GREEN}Application fil rouge démarrée${NC}\n"
 echo ""
-echo "Interfaces disponibles:"
-echo "  - E-Commerce Frontend:  http://localhost:8080"
+echo "Interfaces disponibles :"
+echo "  - Boutique CapShop:     http://localhost:8080"
 echo "  - Operations Console:   http://localhost:8090"
 echo "  - Grafana:              http://localhost:3000 (admin / ${GRAFANA_PASSWORD})"
 echo "  - Prometheus:           http://localhost:9090"
 echo "  - Alertmanager:         http://localhost:9093"
 echo "  - Locust (Traffic):     http://localhost:8089"
 echo ""
-echo "Microservices:"
+echo "Microservices :"
 echo "  - API Gateway:     http://localhost:8080/api/docs"
 echo "  - Catalog Service: http://localhost:8081"
 echo "  - Cart Service:    http://localhost:8082"
 echo "  - Orders Service:  http://localhost:8083"
 echo "  - Payment Service: http://localhost:8084"
 echo "  - Users Service:   http://localhost:8085"
+echo "  - Reviews Service: http://localhost:8086"
 echo ""
-printf "${YELLOW}Pour declencher un incident:${NC}\n"
-echo "   Ouvrez http://localhost:8090 et cliquez sur un scenario"
+printf "${YELLOW}Pour déclencher un incident :${NC}\n"
+echo "   Ouvrez http://localhost:8090 et cliquez sur un scénario"
 echo ""
-printf "${YELLOW}Pour voir les logs:${NC}\n"
+printf "${YELLOW}Pour voir les logs :${NC}\n"
 echo "   $DOCKER_COMPOSE logs -f [service-name]"
 echo ""
-printf "${YELLOW}Pour arreter:${NC}\n"
-echo "   ./stop.sh ou $DOCKER_COMPOSE down"
+printf "${YELLOW}Pour arrêter :${NC}\n"
+echo "   make stop ou $DOCKER_COMPOSE down"

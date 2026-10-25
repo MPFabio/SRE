@@ -37,7 +37,7 @@ navigateur de votre poste, tunnel SSH ouvert. Avec FoxyProxy, remplacez
 kubectl get pods
 ```
 
-Les vingt pods doivent être `Running`.
+Tous les pods doivent être `Running` et prêts (`1/1`).
 
 **Documentation de référence** :
 - [Guide Observabilité](../../docs/OBSERVABILITY.md)
@@ -67,8 +67,8 @@ Les vingt pods doivent être `Running`.
 
 - **Combien de microservices pour un achat ?** Cinq. La **gateway** reçoit
   `POST /api/orders` et le transmet à **orders**, qui lit le panier dans
-  **cart**, appelle **payment**, vide le panier, puis réserve le stock dans
-  **catalog**. Users n'intervient pas : la boutique n'a pas de compte client.
+  **cart**, appelle **payment**, réserve le stock dans **catalog**, puis
+  vide le panier. Users n'intervient pas : la boutique n'a pas de compte client.
 - **Quel service gère le panier ?** `cart-service`.
 - **Où sont stockées les données du panier ?** Dans **Redis**, pas dans
   PostgreSQL. Un panier est une donnée temporaire : Redis est rapide, mais
@@ -130,15 +130,16 @@ variables d'environnement, probes), `kubectl logs deploy/<nom>`.
 # Requêtes par seconde par service (vues depuis l'API Gateway)
 sum by (service) (rate(gateway_requests_total[5m]))
 
-# Latence P99 du service payment
-histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[5m])))
+# Latence P99 des paiements (sans les health checks, bien plus nombreux)
+histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket{endpoint="/api/payments"}[5m])))
 
 # Taux d'erreur global
 sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests_total[5m]))
 ```
 
-> Hors incident, le taux d'erreur reste faible, autour de 0,2 % : le
-> prestataire de paiement simulé échoue aléatoirement dans 2 % des cas.
+> Hors incident, le taux d'erreur reste faible, de l'ordre de 0,1 à 0,2 % :
+> le prestataire de paiement simulé échoue dans 2 % des paiements, et la
+> commande échoue alors en 502.
 > Déclenchez un incident depuis l'Operations Console (bonus 3) pour le voir
 > monter.
 >
@@ -151,7 +152,7 @@ sum(rate(gateway_requests_total{status=~"5.."}[5m])) / sum(rate(gateway_requests
 
 **Questions** :
 - Quel service reçoit le plus de requêtes ?
-- Pour payment, comparez le trafic vu par la gateway et celui mesure par le service lui-même. D'ou vient l'écart ?
+- Pour payment, comparez le trafic vu par la gateway et celui mesuré par le service lui-même. D'où vient l'écart ?
 - Quelle est la latence moyenne du catalog ? (`rate(catalog_request_duration_seconds_sum[5m]) / rate(catalog_request_duration_seconds_count[5m])`)
 
 <details>
@@ -236,8 +237,9 @@ fois.
 - **Erreur la plus fréquente** : hors incident, l'échec aléatoire du
   prestataire de paiement (`External payment provider temporarily
   unavailable`, 2 % des paiements). Orders renvoie alors un 502, que la
-  boutique affiche comme « Paiement refusé ». Côté gateway, on voit aussi
-  des 401 : les appels du générateur de trafic à des routes protégées.
+  boutique affiche comme « Paiement refusé ». Côté gateway, les 4xx
+  viennent du générateur de trafic : 404 quand il retire du panier un
+  article absent, 400 quand il commande avec un panier vide.
 
 </details>
 
@@ -274,9 +276,8 @@ consultations de produits et les health checks `/health`.
 
 Une trace de checkout traverse **api-gateway → orders-service**, puis
 orders appelle successivement **cart-service** (lecture du panier),
-**payment-service** (paiement), de nouveau **cart-service** (vidage du
-panier), puis **catalog-service** (réservation du stock, une fois par
-article).
+**payment-service** (paiement), **catalog-service** (réservation du stock,
+une fois par article), puis de nouveau **cart-service** (vidage du panier).
 
 Hors incident, le paiement occupe l'essentiel du temps : 100 à 500 ms
 d'appel au prestataire simulé. Les autres appels prennent quelques
@@ -296,7 +297,7 @@ Un dashboard basique "SRE Overview" est déjà provisionné dans Grafana, mais i
 2. **Panel Taux d'erreur** (Gauge)
    - Couleur verte < 1%, orange < 5%, rouge >= 5%
 
-3. **Panel Traffic** (Stat)
+3. **Panel Trafic** (Stat)
    - Requêtes/seconde total
 
 4. **Panel Logs récents** (Logs panel)
@@ -351,7 +352,7 @@ incident.
 <summary>Réponses</summary>
 
 - **Alertes attendues** au bout de quelques minutes :
-  `PaymentServiceHighLatency` (P95 du paiement > 300 ms),
+  `PaymentServiceHighLatency` (P95 des paiements > 1 s),
   `HighLatencyP99Orders` (commandes > 1,5 s), et votre alerte SLO
   si vous avez fait le bonus 4.
 - **Service impacté** : `payment-service`. Orders et la gateway sont lents
@@ -370,8 +371,8 @@ Utilisez les 3 piliers :
 
 **Métriques** (Prometheus) :
 ```promql
-# Latence du service impacté
-histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[1m])))
+# Latence des paiements
+histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket{endpoint="/api/payments"}[1m])))
 ```
 
 **Logs** (Loki) :
@@ -436,7 +437,7 @@ circuit breaker pourrait alors protéger le système.
 
 Dans l'onglet **Incidents**, ouvrez l'incident résolu et cliquez sur
 *Generate Post-Mortem*. Le post-mortem apparaît dans l'onglet
-**Post-Mortems**. La console ne produit qu'un **squelette**: elle calcule ce
+**Post-Mortems**. La console ne produit qu'un **squelette** : elle calcule ce
 qu'elle sait (impact, durée, services, timeline) et laisse vide tout ce qui
 relève de l'analyse. C'est vous qui rédigez le post-mortem.
 
@@ -445,7 +446,7 @@ compléter. Cliquez sur **Éditer**.
 
 | Section | Origine | À votre charge |
 |---------|---------|----------------|
-| Impact, durée, services | calcules depuis l'incident | non |
+| Impact, durée, services | calculés depuis l'incident | non |
 | Timeline | calculée depuis l'incident | non |
 | Participants | issus des témoignages | non |
 | Cause racine | vide (pistes des témoins fournies) | **oui** |
@@ -462,16 +463,16 @@ compléter. Cliquez sur **Éditer**.
 | Actions correctives | vide | **oui** (3 minimum) |
 
 Les actions se saisissent une par ligne, au format
-`tache | type | priorite | responsable | echeance`, ou *type* vaut
+`tâche | type | priorité | responsable | échéance`, où *type* vaut
 `prevent` (empêcher la récurrence), `mitigate` (limiter l'impact) ou
 `detect` (raccourcir la détection).
 
 > **Cause racine.** Elle décrit un mécanisme, pas un symptôme. « Le service
-> était lent » est un symptôme; « le pool de connexions était dimensionné a 10
+> était lent » est un symptôme ; « le pool de connexions était dimensionné à 10
 > alors que le pic demande 30 » est une cause racine.
 
-> **Ou nous avons eu de la chance.** Section souvent oubliée, et pourtant la
-> plus révélatrice: qu'est-ce qui aurait pu aggraver l'incident et ne s'est pas
+> **Où nous avons eu de la chance.** Section souvent oubliée, et pourtant la
+> plus révélatrice : qu'est-ce qui aurait pu aggraver l'incident et ne s'est pas
 > produit ? Un incident survenu en heures ouvrées, un cache encore chaud, une
 > dépendance qui n'a pas cédé. Chaque réponse désigne une fragilité non traitée.
 
@@ -537,8 +538,8 @@ avg_over_time(
 ```
 
 > Pour que ces mesures aient du sens, faites tourner au moins un incident
-> (bonus 3) avant de figer vos SLOs: sans erreur observée, la disponibilité
-> mesurée vaut 100% et l'error budget du bonus 4.3 est ininterpretable.
+> (bonus 3) avant de figer vos SLOs : sans erreur observée, la disponibilité
+> mesurée vaut 100 % et l'error budget du bonus 4.3 est ininterprétable.
 
 <details>
 <summary>Ça bloque ?</summary>
@@ -580,8 +581,12 @@ l'important est la justification.
 | catalog | Disponibilité | 99,5 % | Navigation : une erreur ponctuelle se rattrape par un rechargement |
 | catalog | Latence P99 | 300 ms | Mesuré autour de quelques dizaines de ms, large marge |
 | cart | Disponibilité | 99,5 % | Un panier qui échoue fait perdre la vente |
-| payment | Disponibilité | 99 % | Le prestataire externe échoue déjà dans 2 % des cas : viser plus est irréaliste sans retry |
+| payment | Disponibilité | 97 % | Le prestataire externe échoue déjà dans 2 % des paiements : même 98 % ne laisse aucune marge sans retry |
 | payment | Latence P99 | 1 s | Mesuré entre 100 et 500 ms, l'appel externe domine |
+
+La requête de 4.1 mesure ce que voit la gateway, qui ne voit pas les
+paiements (bonus 2.1) : pour payment, elle donne près de 100 %. Mesurez
+plutôt sur `payment_requests_total{endpoint="/api/payments"}`.
 
 Erreurs fréquentes :
 - un SLO à 100 % : aucun budget d'erreur, chaque incident est un échec ;
@@ -592,7 +597,7 @@ Erreurs fréquentes :
 
 ### 4.3 Calculer l'Error Budget
 
-Pour votre SLO principal (ex: payment 99.5%) :
+Pour votre SLO principal (par exemple la disponibilité de catalog, 99,5 %) :
 
 ```
 Error Budget = (100% - SLO%) × Période
@@ -618,8 +623,8 @@ Pour un SLO de 99,5 % sur 30 jours :
 En PromQL, le budget consommé sur la période observée :
 
 ```promql
-1 - (sum(increase(gateway_requests_total{service="payment",status!~"5.."}[1h]))
-     / sum(increase(gateway_requests_total{service="payment"}[1h])))
+1 - (sum(increase(gateway_requests_total{service="catalog",status!~"5.."}[1h]))
+     / sum(increase(gateway_requests_total{service="catalog"}[1h])))
 ```
 
 à comparer au 0,5 % autorisé.
@@ -638,13 +643,13 @@ groups:
   - name: my_slo_alerts
     rules:
       - alert: PaymentSLOBreach
-        expr: histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket[5m]))) > 0.3
+        expr: histogram_quantile(0.99, sum by (le) (rate(payment_request_duration_seconds_bucket{endpoint="/api/payments"}[5m]))) > 1
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "Latence P99 du paiement au-dela du SLO"
-          description: "P99 a {{ $value | humanizeDuration }}, seuil 300ms."
+          summary: "Latence P99 du paiement au-delà du SLO"
+          description: "P99 à {{ $value | humanizeDuration }}, seuil 1 s."
 ```
 
 Validez la règle avec l'outil de Prometheus, dans son pod :
@@ -667,7 +672,7 @@ Le fichier apparaît dans le pod au bout d'une minute environ :
 kubectl exec deploy/prometheus -- ls /etc/prometheus/rules/
 ```
 
-Quand `my_slo_alerts.yml` est present, rechargez Prometheus :
+Quand `my_slo_alerts.yml` est présent, rechargez Prometheus :
 
 ```bash
 curl --request POST http://localhost:9090/-/reload
@@ -739,9 +744,9 @@ Calculez le score de priorité :
 Score = Fréquence × Temps × Automatisabilité
 ```
 
-Les taches de l'onglet Automation sont déclenchées par incident. Convertissez
-leur fréquence en occurrences par semaine a partir du nombre d'incidents
-observes, puis remplissez :
+Les tâches de l'onglet Automation sont déclenchées par incident. Convertissez
+leur fréquence en occurrences par semaine à partir du nombre d'incidents
+observés, puis remplissez :
 
 | Tâche | Fréquence | Temps | Auto (0-1) | Score |
 |-------|-----------|-------|------------|-------|
@@ -783,7 +788,7 @@ for deploy in api-gateway catalog-service cart-service orders-service payment-se
     ready=$(kubectl get deployment "$deploy" --output jsonpath='{.status.readyReplicas}')
 
     if [ "${ready:-0}" -lt "$desired" ]; then
-        echo "$(date) - $deploy : ${ready:-0}/$desired pret, redemarrage..."
+        echo "$(date) - $deploy : ${ready:-0}/$desired prêt, redémarrage..."
         kubectl rollout restart deployment/"$deploy"
     fi
 done
@@ -793,25 +798,29 @@ Testez-le en provoquant une panne de la base de données :
 
 ```bash
 kubectl scale statefulset postgres --replicas=0
+kubectl get pods --watch      # attendez que des services passent à 0/1, puis Ctrl+C
 bash health_monitor.sh
 kubectl scale statefulset postgres --replicas=1
 ```
 
 **Questions** :
-- Quels services le script relance-t-il, et pourquoi ceux-la ?
-- Les relancer suffit-il a rétablir le service ?
+- Quels services le script relance-t-il, et pourquoi ceux-là ?
+- Les relancer suffit-il à rétablir le service ?
 - Kubernetes relance déjà un container dont la liveness probe échoue :
   qu'apporte ce script en plus, et qu'automatiseriez-vous plutôt ?
 
 <details>
 <summary>Ça bloque ?</summary>
 
+- **Le script ne relance rien** : il est passé trop tôt. La readiness met
+  une trentaine de secondes à échouer après l'arrêt de postgres ;
+  relancez-le quand des pods sont à `0/1`.
 - **`readyReplicas` vide** : aucun pod n'est prêt, le script le traite comme
   0 grâce à `${ready:-0}`.
 - **Les pods ne redeviennent pas prêts** après `--replicas=1` : postgres met
   une trentaine de secondes à démarrer. Suivez avec
   `kubectl get pods --watch`.
-- **L'application fil rouge reste dégradé** : relancez le script une fois postgres revenu, ou
+- **L'application fil rouge reste dégradée** : relancez le script une fois postgres revenu, ou
   `kubectl rollout restart deployment/<nom>`.
 
 </details>

@@ -91,7 +91,7 @@ kubectl get pods -l app=<service-name>
 # Vérifier le health
 kubectl exec deploy/<service-name> -- curl --silent localhost:<port>/health
 
-# Test global : les vingt pods Running
+# Test global : tous les pods Running et prêts
 kubectl get pods
 ```
 

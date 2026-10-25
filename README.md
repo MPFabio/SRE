@@ -139,6 +139,7 @@ kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capsho
 ├── AWS_SECURE/                # Installation de l'application fil rouge dans un namespace EKS
 ├── chaos/                     # Pannes réelles à diagnostiquer et corriger
 ├── fil-rouge/                 # Conditions d'intégration + module d'exemple
+│   ├── ci/                    #   pipeline GitLab d'exemple
 │   └── reviews-service/       #   avis produits, en Python et en Go
 ├── microservices/
 │   ├── _shared/               # Socle commun aux 5 services métier

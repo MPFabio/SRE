@@ -78,6 +78,11 @@ do
 done
 ```
 
+Un build peut échouer sur une erreur réseau passagère (`pip install`,
+`apt-get`), et le push de cette image échoue ensuite avec `An image does
+not exist locally`. Relancez alors tout le bloc : les images déjà
+construites et poussées passent en quelques secondes.
+
 ## 5. Installer l'application fil rouge
 
 Le cluster tire les images depuis `docker.reskilling.internal`. Les trois
@@ -102,12 +107,15 @@ droits du namespace.
 kubectl get pods --watch
 ```
 
-Les vingt pods doivent passer `Running` en quelques minutes.
+Tous les pods doivent passer `Running` et `1/1` en quelques minutes : une
+vingtaine, dont un `promtail` par nœud du cluster. Un redémarrage au
+démarrage des services qui utilisent la base (catalog, orders, users, la
+console) est normal : ils attendent que PostgreSQL soit prêt.
 
 | Message | Cause, solution |
 |---|---|
 | `ImagePullBackOff` sur une de vos images | image absente du Nexus : refaire l'étape 4 |
-| `ImagePullBackOff` sur une image publique (postgres, grafana...) | relancer avec `--set image.publicRegistry=docker.reskilling.internal` |
+| `ImagePullBackOff` sur une image publique (postgres, grafana...) | passer par le proxy du Nexus : `helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values --set image.publicRegistry=docker.reskilling.internal` |
 
 Pour lire la raison exacte :
 
@@ -236,17 +244,29 @@ n'a pas besoin d'être relancé.
 
 Quand une correction de l'application fil rouge est publiée sur le repo,
 récupérer le code, puis refaire l'étape 4 (construire et pousser les images) avec le même tag `lab`.
-Redémarrer ensuite les services, qui téléchargent la nouvelle version :
+Appliquer ensuite le chart à jour, puis redémarrer les services, qui
+téléchargent la nouvelle version :
 
 ```sh
 git pull
 # ... étape 4 ...
+helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values
 kubectl rollout restart deployment api-gateway catalog-service cart-service \
     orders-service payment-service users-service lab-controller traffic-generator
 kubectl get pods --watch
 ```
 
 Relancer enfin les ports de l'étape 8 : ils sont tombés avec les anciens pods.
+
+Si la correction touche les règles d'alerte, rechargez Prometheus une
+minute après le `helm upgrade` :
+
+```sh
+curl --request POST http://localhost:9090/-/reload
+```
+
+Si elle touche Grafana (dashboard, sources de données), redémarrez-le :
+`kubectl rollout restart deployment grafana`.
 
 Pour mettre à jour votre propre module, voir le guide de votre langage dans
 [fil-rouge/](../fil-rouge/README.md).
@@ -256,3 +276,6 @@ Pour mettre à jour votre propre module, voir le guide de votre langage dans
 ```sh
 helm uninstall lab --namespace $STAGIAIRE
 ```
+
+Le secret `gitlab-registry`, créé à la main pour votre module, reste en
+place : `kubectl delete secret gitlab-registry` le supprime.

@@ -22,7 +22,7 @@ Dimensionnement de l'application fil rouge :
 | `max_connections` | 50 | `postgres.maxConnections` du chart |
 | `command_timeout` | 5s | `_shared/db.py` |
 
-Trois services persistants x 10 connexions = 30 connexions en pointe,
+Trois services persistants × 10 connexions = 30 connexions en pointe,
 sur 50 disponibles.
 
 ## Diagnostic rapide
@@ -116,7 +116,7 @@ SELECT pg_terminate_backend(<pid>);
 ### Si la charge est légitime
 ```bash
 # Augmenter temporairement le pool : les services redémarrent
-helm upgrade lab helm/reskilling-lab --reuse-values --set db.poolMax=20
+helm upgrade lab helm/reskilling-lab --namespace $STAGIAIRE --reuse-values --set db.poolMax=20
 ```
 
 En production, la bonne réponse est rarement d'agrandir le pool : c'est
@@ -126,7 +126,7 @@ rendue.
 ## Vérification du retour à la normale
 
 ```bash
-kubectl get pods                   # les vingt pods Running
+kubectl get pods                   # tous les pods Running et prêts
 kubectl exec deploy/catalog-service -- curl --silent localhost:8081/ready   # "database":"up"
 ```
 
@@ -140,7 +140,7 @@ db_pool_idle > 0
 ## Prévention
 
 - Surveiller `db_pool_size` / `db_pool_idle` en continu, pas seulement
-  la latence applicative : la saturation du pool precede la dégradation
+  la latence applicative : la saturation du pool précède la dégradation
   visible
 - Alerter sur `db_query_errors_total` plutôt que sur les seules 500 du
   gateway : la cause est plus proche

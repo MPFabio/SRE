@@ -57,7 +57,12 @@ kubectl rollout history deployment/<service>
 ## Corriger
 
 Corrigez avec `kubectl` (`scale`, `set image`, `set resources`, `set env`,
-`rollout undo`...) puis vérifiez que les alertes repassent au vert.
+`rollout undo`...) puis vérifiez le retour à la normale : pods prêts,
+service qui répond, alertes qui repassent au vert. `ServiceDown` et
+`EndpointDown` disparaissent en une à deux minutes ; les alertes calculées
+sur 5 minutes (taux d'erreur, latence) mettent jusqu'à 5 minutes, et
+`ErrorBudgetFastBurn` jusqu'à une heure. Leur retard ne signifie pas que
+votre correction a échoué.
 
 Bloqué ? `bash chaos/rollback.sh` remet le service dans l'état d'avant la
 panne. Lancez-le aussi après votre propre correction : il nettoie la
@@ -173,12 +178,15 @@ elle qui, en temps normal, évite qu'une mauvaise image coupe le service.
 <summary><code>port</code> : solution</summary>
 
 La variable `PORT` vaut 9999 : le programme écoute sur 9999, mais les
-probes et le Service visent 8086. Le programme fonctionne, personne ne
-peut le joindre.
+probes et le Service visent le port d'origine (8086 pour votre module).
+Le programme fonctionne, personne ne peut le joindre.
 
 ```bash
 kubectl set env deployment/<service> PORT=8086
 ```
+
+Sur un autre service, remettez son propre port : celui que visent les
+probes dans `kubectl describe pod` (8081 pour catalog-service, par exemple).
 
 Puis remettez la stratégie `RollingUpdate` (voir `memoire`). À retenir :
 un pod `Running` n'est pas un pod qui fonctionne, c'est la readiness qui
@@ -221,9 +229,11 @@ bonus 5.3).
 - `ServiceDown` et `EndpointDown` sur `cart-service`, alors que le pod est
   `Running` : il n'est simplement pas prêt (`0/1`).
 - La gateway renvoie des 503 sur `/api/cart/...`.
-- Que vérifie la readiness de cart ? `kubectl exec deploy/api-gateway --
-  curl --silent cart-service:8082/ready`
-- Les logs de cart parlent d'une dépendance.
+- Que vérifie la readiness de cart ? Interrogez le pod lui-même : le
+  Service ne l'atteint plus, puisqu'il n'est pas prêt.
+  `kubectl exec deploy/cart-service -- curl --silent localhost:8082/ready`
+- Les logs de cart parlent d'une dépendance :
+  `kubectl logs deploy/cart-service --tail 200 | grep --invert-match --extended-regexp "/(ready|health|metrics)"`
 
 </details>
 
@@ -252,7 +262,7 @@ Pour chaque panne, notez :
 | Panne déclenchée | affichée par le script |
 | Première alerte | Alertmanager |
 | Cause identifiée | vous |
-| Service rétabli | alertes au vert |
+| Service rétabli | pods prêts, le service répond de nouveau |
 
 Délai de détection = première alerte − panne. MTTR = rétablissement −
 panne. Quelle étape vous a pris le plus de temps, et quel outil vous a

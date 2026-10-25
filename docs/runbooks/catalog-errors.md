@@ -46,7 +46,7 @@ kubectl exec deploy/catalog-service -- curl --verbose localhost:8081/health
 | Bug dans le code | Haute | Vérifier les logs |
 | Données corrompues | Moyenne | Vérifier les requêtes spécifiques |
 | Limite de ressources | Moyenne | Vérifier CPU/mémoire |
-| Configuration chaos | Application fil rouge | Incident en cours dans l'Operations Console |
+| Chaos injecté | Élevée pendant un exercice | Incident en cours dans l'Operations Console |
 
 ## Résolution
 

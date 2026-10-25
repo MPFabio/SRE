@@ -14,7 +14,7 @@ CHAOS_PORT_payment := 8084
 CHAOS_PORT_users   := 8085
 CHAOS_SERVICES     := catalog cart orders payment users
 
-# Commande docker compose (v2 par defaut, fallback v1)
+# Commande docker compose (v2 par défaut, sinon v1)
 DC := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
 help: ## Affiche cette aide
@@ -26,13 +26,13 @@ help: ## Affiche cette aide
 # Gestion de l'application fil rouge
 # =============================================================================
 
-start: ## Demarre l'application fil rouge
+start: ## Démarre l'application fil rouge
 	@./start.sh
 
-stop: ## Arrete l'application fil rouge
+stop: ## Arrête l'application fil rouge
 	@$(DC) down
 
-restart: stop start ## Redemarre l'application fil rouge
+restart: stop start ## Redémarre l'application fil rouge
 
 build: ## Reconstruit toutes les images
 	@$(DC) build
@@ -40,13 +40,13 @@ build: ## Reconstruit toutes les images
 logs: ## Affiche les logs de tous les services
 	@$(DC) logs --follow
 
-status: ## Affiche le status des services
+status: ## Affiche l'état des services
 	@$(DC) ps
 
 clean: ## Supprime tous les volumes et nettoie
 	@$(DC) down --volumes
 	@docker system prune --force
-	@echo "$(GREEN)Nettoyage termine$(NC)"
+	@echo "$(GREEN)Nettoyage terminé$(NC)"
 
 # =============================================================================
 # Logs par service
@@ -74,41 +74,41 @@ logs-users: ## Logs du Users Service
 # Incidents
 # =============================================================================
 
-incident-payment: ## Declenche un incident Payment Latency
+incident-payment: ## Déclenche l'incident de latence du paiement
 	@$(MAKE) --no-print-directory incident TYPE=payment_latency
 
-incident-catalog: ## Declenche un incident Catalog Errors
+incident-catalog: ## Déclenche l'incident d'erreurs du catalogue
 	@$(MAKE) --no-print-directory incident TYPE=catalog_errors
 
-incident-database: ## Declenche un incident Database Saturation
+incident-database: ## Déclenche l'incident de saturation de la base
 	@$(MAKE) --no-print-directory incident TYPE=database_saturation
 
-incident: ## Declenche un incident (TYPE=payment_latency)
+incident: ## Déclenche un incident (TYPE=payment_latency)
 	@if [ -z "$(TYPE)" ]; then echo "$(RED)Usage: make incident TYPE=payment_latency$(NC)"; exit 1; fi
-	@echo "$(RED)Declenchement incident $(TYPE)...$(NC)"
+	@echo "$(RED)Déclenchement de l'incident $(TYPE)...$(NC)"
 	@curl --silent --fail --request POST http://localhost:8090/api/incidents/trigger \
 		--header 'Content-Type: application/json' \
 		--data '{"incident_type":"$(TYPE)"}' \
 		| jq '{id, title, severity, status, affected_services}'
-	@echo "$(YELLOW)Observez dans Grafana: http://localhost:3000$(NC)"
+	@echo "$(YELLOW)Observez dans Grafana : http://localhost:3000$(NC)"
 
-incident-types: ## Liste les scenarios d'incident disponibles
+incident-types: ## Liste les scénarios d'incident disponibles
 	@curl --silent http://localhost:8090/api/incident-types | jq --raw-output '.[] | "\(.type)  [\(.severity)]  \(.title)"'
 
-incident-list: ## Liste les incidents (les plus recents d'abord)
+incident-list: ## Liste les incidents (les plus récents d'abord)
 	@curl --silent http://localhost:8090/api/incidents \
 		| jq --raw-output '.[:10] | .[] |"\(.id)  \(.status)  \(.type)"'
 
-incident-resolve: ## Resout tous les incidents actifs
-	@echo "$(GREEN)Resolution des incidents actifs...$(NC)"
+incident-resolve: ## Résout tous les incidents actifs
+	@echo "$(GREEN)Résolution des incidents actifs...$(NC)"
 	@for id in $$(curl --silent http://localhost:8090/api/incidents | jq --raw-output '.[] | select(.status != "resolved") | .id'); do \
 		if curl --silent --fail --request PUT "http://localhost:8090/api/incidents/$$id/status?status=resolved" > /dev/null; then \
-			echo "   $$id resolu"; \
+			echo "   $$id résolu"; \
 		else \
-			echo "   $(RED)$$id: echec$(NC)"; \
+			echo "   $(RED)$$id : échec$(NC)"; \
 		fi; \
 	done
-	@echo "$(GREEN)Termine$(NC)"
+	@echo "$(GREEN)Terminé$(NC)"
 
 
 chaos: ## Injecte du chaos (SERVICE=payment LATENCY=3000 ERRORS=0.3)
@@ -122,12 +122,12 @@ chaos-payment-latency: ## Ajoute 3s de latence au Payment Service
 chaos-catalog-errors: ## Injecte 30% d'erreurs au Catalog Service
 	@$(MAKE) --no-print-directory chaos SERVICE=catalog ERRORS=0.3
 
-chaos-status: ## Affiche l'etat du chaos sur tous les services
+chaos-status: ## Affiche l'état du chaos sur tous les services
 	@for entry in catalog:8081 cart:8082 orders:8083 payment:8084 users:8085; do name=$${entry%%:*}; port=$${entry##*:}; printf "  %-10s " "$$name"; curl --silent --fail http://localhost:$$port/api/chaos 2>/dev/null || printf "(indisponible)"; echo ""; done
 
-chaos-stop: ## Arrete le chaos sur tous les services
-	@for entry in catalog:8081 cart:8082 orders:8083 payment:8084 users:8085; do name=$${entry%%:*}; port=$${entry##*:}; curl --silent --fail --request POST http://localhost:$$port/api/chaos --header 'Content-Type: application/json' --data '{"enabled":false,"latency_ms":0,"error_rate":0}' >/dev/null 2>&1 && echo "  $$name: chaos arrete"; done
-	@echo "$(GREEN)Chaos arrete sur tous les services$(NC)"
+chaos-stop: ## Arrête le chaos sur tous les services
+	@for entry in catalog:8081 cart:8082 orders:8083 payment:8084 users:8085; do name=$${entry%%:*}; port=$${entry##*:}; curl --silent --fail --request POST http://localhost:$$port/api/chaos --header 'Content-Type: application/json' --data '{"enabled":false,"latency_ms":0,"error_rate":0}' >/dev/null 2>&1 && echo "  $$name : chaos arrêté"; done
+	@echo "$(GREEN)Chaos arrêté sur tous les services$(NC)"
 
 psql: ## Ouvre un shell PostgreSQL
 	@$(DC) exec postgres psql --username=capshop --dbname=capshop
@@ -139,8 +139,8 @@ db-stats: ## Statistiques de la base (lignes par table)
 # Tests
 # =============================================================================
 
-test: ## Verifie que tous les services sont operationnels
-	@echo "$(YELLOW)Verification des services...$(NC)"
+test: ## Vérifie que tous les services sont opérationnels
+	@echo "$(YELLOW)Vérification des services...$(NC)"
 	@printf "API Gateway:    " && curl --silent --fail http://localhost:8080/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Catalog:        " && curl --silent --fail http://localhost:8081/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
 	@printf "Cart:           " && curl --silent --fail http://localhost:8082/health > /dev/null && echo "$(GREEN)OK$(NC)" || echo "$(RED)FAIL$(NC)"
@@ -158,24 +158,24 @@ test: ## Verifie que tous les services sont operationnels
 
 test-purchase: ## Simule un achat complet
 	@echo "$(YELLOW)Simulation d'achat...$(NC)"
-	@echo "1. Recuperation produits..."
+	@echo "1. Récupération des produits..."
 	@PRODUCT=$$(curl --silent http://localhost:8080/api/products | jq '.[0]') && \
 	PRICE=$$(echo $$PRODUCT | jq --raw-output '.price') && \
-	echo "   Produit: $$(echo $$PRODUCT | jq --raw-output '.brand + " " + .name') ($$PRICE EUR)" && \
+	echo "   Produit : $$(echo $$PRODUCT | jq --raw-output '.brand + " " + .name') ($$PRICE EUR)" && \
 	echo "2. Ajout au panier..." && \
 	curl --silent --fail --request POST http://localhost:8080/api/cart/user-test/items \
 		--header "Content-Type: application/json" \
 		--data '{"product_id": 1, "quantity": 1}' > /dev/null && \
-	echo "3. Creation commande (le paiement est declenche par orders-service)..." && \
+	echo "3. Création de la commande (le paiement est déclenché par orders-service)..." && \
 	ORDER=$$(curl --silent --request POST http://localhost:8080/api/orders \
 		--header "Content-Type: application/json" \
 		--data '{"user_id": "user-test", "items": [{"product_id": 1, "quantity": 1}], "shipping_address": {"street": "1 rue de Rivoli", "city": "Paris", "postal_code": "75001", "country": "FR"}}') && \
 	if [ "$$(echo $$ORDER | jq --raw-output '.id // empty')" = "" ]; then \
-		echo "   $(RED)Echec: $$(echo $$ORDER | jq --compact-output '.detail')$(NC)"; exit 1; fi && \
-	echo "   Commande: $$(echo $$ORDER | jq --raw-output '.id')" && \
-	echo "   Statut:   $$(echo $$ORDER | jq --raw-output '.status')" && \
-	echo "   Total:    $$(echo $$ORDER | jq --raw-output '.total') EUR" && \
-	echo "$(GREEN)Achat simule avec succes$(NC)"
+		echo "   $(RED)Échec : $$(echo $$ORDER | jq --compact-output '.detail')$(NC)"; exit 1; fi && \
+	echo "   Commande : $$(echo $$ORDER | jq --raw-output '.id')" && \
+	echo "   Statut :   $$(echo $$ORDER | jq --raw-output '.status')" && \
+	echo "   Total :    $$(echo $$ORDER | jq --raw-output '.total') EUR" && \
+	echo "$(GREEN)Achat simulé avec succès$(NC)"
 
 # =============================================================================
 # URLs
@@ -188,11 +188,11 @@ urls: ## Affiche toutes les URLs de l'application fil rouge
 	@echo "    Boutique CapShop:   http://localhost:8080"
 	@echo "    Operations Console: http://localhost:8090"
 	@echo ""
-	@echo "  $(YELLOW)Observabilite$(NC)"
+	@echo "  $(YELLOW)Observabilité$(NC)"
 	@echo "    Grafana:            http://localhost:3000  (admin / GRAFANA_ADMIN_PASSWORD dans .env)"
 	@echo "    Prometheus:         http://localhost:9090"
 	@echo "    Alertmanager:       http://localhost:9093"
-	@echo "    Loki et Tempo:      internes au reseau Docker (via Grafana)"
+	@echo "    Loki et Tempo:      internes au réseau Docker (via Grafana)"
 	@echo ""
-	@echo "  $(YELLOW)Traffic$(NC)"
+	@echo "  $(YELLOW)Trafic$(NC)"
 	@echo "    Locust:             http://localhost:8089"

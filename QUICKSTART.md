@@ -4,7 +4,7 @@
 
 - Docker Engine 20.10+ et Compose v2
 - 4 Go de RAM disponibles pour Docker
-- Ports libres : 3000, 4317, 8080-8085, 8089, 8090, 8889, 9090, 9093
+- Ports libres : 3000, 4317, 8080-8086, 8089, 8090, 8889, 9090, 9093
 
 ### Installer Docker
 
@@ -17,7 +17,7 @@ wsl --install -d Ubuntu
 Puis, dans la distribution WSL, suivre les instructions Linux ci-dessous.
 
 Avec Docker Desktop : activer l'intégration WSL2 dans
-*Settings > Resources > WSL Intégration*.
+*Settings > Resources > WSL integration*.
 
 **Linux et WSL2 (Ubuntu/Debian)**
 
@@ -78,12 +78,15 @@ Première exécution : ~5 minutes (téléchargement des images)
 make test
 ```
 
+Loki et Tempo mettent environ une minute à démarrer : s'ils sont en `FAIL`
+juste après `./start.sh`, relancez `make test` un peu plus tard.
+
 ## 5. Configuration
 
 Au premier lancement, `./start.sh` crée le fichier `.env` à partir de
 `.env.example`, avec des valeurs aléatoires pour `POSTGRES_PASSWORD`,
 `JWT_SECRET` et `GRAFANA_ADMIN_PASSWORD`. Ce fichier reste sur le poste et
-n'est jamais commite.
+n'est jamais commité.
 
 Pour imposer vos propres valeurs, créez-le avant le premier lancement :
 
@@ -95,11 +98,11 @@ Les mots de passe PostgreSQL et Grafana ne sont lus qu'à l'initialisation des
 volumes. Pour les changer ensuite : `make clean`, modifier `.env`, puis
 `make start`.
 
-## 6. Premier exercice : Déclencher un incident
+## 6. Premier exercice : déclencher un incident
 
 ```bash
 # Via l'interface
-# Ouvrez http://localhost:8090 et cliquez sur "Payment Latency"
+# Ouvrez http://localhost:8090 et cliquez sur "Latence élevée du service de paiement"
 
 # Ou via CLI
 make incident-payment
@@ -190,7 +193,7 @@ docker compose logs postgres --tail 30
 ### Le schéma SQL a changé
 ```bash
 docker compose down
-docker volume rm sre_postgres-data   # le schema est rejoue au demarrage
+docker volume rm sre_postgres-data   # le schéma est rejoué au démarrage
 make start
 ```
 

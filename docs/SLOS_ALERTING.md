@@ -74,16 +74,20 @@ sum(rate(catalog_requests_total{status=~"5.."}[5m]))
 
 | SLI | SLO | Justification |
 |-----|-----|---------------|
-| Disponibilité | 99.95% | Très critique - revenus |
-| Latence P99 | < 500ms | Checkout peut être plus lent |
+| Disponibilité | 97% | Le prestataire externe échoue dans 2 % des cas : viser plus demande des retries |
+| Latence P99 | < 1s | L'appel au prestataire prend 100 à 500 ms |
 | Exactitude | 100% | Jamais de double charge |
+
+Mesurez ces SLIs sur `payment_requests_total{endpoint="/api/payments"}` :
+la gateway ne voit pas les paiements, qu'orders envoie directement à
+payment-service (voir le bonus 2.1).
 
 ### Service Orders
 
 | SLI | SLO | Justification |
 |-----|-----|---------------|
-| Disponibilité | 99.9% | Critique pour finaliser l'achat |
-| Latence P99 | < 1s | Création peut être plus lente |
+| Disponibilité | 97% | Chaque échec du prestataire de paiement fait échouer la commande (502) |
+| Latence P99 | < 1.5s | La commande inclut l'appel au paiement |
 | Durabilité | 99.99% | Ne pas perdre de commandes |
 
 ## Calcul de l'Error Budget
@@ -150,7 +154,7 @@ Burn Rate = Taux d'erreur actuel / Taux d'erreur autorisé
 
 L'approche classique utilise des alertes multi-fenêtres :
 
-| Type | Burn Rate | Fenêtre courte | Fenêtre longue | Urgence |
+| Type | Burn Rate | Fenêtre longue | Fenêtre courte | Urgence |
 |------|-----------|----------------|----------------|---------|
 | Fast Burn | 14.4× | 1h | 5m | Page immédiat |
 | Medium Burn | 6× | 6h | 30m | Page |
@@ -167,40 +171,40 @@ groups:
       - alert: SLOBurnRateFast
         expr: |
           (
-            sum(rate(gateway_requests_total{service="payment",status=~"5.."}[5m]))
-            / sum(rate(gateway_requests_total{service="payment"}[5m]))
+            sum(rate(gateway_requests_total{service="catalog",status=~"5.."}[5m]))
+            / sum(rate(gateway_requests_total{service="catalog"}[5m]))
           ) > (14.4 * 0.005)
           and
           (
-            sum(rate(gateway_requests_total{service="payment",status=~"5.."}[1h]))
-            / sum(rate(gateway_requests_total{service="payment"}[1h]))
+            sum(rate(gateway_requests_total{service="catalog",status=~"5.."}[1h]))
+            / sum(rate(gateway_requests_total{service="catalog"}[1h]))
           ) > (14.4 * 0.005)
         for: 2m
         labels:
           severity: critical
-          service: payment
+          service: catalog
         annotations:
-          summary: "Fast burn rate on Payment service"
+          summary: "Fast burn rate on Catalog service"
           description: "Error budget will be exhausted in < 2 days"
 
       # Slow Burn Alert (3x, épuisement en 10 jours)
       - alert: SLOBurnRateSlow
         expr: |
           (
-            sum(rate(gateway_requests_total{service="payment",status=~"5.."}[6h]))
-            / sum(rate(gateway_requests_total{service="payment"}[6h]))
+            sum(rate(gateway_requests_total{service="catalog",status=~"5.."}[6h]))
+            / sum(rate(gateway_requests_total{service="catalog"}[6h]))
           ) > (3 * 0.005)
           and
           (
-            sum(rate(gateway_requests_total{service="payment",status=~"5.."}[3d]))
-            / sum(rate(gateway_requests_total{service="payment"}[3d]))
+            sum(rate(gateway_requests_total{service="catalog",status=~"5.."}[3d]))
+            / sum(rate(gateway_requests_total{service="catalog"}[3d]))
           ) > (3 * 0.005)
         for: 1h
         labels:
           severity: warning
-          service: payment
+          service: catalog
         annotations:
-          summary: "Slow burn rate on Payment service"
+          summary: "Slow burn rate on Catalog service"
           description: "Error budget will be exhausted in < 10 days"
 ```
 
@@ -221,13 +225,13 @@ route:
   receiver: 'default'
   
   routes:
-    # Alertes critiques  page immédiat
+    # Alertes critiques : page immédiat
     - match:
         severity: critical
       receiver: 'pagerduty'
       continue: true
     
-    # Alertes SLO  équipe SRE
+    # Alertes SLO : équipe SRE
     - match_re:
         alertname: 'SLO.*'
       receiver: 'sre-team'
@@ -314,20 +318,25 @@ Pour le checkout :
 
 ### Étape 2 : Définir le SLO
 
-- **SLO** : 99% des checkouts réussis en < 3s sur 7 jours
+- **SLO** : 97% des checkouts réussis en < 3s sur 7 jours. Chaque échec
+  du prestataire de paiement (2 % des paiements) fait échouer la commande :
+  un objectif plus strict serait déjà dépassé hors incident.
 
 ### Étape 3 : Calculer l'Error Budget
 
-- Budget : 1% = 100.8 minutes/semaine
+- Budget : 3% = 302.4 minutes/semaine
 
 ### Étape 4 : Créer la requête PromQL
 
+Les 4xx (panier vide, par exemple) sont des erreurs du client : seules les
+5xx consomment le budget.
+
 ```promql
-# Checkouts réussis en < 3s
+# Checkouts sans erreur serveur
 sum(rate(orders_requests_total{
   endpoint="/api/orders",
   method="POST",
-  status="200"
+  status!~"5.."
 }[5m])) 
 / 
 sum(rate(orders_requests_total{
@@ -342,16 +351,16 @@ sum(rate(orders_requests_total{
 - alert: CheckoutSLOBreach
   expr: |
     (
-      sum(rate(orders_requests_total{endpoint="/api/orders",method="POST",status!="200"}[1h]))
+      sum(rate(orders_requests_total{endpoint="/api/orders",method="POST",status=~"5.."}[1h]))
       / sum(rate(orders_requests_total{endpoint="/api/orders",method="POST"}[1h]))
-    ) > 0.01
+    ) > 0.03
   for: 5m
   labels:
     severity: critical
     slo: checkout
   annotations:
     summary: "Checkout SLO breach"
-    description: "Checkout success rate below 99%"
+    description: "Checkout success rate below 97%"
 ```
 
 ### Étape 6 : Créer le dashboard
