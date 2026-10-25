@@ -37,28 +37,40 @@ Loki et Tempo n'ont pas d'interface propre : on les interroge depuis Grafana.
 ## Architecture
 
 ```
-                    +---------------------------------+
-                    |      API Gateway (:8080)        |
-                    |  Boutique CapShop + routage API |
-                    +----------------+----------------+
-                                     |
-     +---------------+---------------+---------------+---------------+
-     |               |               |               |               |
-     v               v               v               v               v
+                  +---------------------------------+     +--------------+
+Locust (:8089) -->|      API Gateway (:8080)        |- - >| Votre module |
+trafic simulé     |  Boutique CapShop + routage API |     |   (:8086)    |
+                  +----------------+----------------+     +----------+---+
+                                   |                                 :
+     +--------------+--------------+--------------+--------------+   :
+     |              |              |              |              |   :
+     v              v              v              v              v   v
 +----------+   +----------+   +----------+   +----------+   +----------+
-| Catalog  |   |   Cart   |   |  Users   |   |  Orders  |-->| Payment  |
-| (:8081)  |   | (:8082)  |   | (:8085)  |   | (:8083)  |   | (:8084)  |
-|          |   |  Redis   |   |   JWT    |   |          |   | Circuit  |
-|          |   |          |   |          |   |          |   | Breaker  |
-+-----+----+   +----------+   +-----+----+   +-----+----+   +----------+
-      |                             |              |
-      +-------------+---------------+--------------+
-                    v
-          +--------------------+        +----------------------+
-          | PostgreSQL (:5432) |        | Votre module (:8086) |
-          +--------------------+        |  Go, Python, autre   |
-                                        +----------------------+
+|  Users   |   |   Cart   |   |  Orders  |-->| Payment  |   | Catalog  |
+| (:8085)  |   | (:8082)  |   | (:8083)  |   | (:8084)  |   | (:8081)  |
+|   JWT    |   |          |   |          |   | Circuit  |   |          |
+|          |   |          |   |          |   | Breaker  |   |          |
++----+-----+   +----+-----+   +----+-----+   +----------+   +----+-----+
+     |              |              |                             |
+     |              v              |                             |
+     |        +-----------+        |                             |
+     |        |   Redis   |        |                             |
+     |        |  (:6379)  |        |                             |
+     |        +-----------+        |                             |
+     |                             |                             |
+     +-----------------------------+-----------------------------+
+                                   v
+                        +--------------------+   +----------------------------+
+                        | PostgreSQL (:5432) |<--| Operations Console (:8090) |
+                        +--------------------+   | chaos des 5 services       |
+                                                 +----------------------------+
 ```
+
+Les traits en pointillé ne concernent votre module que dans certains cas :
+la gateway l'appelle avec l'option `learnerService.shop` (toujours en mode
+local), et l'exemple `reviews-service` interroge catalog à partir de
+l'étape 3. Le schéma ne montre pas tous les appels entre services : les
+bonus 1 et 2 les font découvrir.
 
 | Donnée | Stockage |
 |---|---|
@@ -79,7 +91,7 @@ déploie, le surveille et collecte ses logs et ses traces comme les autres.
 ```
 +---------------------------------------------------------------------+
 |                          Grafana (:3000)                            |
-+-------------------------------+-------------------------------------+
++-------+-----------------------+-----------------------+-------------+
         |                       |                       |
         v                       v                       v
 +---------------+     +---------------+     +---------------+
@@ -90,7 +102,9 @@ déploie, le surveille et collecte ses logs et ses traces comme les autres.
         |               Promtail (logs        OTel Collector
         |               des pods)             (:4317, OTLP)
         v
-  Alertmanager, Blackbox, exporters Redis et PostgreSQL
+  scrape : /metrics des services et de la stack, Blackbox,
+           exporters Redis et PostgreSQL
+  alertes : Alertmanager --> Operations Console
 ```
 
 - **Métriques** : Prometheus scrape `/metrics` de chaque service.
