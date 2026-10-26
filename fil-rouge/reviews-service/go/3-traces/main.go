@@ -1,4 +1,4 @@
-// Avis produits CapShop, étape 3 : traces OpenTelemetry.
+// Avis produits ShopEasy, étape 3 : traces OpenTelemetry.
 package main
 
 import (
@@ -122,7 +122,7 @@ func measure(route string, next http.HandlerFunc) http.Handler {
 	return otelhttp.NewHandler(handler, route)
 }
 
-// productStatus interroge le catalogue CapShop sur l'existence d'un produit.
+// productStatus interroge le catalogue ShopEasy sur l'existence d'un produit.
 func productStatus(ctx context.Context, id int) (int, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
 		catalogURL+"/api/products/"+strconv.Itoa(id), nil)

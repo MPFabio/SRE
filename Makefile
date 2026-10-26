@@ -185,7 +185,7 @@ urls: ## Affiche toutes les URLs de l'application fil rouge
 	@echo "$(GREEN)Reskilling SRE - URLs$(NC)"
 	@echo ""
 	@echo "  $(YELLOW)Applications$(NC)"
-	@echo "    Boutique CapShop:   http://localhost:8080"
+	@echo "    Boutique ShopEasy:   http://localhost:8080"
 	@echo "    Operations Console: http://localhost:8090"
 	@echo ""
 	@echo "  $(YELLOW)Observabilité$(NC)"

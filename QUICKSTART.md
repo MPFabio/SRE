@@ -65,7 +65,7 @@ Première exécution : ~5 minutes (téléchargement des images)
 
 | Interface | URL | Credentials |
 |-----------|-----|-------------|
-| Boutique CapShop | http://localhost:8080 | - |
+| Boutique ShopEasy | http://localhost:8080 | - |
 | Operations Console | http://localhost:8090 | - |
 | Grafana | http://localhost:3000 | admin / mot de passe affiché par `./start.sh` |
 | Prometheus | http://localhost:9090 | - |

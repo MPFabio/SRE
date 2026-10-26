@@ -39,7 +39,7 @@ payment_request_duration_seconds_sum
 payment_request_duration_seconds_count
 ```
 
-Chaque service possède son propre préfixe : `gateway_*`, `catalog_*`, `cart_*`, `orders_*`, `payment_*`, `users_*`. Les services de CapShop n'ont pas de métrique générique `http_requests_total` ; votre module peut en avoir une, comme l'exemple `reviews-service`.
+Chaque service possède son propre préfixe : `gateway_*`, `catalog_*`, `cart_*`, `orders_*`, `payment_*`, `users_*`. Les services de ShopEasy n'ont pas de métrique générique `http_requests_total` ; votre module peut en avoir une, comme l'exemple `reviews-service`.
 
 #### Métriques métier
 

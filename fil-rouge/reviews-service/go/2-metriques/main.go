@@ -1,4 +1,4 @@
-// Avis produits CapShop, étape 2 : métriques Prometheus.
+// Avis produits ShopEasy, étape 2 : métriques Prometheus.
 package main
 
 import (

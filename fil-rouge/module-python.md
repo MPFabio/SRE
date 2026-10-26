@@ -1,6 +1,6 @@
 # Écrire votre module en Python (FastAPI), pas à pas
 
-Ce guide construit un module CapShop en trois étapes. Chaque étape se
+Ce guide construit un module ShopEasy en trois étapes. Chaque étape se
 déploie et fonctionne seule :
 
 | Étape | Ce que le module sait faire | Version prête à l'emploi |

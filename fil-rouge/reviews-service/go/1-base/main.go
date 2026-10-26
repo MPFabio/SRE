@@ -1,4 +1,4 @@
-// Avis produits CapShop, étape 1 : API et route de santé.
+// Avis produits ShopEasy, étape 1 : API et route de santé.
 package main
 
 import (

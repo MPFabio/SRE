@@ -1,6 +1,6 @@
 # Module fil rouge : brancher votre service
 
-Vous développez un module de CapShop, dans le langage et sur le métier de
+Vous développez un module de ShopEasy, dans le langage et sur le métier de
 votre choix : avis produits, livraison, fidélité, recommandations... L'application fil rouge
 l'accueille à côté des six services existants, et le surveille avec la même
 stack : Prometheus, Grafana, Loki, Tempo.
