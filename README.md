@@ -25,7 +25,7 @@ avec le nom de la VM à la place de `localhost` si vous passez par FoxyProxy
 
 | Service | URL | Rôle |
 |---------|-----|------|
-| Boutique CapShop | http://localhost:8080 | Le site e-commerce |
+| Boutique ShopEasy | http://localhost:8080 | Le site e-commerce |
 | Operations Console | http://localhost:8090 | Incidents, post-mortems, toil |
 | Grafana | http://localhost:3000 | Dashboards, Explore (logs et traces) |
 | Prometheus | http://localhost:9090 | Métriques et alertes |
@@ -39,7 +39,7 @@ Loki et Tempo n'ont pas d'interface propre : on les interroge depuis Grafana.
 ```
                   +---------------------------------+     +--------------+
 Locust (:8089) -->|      API Gateway (:8080)        |- - >| Votre module |
-trafic simulé     |  Boutique CapShop + routage API |     |   (:8086)    |
+trafic simulé     | Boutique ShopEasy + routage API  |     |   (:8086)    |
                   +----------------+----------------+     +----------+---+
                                    |                                 :
      +--------------+--------------+--------------+--------------+   :
@@ -157,7 +157,7 @@ kubectl exec -it statefulset/postgres -- psql --username=capshop --dbname=capsho
 │   └── reviews-service/       #   avis produits, en Python et en Go
 ├── microservices/
 │   ├── _shared/               # Socle commun aux 5 services métier
-│   ├── api-gateway/           # Boutique CapShop + routage (static/)
+│   ├── api-gateway/           # Boutique ShopEasy + routage (static/)
 │   ├── catalog-service/       # Produits (PostgreSQL)
 │   ├── cart-service/          # Panier (Redis)
 │   ├── orders-service/        # Commandes (PostgreSQL)

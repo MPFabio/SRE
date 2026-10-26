@@ -11,7 +11,7 @@ pratiques SRE. Faites ceux qui vous intéressent, à votre rythme : seuls les
 bonus 4 et 5 supposent d'avoir déclenché au moins un incident (bonus 3).
 Les aides et les réponses sont dans les blocs repliés.
 
-Contexte : vous êtes consultant SRE engagé pour auditer **CapShop**, une
+Contexte : vous êtes consultant SRE engagé pour auditer **ShopEasy**, une
 boutique e-commerce tech premium qui rencontre des problèmes de fiabilité.
 
 | Bonus | Thème |
@@ -50,7 +50,7 @@ Tous les pods doivent être `Running` et prêts (`1/1`).
 
 **Objectif** : Comprendre l'architecture et les flux de données
 
-### 1.1 Explorer la boutique CapShop
+### 1.1 Explorer la boutique ShopEasy
 
 1. Ouvrez http://localhost:8080
 2. Parcourez les catégories de produits

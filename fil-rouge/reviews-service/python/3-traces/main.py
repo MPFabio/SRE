@@ -1,4 +1,4 @@
-"""Avis produits CapShop, étape 3 : traces OpenTelemetry."""
+"""Avis produits ShopEasy, étape 3 : traces OpenTelemetry."""
 import logging
 import os
 import time

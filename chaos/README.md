@@ -30,7 +30,7 @@ d'avoir trouvé : il donne la réponse.
 | `memoire` | Le service ne démarre plus |
 | `image` | Le service ne démarre plus |
 | `port` | Le service démarre mais n'est jamais prêt |
-| `base` | Plusieurs services CapShop tombent en même temps |
+| `base` | Plusieurs services ShopEasy tombent en même temps |
 | `cache` | Le panier ne fonctionne plus |
 
 ## Diagnostiquer

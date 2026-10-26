@@ -1,7 +1,7 @@
 # Exercices du parcours - fil rouge
 
 Ces exercices sont ceux de la formation, aux transitions entre modules. Ils
-portent tous sur **votre module** : un service que vous ajoutez à CapShop,
+portent tous sur **votre module** : un service que vous ajoutez à ShopEasy,
 dans le langage et sur le métier de votre choix. Un exemple guidé est
 fourni à chaque étape ; suivez-le, adaptez-le ou faites autrement.
 
@@ -27,7 +27,7 @@ sont dans le dossier [bonus](bonus/README.md).
 | | Lancer les scripts de chaos | [P8](#p8--chaos--diagnostiquer-et-corriger) |
 | | Diagnostiquer et corriger | [P8](#p8--chaos--diagnostiquer-et-corriger) |
 
-Votre service FastAPI devient ici un module de CapShop. L'application fil rouge est
+Votre service FastAPI devient ici un module de ShopEasy. L'application fil rouge est
 nécessaire dès les métriques, pour les voir dans Prometheus et Grafana : le
 déploiement (P1 et P3) arrive donc avant le module Kubernetes, qui le
 reprend ensuite.
@@ -47,7 +47,7 @@ reprend ensuite.
 
 ## P1 : Installer l'application fil rouge
 
-**Objectif** : CapShop et sa stack d'observabilité tournent dans votre
+**Objectif** : ShopEasy et sa stack d'observabilité tournent dans votre
 namespace.
 
 Suivez [Installer l'application fil rouge dans EKS](../AWS_SECURE/README.md), étapes 1 à 8 :
@@ -68,7 +68,7 @@ Dépannage : tableau de l'étape 6 de l'installation.
 
 ## P2 : Écrire votre module
 
-**Objectif** : un service HTTP qui rend un service métier à CapShop, avec
+**Objectif** : un service HTTP qui rend un service métier à ShopEasy, avec
 un endpoint `/health`, construit en image Docker.
 
 1. Choisissez un métier : avis produits (l'exemple), estimation de
@@ -377,7 +377,7 @@ d'observabilité, la corriger et mesurer le temps que cela a pris.
 3. Corrigez avec `kubectl`, vérifiez le retour à la normale, puis lancez
    `bash chaos/rollback.sh` pour nettoyer.
 4. Recommencez avec d'autres scénarios, dont `base` et `cache`, qui
-   touchent CapShop plutôt que votre module.
+   touchent ShopEasy plutôt que votre module.
 
 Pour chaque panne, notez l'heure de la panne, de la première alerte, du
 diagnostic et du retour à la normale.

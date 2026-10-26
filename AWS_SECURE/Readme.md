@@ -213,7 +213,7 @@ dès que le tunnel est fermé.
 
 | Interface | Option A | Option B |
 |---|---|---|
-| Boutique CapShop | `http://localhost:8080` | `http://<nom de la VM>:8080` |
+| Boutique ShopEasy | `http://localhost:8080` | `http://<nom de la VM>:8080` |
 | Operations Console | `http://localhost:8090` | `http://<nom de la VM>:8090` |
 | Grafana | `http://localhost:3000` | `http://<nom de la VM>:3000` |
 | Prometheus | `http://localhost:9090` | `http://<nom de la VM>:9090` |
